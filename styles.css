@@ -52,6 +52,30 @@
 /* Smooth page transitions */
 .tab-content {
   animation: fadeSlideUp 0.25s ease-out;
+  width: 100%;
+  display: block !important;
+  min-height: auto;
+}
+
+/* Ensure flexbox layout works */
+.min-h-screen {
+  min-height: 100vh !important;
+}
+
+.flex {
+  display: flex !important;
+}
+
+.flex-col {
+  flex-direction: column !important;
+}
+
+.flex-1 {
+  flex: 1 1 0% !important;
+}
+
+.overflow-y-auto {
+  overflow-y: auto !important;
 }
 
 @keyframes fadeSlideUp {

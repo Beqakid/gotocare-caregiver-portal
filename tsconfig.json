@@ -1,19 +1,32 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
+    "target": "es2020",
+    "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
+    "noEmit": true,
     "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "/tmp/tasklet-deps/caregiver-portal-3883ea111dc1/node_modules/*"
+      ]
+    },
+    "typeRoots": [
+      "/tmp/tasklet-deps/caregiver-portal-3883ea111dc1/node_modules/@types"
+    ],
+    "types": [
+      "react",
+      "react-dom"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "./**/*.tsx",
+    "./**/*.ts",
+    "./**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

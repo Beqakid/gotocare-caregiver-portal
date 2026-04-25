@@ -1,0 +1,127 @@
+/* ═══ GoToCare Brand Colors (from landing page) ═══ */
+:root {
+  --purple-50: #f5f0ff;
+  --purple-100: #ede5ff;
+  --purple-200: #d4c4ff;
+  --purple-400: #9b6dff;
+  --purple-500: #7c3aed;
+  --purple-600: #6d28d9;
+  --purple-700: #5b21b6;
+  --purple-800: #4c1d95;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --gradient: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+  --gradient-soft: linear-gradient(135deg, #f5f0ff 0%, #eff6ff 100%);
+  --gradient-hero: linear-gradient(160deg, #1a1a2e 0%, #2d1b69 40%, #1e3a5f 100%);
+}
+
+/* Override DaisyUI theme for GoToCare purple/blue */
+[data-theme] {
+  --p: 258.6 90% 49.2%;      /* #7c3aed - main purple */
+  --pf: 258.6 91.3% 43.5%;   /* #6d28d9 - purple focus */
+  --pc: 0 0% 100%;           /* white on primary */
+  --s: 217.2 91.2% 59.8%;    /* #3b82f6 - blue secondary */
+  --sf: 217.2 91.2% 52.5%;   /* #2563eb - blue focus */
+  --sc: 0 0% 100%;
+  --a: 258.6 90% 49.2%;      /* accent = primary purple */
+  --af: 258.6 91.3% 43.5%;
+  --ac: 0 0% 100%;
+  --su: 168 76% 42%;         /* success teal */
+  --wa: 45 100% 72%;         /* warning amber */
+  --er: 0 72% 65%;           /* error red */
+  --b1: 240 20% 98%;         /* base-100 near white */
+  --b2: 240 14% 95%;         /* base-200 light gray */
+  --b3: 240 10% 90%;         /* base-300 */
+  --bc: 240 10% 16%;         /* base-content dark */
+  --n: 240 10% 20%;          /* neutral */
+  --nc: 0 0% 100%;
+  --rounded-btn: 0.75rem;
+  --rounded-box: 1rem;
+}
+
+/* Smooth page transitions */
+.tab-content {
+  animation: fadeSlideUp 0.25s ease-out;
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pull-to-refresh feel */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, oklch(var(--b2)) 25%, oklch(var(--b3)) 50%, oklch(var(--b2)) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Earnings gradient card + Login screen hero */
+.earnings-card {
+  background: linear-gradient(160deg, #1a1a2e 0%, #2d1b69 40%, #1e3a5f 100%);
+}
+
+/* Bottom nav safe area */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Request card swipe hint */
+.request-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.request-card:active {
+  transform: scale(0.98);
+}
+
+/* Status dot pulse */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Smooth bottom nav */
+.bottom-nav-item {
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+.bottom-nav-item:active {
+  transform: scale(0.9);
+}
+.bottom-nav-item.active {
+  color: oklch(var(--p));
+}
+
+/* Avatar ring */
+.avatar-ring {
+  box-shadow: 0 0 0 3px oklch(var(--p) / 0.3);
+}
+
+/* Card hover/press */
+.press-card {
+  transition: transform 0.15s ease;
+}
+.press-card:active {
+  transform: scale(0.98);
+}

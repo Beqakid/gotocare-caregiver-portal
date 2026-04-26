@@ -1,0 +1,66 @@
+name: Build & Deploy Caregiver Portal
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'components/**'
+      - 'utils/**'
+      - 'app.tsx'
+      - 'index.html'
+      - 'package.json'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build bundle with esbuild
+        run: npx esbuild app.tsx --bundle --outfile=bundle.js --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=tsx --external:react --external:react-dom --external:lucide-react
+      
+      - name: Verify bundle was created
+        run: |
+          if [ ! -f bundle.js ]; then
+            echo "ERROR: bundle.js not created!"
+            exit 1
+          fi
+          ls -lh bundle.js
+      
+      - name: Commit & push bundle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet bundle.js; then
+            echo "No changes to bundle.js, skipping commit"
+          else
+            git add bundle.js
+            git commit -m "🤖 Auto-rebuild bundle from components [skip ci]"
+            git push origin main
+          fi
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Cloudflare Pages auto-deploy
+        run: echo "✅ Bundle ready. Cloudflare Pages will auto-build."

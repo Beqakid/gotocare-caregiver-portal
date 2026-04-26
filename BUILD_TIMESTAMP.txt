@@ -1,0 +1,3 @@
+Rebuild triggered: 2026-04-26 14:09:00 UTC
+Purpose: Force GitHub Actions to rebuild bundle.js with swipe interface code
+Expected: RequestsTab shows single card per screen with left/right swipe gestures

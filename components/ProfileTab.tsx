@@ -9,11 +9,23 @@ interface ProfileTabProps {
   onUpdateProfile: (data: any) => void
 }
 
+// The canonical list of care needs — must stay in sync with the client portal
+const ALL_CARE_NEEDS = [
+  'Elder Care', 'Dementia Care', 'Alzheimer\'s Support', 'Wheelchair Assistance',
+  'Post-Surgery Recovery', 'Medication Management', 'Bathing & Grooming', 'Meal Preparation',
+  'Companionship', 'Transportation', 'Overnight Care', 'Physical Therapy Aid',
+  'Wound Care', 'Hospice Support', 'Mental Health Support', 'Feeding Assistance',
+  'Incontinence Care', 'Fall Prevention', 'Light Housekeeping', 'Errands & Shopping',
+  'Respiratory Care', 'Stroke Recovery', 'Disability Support',
+]
+
 export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, onLogout, onUpdateProfile }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
   const [editRate, setEditRate] = useState(String(profile?.hourlyRate || ''))
+  const [editingSkills, setEditingSkills] = useState(false)
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(profile?.skills || [])
 
   const handleToggleAvailability = () => {
     const newStatus = !isAvailable
@@ -27,6 +39,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, onLogout, onUpd
       hourlyRate: parseFloat(editRate) || profile?.hourlyRate,
     })
     setEditing(false)
+  }
+
+  const handleToggleSkill = (skill: string) => {
+    setSelectedSkills(prev =>
+      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    )
+  }
+
+  const handleSaveSkills = () => {
+    onUpdateProfile({ skills: selectedSkills })
+    setEditingSkills(false)
   }
 
   if (!profile) return null
@@ -164,19 +187,56 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, onLogout, onUpd
           )}
         </div>
 
-        {/* Skills */}
-        {profile.skills && profile.skills.length > 0 && (
-          <div className="bg-base-200 rounded-2xl p-4">
-            <p className="font-semibold text-sm text-base-content mb-2">Skills & Specializations</p>
+        {/* Skills & Specializations */}
+        <div className="bg-base-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-semibold text-sm text-base-content">Skills & Specializations</p>
+            <button
+              onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }}
+              className="btn btn-ghost btn-xs gap-1"
+            >
+              <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+
+          {editingSkills ? (
+            <div>
+              <p className="text-xs text-base-content/50 mb-3">Tap to select the care services you offer. Clients searching for these needs will find you.</p>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {ALL_CARE_NEEDS.map((need) => {
+                  const active = selectedSkills.includes(need)
+                  return (
+                    <button
+                      key={need}
+                      onClick={() => handleToggleSkill(need)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        active
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-base-100 text-base-content/60 border-base-300'
+                      }`}
+                    >
+                      {need}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setEditingSkills(false)} className="btn btn-ghost btn-sm flex-1">Cancel</button>
+                <button onClick={handleSaveSkills} className="btn btn-primary btn-sm flex-1">Save ({selectedSkills.length} selected)</button>
+              </div>
+            </div>
+          ) : (
             <div className="flex flex-wrap gap-1.5">
-              {profile.skills.map((skill, i) => (
-                <span key={i} className="badge badge-sm bg-primary/10 text-primary border-0 py-2.5">
+              {(profile.skills && profile.skills.length > 0) ? profile.skills.map((skill, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                   {skill}
                 </span>
-              ))}
+              )) : (
+                <p className="text-xs text-base-content/50">No skills added yet. Tap Edit to select care services you offer.</p>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Languages */}
         {profile.languages && profile.languages.length > 0 && (

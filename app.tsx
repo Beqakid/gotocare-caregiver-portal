@@ -14,7 +14,7 @@ import { BottomNav } from './components/BottomNav'
 // Demo care requests (until we build the real endpoint)
 const DEMO_REQUESTS: CareRequest[] = [
   {
-    id: 1, clientName: 'Sarah Mitchell', careType: 'In-Home Companion Care',
+    id: 1, clientName: 'Sarah Mitchell', careType: 'Dementia Care',
     description: 'Looking for a compassionate caregiver for my 82-year-old mother who has early-stage dementia. Needs help with meals, light activities, and companionship.',
     location: 'Buckhead, Atlanta', distance: '2.3 mi', schedule: 'Mon-Fri, 9am-1pm',
     hourlyRate: 24, weeklyHours: 20, weeklyEarnings: 480, matchScore: 95,
@@ -28,8 +28,8 @@ const DEMO_REQUESTS: CareRequest[] = [
     postedAt: new Date().toISOString(), status: 'pending', urgency: 'today'
   },
   {
-    id: 3, clientName: 'Emily Torres', careType: 'Elderly Care',
-    description: 'Seeking overnight caregiver for my father. Needs monitoring and occasional assistance.',
+    id: 3, clientName: 'Emily Torres', careType: 'Overnight Care',
+    description: 'Seeking overnight caregiver for my father. Needs monitoring and occasional assistance throughout the night.',
     location: 'Decatur, GA', distance: '6.5 mi', schedule: 'Weekends, 8pm-8am',
     hourlyRate: 22, weeklyHours: 24, weeklyEarnings: 528, matchScore: 78,
     postedAt: new Date().toISOString(), status: 'pending', urgency: 'flexible'
@@ -78,7 +78,7 @@ const App: React.FC<{}> = () => {
           phone: user.phone || '',
           status: 'active',
           hourlyRate: 25,
-          specializations: ['Companion Care', 'Elderly Care'],
+          skills: user.skills || ['Elder Care', 'Dementia Care', 'Companionship', 'Medication Management'],
           languages: ['English'],
           availability: 'available',
           rating: 4.8,

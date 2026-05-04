@@ -1,8 +1,9 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
-import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType } from './types'
+import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType, CaregiverDocument } from './types'
 import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
+import { getDocuments, refreshDocumentStatuses } from './utils/storage'
 import { LoginScreen } from './components/LoginScreen'
 import { HomeTab } from './components/HomeTab'
 import { ScheduleTab } from './components/ScheduleTab'
@@ -42,7 +43,6 @@ function mapBookingToRequest(b: any): CareRequest {
     ? `${b.preferredDate} at ${b.preferredTime}`
     : b.preferredDate || 'Schedule TBD'
 
-  // Rough urgency from date
   let urgency: 'today' | 'this_week' | 'flexible' = 'flexible'
   if (b.preferredDate) {
     const daysDiff = (new Date(b.preferredDate).getTime() - Date.now()) / (1000 * 86400)
@@ -81,6 +81,10 @@ const App: React.FC<{}> = () => {
   const [requests, setRequests] = useState<CareRequest[]>(DEMO_REQUESTS)
   const [usingDemoRequests, setUsingDemoRequests] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [documents, setDocuments] = useState<CaregiverDocument[]>(getDocuments())
+
+  // Refresh local documents
+  const refreshDocs = () => setDocuments(refreshDocumentStatuses())
 
   const loadData = useCallback(async (caregiverId: number) => {
     setLoading(true)
@@ -92,7 +96,6 @@ const App: React.FC<{}> = () => {
       ])
       if (shiftRes?.docs) setShifts(shiftRes.docs)
       if (tsRes?.docs) setTimesheets(tsRes.docs)
-      // Use real bookings if any exist, else keep demo
       if (bookingsRes?.bookings && bookingsRes.bookings.length > 0) {
         setRequests(bookingsRes.bookings.map(mapBookingToRequest))
         setUsingDemoRequests(false)
@@ -111,12 +114,13 @@ const App: React.FC<{}> = () => {
     const unlockedBookingId = params.get('booking_unlocked')
     const subscriptionSuccess = params.get('subscription')
     if (unlockedBookingId || subscriptionSuccess === 'success') {
-      // Refresh bookings to show newly unlocked data
       loadData(profile.id)
-      // Clean up URL
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [loggedIn, profile, loadData])
+
+  // Refresh document statuses on mount
+  useEffect(() => { refreshDocs() }, [])
 
   const handleLogin = async (email: string, password: string) => {
     setLoginError('')
@@ -125,25 +129,26 @@ const App: React.FC<{}> = () => {
       const result = await login(email, password)
       if (result.token && result.user) {
         const user = result.user
-        // Build profile from login response + defaults
         const cgProfile: CaregiverProfile = {
           id: user.id,
-          name: user.name || email.split('@')[0],
+          firstName: user.firstName || user.name?.split(' ')[0] || email.split('@')[0],
+          lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
           email: user.email || email,
           phone: user.phone || '',
           status: 'active',
           hourlyRate: 25,
           skills: user.skills || ['Elder Care', 'Dementia Care', 'Companionship', 'Medication Management'],
           languages: ['English'],
-          availability: 'available',
           rating: 4.8,
-          completedShifts: 47,
-          agency: user.agency,
+          totalJobs: 47,
+          totalReviews: 12,
+          bio: user.bio || '',
+          location: user.location || undefined,
+          profilePhoto: user.profilePhoto || undefined,
         }
         setProfile(cgProfile)
         setLoggedIn(true)
-        // Skip loading shifts/timesheets in preview to avoid long-token curl issues
-        // In production (Cloudflare Pages), fetch() works fine with long headers
+        refreshDocs()
         if (!window.tasklet?.runCommand) {
           await loadData(cgProfile.id)
         }
@@ -187,26 +192,16 @@ const App: React.FC<{}> = () => {
   }
 
   const handleAcceptRequest = async (requestId: number) => {
-    // Optimistic update
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'accepted' as const } : r))
     if (!usingDemoRequests) {
-      try {
-        await updateBookingStatus(requestId, 'accepted')
-      } catch (e) {
-        console.error('Failed to update booking status:', e)
-      }
+      try { await updateBookingStatus(requestId, 'accepted') } catch (e) { console.error(e) }
     }
   }
 
   const handleDeclineRequest = async (requestId: number) => {
-    // Optimistic update
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'declined' as const } : r))
     if (!usingDemoRequests) {
-      try {
-        await updateBookingStatus(requestId, 'declined')
-      } catch (e) {
-        console.error('Failed to update booking status:', e)
-      }
+      try { await updateBookingStatus(requestId, 'declined') } catch (e) { console.error(e) }
     }
   }
 
@@ -228,7 +223,6 @@ const App: React.FC<{}> = () => {
 
   return (
     <div className="min-h-screen bg-base-100 flex flex-col">
-      {/* Tab content */}
       <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
         <div className="tab-content max-w-lg mx-auto">
           {activeTab === 'home' && (
@@ -238,13 +232,17 @@ const App: React.FC<{}> = () => {
               timesheets={timesheets}
               requests={requests}
               loading={loading}
+              documents={documents}
               onNavigateToRequests={() => setActiveTab('requests')}
               onNavigateToSchedule={() => setActiveTab('schedule')}
+              onNavigateToEarnings={() => setActiveTab('earnings')}
+              onNavigateToProfile={() => setActiveTab('profile')}
               onClockIn={handleClockIn}
+              onTimerUpdate={refreshDocs}
             />
           )}
           {activeTab === 'schedule' && (
-            <ScheduleTab shifts={shifts} loading={loading} onClockIn={handleClockIn} />
+            <ScheduleTab shifts={shifts} loading={loading} onClockIn={handleClockIn} onTimerUpdate={refreshDocs} />
           )}
           {activeTab === 'requests' && (
             <RequestsTab
@@ -258,12 +256,17 @@ const App: React.FC<{}> = () => {
             <EarningsTab timesheets={timesheets} loading={loading} />
           )}
           {activeTab === 'profile' && (
-            <ProfileTab profile={profile} onLogout={handleLogout} onUpdateProfile={handleUpdateProfile} />
+            <ProfileTab
+              profile={profile}
+              documents={documents}
+              onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
+              onDocumentsChange={refreshDocs}
+            />
           )}
         </div>
       </div>
 
-      {/* Bottom navigation */}
       <BottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}

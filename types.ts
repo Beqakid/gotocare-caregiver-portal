@@ -66,7 +66,6 @@ export interface CareRequest {
   status: 'pending' | 'accepted' | 'declined'
   clientPhoto?: string
   urgency?: 'today' | 'this_week' | 'flexible'
-  // Real data fields
   caregiverId?: string | number
   isUnlocked?: boolean
 }
@@ -92,6 +91,74 @@ export interface Timesheet {
   hoursWorked?: number
   totalPay?: number
   status: 'clocked_in' | 'clocked_out' | 'approved' | 'paid'
+}
+
+// ---- NEW: Day-1 Value Tools ----
+
+export interface TimeEntry {
+  id: string
+  clientName: string
+  date: string
+  startTime: string
+  endTime?: string
+  duration?: number // minutes
+  hourlyRate: number
+  notes?: string
+  status: 'active' | 'completed'
+  createdAt: string
+}
+
+export interface CaregiverDocument {
+  id: string
+  name: string
+  type: 'certification' | 'license' | 'training' | 'background_check' | 'health' | 'insurance' | 'other'
+  expiryDate?: string
+  status: 'valid' | 'expiring_soon' | 'expired' | 'no_expiry'
+  addedAt: string
+  notes?: string
+}
+
+export interface Invoice {
+  id: string
+  invoiceNumber: string
+  clientName: string
+  clientEmail?: string
+  items: InvoiceItem[]
+  subtotal: number
+  tax?: number
+  total: number
+  status: 'draft' | 'sent' | 'paid' | 'overdue'
+  issueDate: string
+  dueDate: string
+  notes?: string
+  createdAt: string
+}
+
+export interface InvoiceItem {
+  description: string
+  hours: number
+  rate: number
+  amount: number
+}
+
+export interface PrivateClient {
+  id: string
+  name: string
+  phone?: string
+  email?: string
+  address?: string
+  careType?: string
+  hourlyRate: number
+  notes?: string
+  createdAt: string
+}
+
+export interface MileageEntry {
+  id: string
+  date: string
+  clientName: string
+  miles: number
+  notes?: string
 }
 
 export type TabType = 'home' | 'schedule' | 'requests' | 'earnings' | 'profile'

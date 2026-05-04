@@ -1,7 +1,8 @@
 // @ts-nocheck
 import React, { useState } from 'react'
-import { DollarSign, TrendingUp, Clock, CreditCard, ArrowUpRight } from 'lucide-react'
-import { Timesheet, Earning } from '../types'
+import { DollarSign, TrendingUp, Clock, CreditCard, FileText, Plus, Send, Download, Trash2, X, Calculator, Car } from 'lucide-react'
+import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
+import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
 
 interface EarningsTabProps {
   timesheets: Timesheet[]
@@ -9,12 +10,22 @@ interface EarningsTabProps {
 }
 
 export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading }) => {
+  const [view, setView] = useState<'overview' | 'invoices' | 'tax'>('overview')
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
+  const [invoices, setInvoices] = useState<Invoice[]>(getInvoices())
+  const [showCreate, setShowCreate] = useState(false)
 
-  // Calculate earnings from timesheets
+  // Invoice form state
+  const [invClient, setInvClient] = useState('')
+  const [invClientEmail, setInvClientEmail] = useState('')
+  const [invItems, setInvItems] = useState<InvoiceItem[]>([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+  const [invNotes, setInvNotes] = useState('')
+  const [invDueDays, setInvDueDays] = useState('30')
+
+  // Earnings calculations
   const now = new Date()
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const weekAgo = new Date(now.getTime() - 7 * 86400000)
+  const monthAgo = new Date(now.getTime() - 30 * 86400000)
 
   const filterByPeriod = (ts: Timesheet[]) => {
     if (period === 'all') return ts
@@ -22,28 +33,115 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     return ts.filter(t => new Date(t.date) >= cutoff)
   }
 
+  // Combine API timesheets + local time entries
+  const localEntries = getTimeEntries().filter(e => e.status === 'completed')
   const relevantTimesheets = filterByPeriod(timesheets)
-  const totalEarnings = relevantTimesheets.reduce((sum, t) => sum + (t.totalPay || 0), 0)
-  const totalHours = relevantTimesheets.reduce((sum, t) => sum + (t.hoursWorked || 0), 0)
+
+  const apiEarnings = relevantTimesheets.reduce((sum, t) => sum + (t.totalPay || 0), 0)
+  const apiHours = relevantTimesheets.reduce((sum, t) => sum + (t.hoursWorked || 0), 0)
+
+  const localFiltered = period === 'all' ? localEntries :
+    localEntries.filter(e => new Date(e.date) >= (period === 'week' ? weekAgo : monthAgo))
+  const localEarnings = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60) * e.hourlyRate, 0)
+  const localHours = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60), 0)
+
+  const totalEarnings = apiEarnings + localEarnings
+  const totalHours = apiHours + localHours
   const paidAmount = relevantTimesheets.filter(t => t.status === 'paid').reduce((sum, t) => sum + (t.totalPay || 0), 0)
+  const invoicePaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
   const pendingAmount = totalEarnings - paidAmount
 
-  // Simple daily earnings for the bar chart (last 7 days)
+  // Bar chart
   const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
     return d.toISOString().split('T')[0]
   })
-
   const dailyEarnings = last7Days.map(date => {
     const dayTs = timesheets.filter(t => t.date?.startsWith(date))
-    return {
-      date,
-      amount: dayTs.reduce((sum, t) => sum + (t.totalPay || 0), 0),
-      day: new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })
-    }
+    const dayLocal = localEntries.filter(e => e.date === date)
+    const amt = dayTs.reduce((s, t) => s + (t.totalPay || 0), 0) + dayLocal.reduce((s, e) => s + ((e.duration || 0) / 60) * e.hourlyRate, 0)
+    return { date, amount: amt, day: new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }) }
   })
   const maxDaily = Math.max(...dailyEarnings.map(d => d.amount), 1)
+
+  // Tax calculations
+  const yearStart = new Date(now.getFullYear(), 0, 1)
+  const allTimeEntries = getTimeEntries().filter(e => e.status === 'completed')
+  const ytdLocal = allTimeEntries.filter(e => new Date(e.date) >= yearStart)
+  const ytdLocalEarnings = ytdLocal.reduce((s, e) => s + ((e.duration || 0) / 60) * e.hourlyRate, 0)
+  const ytdApiEarnings = timesheets.filter(t => new Date(t.date) >= yearStart).reduce((s, t) => s + (t.totalPay || 0), 0)
+  const ytdTotal = ytdLocalEarnings + ytdApiEarnings
+  const mileageEntries = getMileageEntries()
+  const ytdMiles = mileageEntries.filter(m => new Date(m.date) >= yearStart).reduce((s, m) => s + m.miles, 0)
+  const mileageDeduction = ytdMiles * 0.67 // 2025 IRS rate
+  const estSelfEmploymentTax = ytdTotal * 0.153
+  const estIncomeTax = Math.max(0, ytdTotal - mileageDeduction) * 0.22 // rough 22% bracket
+
+  // Invoice helpers
+  const updateItem = (idx: number, field: string, val: any) => {
+    setInvItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item
+      const updated = { ...item, [field]: val }
+      updated.amount = updated.hours * updated.rate
+      return updated
+    }))
+  }
+
+  const addItem = () => setInvItems(prev => [...prev, { description: '', hours: 0, rate: 25, amount: 0 }])
+  const removeItem = (idx: number) => setInvItems(prev => prev.filter((_, i) => i !== idx))
+
+  const handleCreateInvoice = () => {
+    if (!invClient.trim() || invItems.every(i => i.amount === 0)) return
+    const subtotal = invItems.reduce((s, i) => s + i.amount, 0)
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + (parseInt(invDueDays) || 30))
+    const inv = addInvoice({
+      invoiceNumber: getNextInvoiceNumber(),
+      clientName: invClient.trim(),
+      clientEmail: invClientEmail || undefined,
+      items: invItems.filter(i => i.amount > 0),
+      subtotal,
+      total: subtotal,
+      status: 'draft',
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: dueDate.toISOString().split('T')[0],
+      notes: invNotes || undefined,
+    })
+    setInvoices(getInvoices())
+    setShowCreate(false)
+    setInvClient(''); setInvClientEmail(''); setInvNotes('')
+    setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+  }
+
+  const handleMarkPaid = (id: string) => {
+    updateInvoice(id, { status: 'paid' })
+    setInvoices(getInvoices())
+  }
+
+  const handleDeleteInvoice = (id: string) => {
+    deleteInvoice(id)
+    setInvoices(getInvoices())
+  }
+
+  // Auto-fill from recent time entries
+  const autoFillFromEntries = () => {
+    const recent = localEntries.slice(0, 5)
+    const clientGroups: Record<string, { hours: number; rate: number }> = {}
+    recent.forEach(e => {
+      if (!clientGroups[e.clientName]) clientGroups[e.clientName] = { hours: 0, rate: e.hourlyRate }
+      clientGroups[e.clientName].hours += (e.duration || 0) / 60
+    })
+    const items = Object.entries(clientGroups).map(([name, data]) => ({
+      description: `Care services - ${name}`,
+      hours: Math.round(data.hours * 100) / 100,
+      rate: data.rate,
+      amount: Math.round(data.hours * data.rate * 100) / 100,
+    }))
+    if (items.length > 0) {
+      setInvItems(items)
+      if (!invClient) setInvClient(Object.keys(clientGroups)[0] || '')
+    }
+  }
 
   if (loading) {
     return (
@@ -60,115 +158,302 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
         <h1 className="text-xl font-bold text-base-content">Earnings</h1>
       </div>
 
-      {/* Period selector */}
-      <div className="px-4 flex gap-2 mb-4">
+      {/* View tabs */}
+      <div className="px-4 flex gap-2 mb-4 overflow-x-auto no-scrollbar">
         {[
-          { key: 'week' as const, label: 'This Week' },
-          { key: 'month' as const, label: 'This Month' },
-          { key: 'all' as const, label: 'All Time' },
-        ].map(p => (
-          <button
-            key={p.key}
-            className={`btn btn-sm rounded-full ${period === p.key ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setPeriod(p.key)}
-          >
-            {p.label}
-          </button>
+          { key: 'overview' as const, label: 'Overview' },
+          { key: 'invoices' as const, label: `Invoices (${invoices.length})` },
+          { key: 'tax' as const, label: 'Tax & Deductions' },
+        ].map(t => (
+          <button key={t.key}
+            className={`btn btn-sm rounded-full whitespace-nowrap ${view === t.key ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setView(t.key)}
+          >{t.label}</button>
         ))}
       </div>
 
-      <div className="px-4 space-y-4">
-        {/* Earnings summary card */}
-        <div className="earnings-card rounded-2xl p-5 text-white">
-          <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total Earnings</p>
-          <p className="text-4xl font-bold mt-1">${totalEarnings.toFixed(2)}</p>
-          <div className="flex gap-4 mt-3">
-            <div className="flex items-center gap-1.5">
-              <Clock size={12} className="text-white/85" />
-              <span className="text-sm text-white/90">{totalHours.toFixed(1)} hrs</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <DollarSign size={12} className="text-white/85" />
-              <span className="text-sm text-white/90">${totalHours > 0 ? (totalEarnings / totalHours).toFixed(0) : 0}/hr avg</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Paid vs Pending */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                <CreditCard size={16} className="text-success" />
-              </div>
-            </div>
-            <p className="text-lg font-bold text-base-content">${paidAmount.toFixed(0)}</p>
-            <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Paid</p>
-          </div>
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock size={16} className="text-warning" />
-              </div>
-            </div>
-            <p className="text-lg font-bold text-base-content">${pendingAmount.toFixed(0)}</p>
-            <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Pending</p>
-          </div>
-        </div>
-
-        {/* Bar chart */}
-        <div className="bg-base-200 rounded-2xl p-4">
-          <p className="text-sm font-semibold text-base-content mb-4">Last 7 Days</p>
-          <div className="flex items-end gap-2 h-28">
-            {dailyEarnings.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] text-base-content/70 font-medium">
-                  {d.amount > 0 ? `$${d.amount.toFixed(0)}` : ''}
-                </span>
-                <div
-                  className="w-full rounded-t-lg bg-primary/85 min-h-[4px] transition-all"
-                  style={{ height: `${(d.amount / maxDaily) * 80}px` }}
-                />
-                <span className="text-[10px] text-base-content/60">{d.day}</span>
-              </div>
+      {/* ---- OVERVIEW ---- */}
+      {view === 'overview' && (
+        <div className="px-4 space-y-4">
+          {/* Period selector */}
+          <div className="flex gap-2">
+            {[
+              { key: 'week' as const, label: 'This Week' },
+              { key: 'month' as const, label: 'This Month' },
+              { key: 'all' as const, label: 'All Time' },
+            ].map(p => (
+              <button key={p.key}
+                className={`btn btn-sm rounded-full ${period === p.key ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setPeriod(p.key)}
+              >{p.label}</button>
             ))}
           </div>
-        </div>
 
-        {/* Recent payments */}
-        <div>
-          <p className="text-sm font-semibold text-base-content mb-3">Recent Activity</p>
-          {relevantTimesheets.length === 0 ? (
-            <p className="text-sm text-base-content/65 text-center py-6">No activity in this period</p>
+          {/* Earnings summary */}
+          <div className="earnings-card rounded-2xl p-5 text-white">
+            <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total Earnings</p>
+            <p className="text-4xl font-bold mt-1">${totalEarnings.toFixed(2)}</p>
+            <div className="flex gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <Clock size={12} className="text-white/85" />
+                <span className="text-sm text-white/90">{totalHours.toFixed(1)} hrs</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <DollarSign size={12} className="text-white/85" />
+                <span className="text-sm text-white/90">${totalHours > 0 ? (totalEarnings / totalHours).toFixed(0) : 0}/hr avg</span>
+              </div>
+            </div>
+            {localEarnings > 0 && (
+              <p className="text-white/70 text-[10px] mt-2">Includes ${localEarnings.toFixed(0)} from time tracker</p>
+            )}
+          </div>
+
+          {/* Paid vs Pending */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-base-200 rounded-2xl p-4">
+              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+                <CreditCard size={16} className="text-success" />
+              </div>
+              <p className="text-lg font-bold text-base-content">${(paidAmount + invoicePaid).toFixed(0)}</p>
+              <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Collected</p>
+            </div>
+            <div className="bg-base-200 rounded-2xl p-4">
+              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
+                <Clock size={16} className="text-warning" />
+              </div>
+              <p className="text-lg font-bold text-base-content">${pendingAmount.toFixed(0)}</p>
+              <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Pending</p>
+            </div>
+          </div>
+
+          {/* Bar chart */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-base-content mb-4">Last 7 Days</p>
+            <div className="flex items-end gap-2 h-28">
+              {dailyEarnings.map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-[9px] text-base-content/70 font-medium">
+                    {d.amount > 0 ? `$${d.amount.toFixed(0)}` : ''}
+                  </span>
+                  <div className="w-full rounded-t-lg bg-primary/85 min-h-[4px] transition-all"
+                    style={{ height: `${(d.amount / maxDaily) * 80}px` }} />
+                  <span className="text-[10px] text-base-content/60">{d.day}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick invoice CTA */}
+          <button onClick={() => { setView('invoices'); setShowCreate(true) }}
+            className="btn btn-outline btn-primary w-full gap-2 rounded-2xl">
+            <FileText size={18} /> Create Invoice
+          </button>
+        </div>
+      )}
+
+      {/* ---- INVOICES VIEW ---- */}
+      {view === 'invoices' && (
+        <div className="px-4 space-y-4">
+          <button onClick={() => setShowCreate(true)} className="btn btn-primary w-full gap-2 rounded-2xl">
+            <Plus size={18} /> Create New Invoice
+          </button>
+
+          {showCreate && (
+            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-bold text-sm">New Invoice</p>
+                <button onClick={() => setShowCreate(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+              </div>
+
+              <div className="space-y-3">
+                <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                  value={invClient} onChange={e => setInvClient(e.target.value)} />
+                <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                  value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+
+                {localEntries.length > 0 && (
+                  <button onClick={autoFillFromEntries} className="btn btn-ghost btn-xs gap-1 text-primary">
+                    <Clock size={12} /> Auto-fill from time tracker
+                  </button>
+                )}
+
+                {/* Line items */}
+                <div className="space-y-2">
+                  {invItems.map((item, i) => (
+                    <div key={i} className="bg-base-100 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <input type="text" className="input input-bordered input-xs flex-1 mr-2" placeholder="Description"
+                          value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} />
+                        {invItems.length > 1 && (
+                          <button onClick={() => removeItem(i)} className="btn btn-ghost btn-xs btn-circle"><X size={12} /></button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] text-base-content/60">Hours</label>
+                          <input type="number" step="0.25" className="input input-bordered input-xs w-full"
+                            value={item.hours || ''} onChange={e => updateItem(i, 'hours', parseFloat(e.target.value) || 0)} />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] text-base-content/60">Rate</label>
+                          <input type="number" className="input input-bordered input-xs w-full"
+                            value={item.rate || ''} onChange={e => updateItem(i, 'rate', parseFloat(e.target.value) || 0)} />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] text-base-content/60">Amount</label>
+                          <p className="text-sm font-bold text-base-content pt-1">${item.amount.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={addItem} className="btn btn-ghost btn-xs gap-1">
+                    <Plus size={12} /> Add Line Item
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-base-100 rounded-xl p-3">
+                  <span className="font-semibold text-sm">Total</span>
+                  <span className="font-bold text-lg text-primary">${invItems.reduce((s, i) => s + i.amount, 0).toFixed(2)}</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-base-content/60">Due in (days)</label>
+                    <input type="number" className="input input-bordered input-xs w-full"
+                      value={invDueDays} onChange={e => setInvDueDays(e.target.value)} />
+                  </div>
+                </div>
+
+                <textarea className="textarea textarea-bordered w-full text-sm" rows={2} placeholder="Notes (optional)"
+                  value={invNotes} onChange={e => setInvNotes(e.target.value)} />
+
+                <button onClick={handleCreateInvoice} className="btn btn-primary btn-sm w-full gap-1">
+                  <FileText size={14} /> Create Invoice
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Invoice list */}
+          {invoices.length === 0 && !showCreate ? (
+            <div className="text-center py-10">
+              <FileText size={36} className="mx-auto opacity-20 mb-2" />
+              <p className="text-sm text-base-content/60">No invoices yet</p>
+              <p className="text-xs text-base-content/40 mt-1">Create professional invoices for your private clients</p>
+            </div>
           ) : (
             <div className="space-y-2">
-              {relevantTimesheets.slice(0, 10).map(ts => (
-                <div key={ts.id} className="bg-base-200 rounded-xl p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${ts.status === 'paid' ? 'bg-success/10' : 'bg-base-300'}`}>
-                      <DollarSign size={14} className={ts.status === 'paid' ? 'text-success' : 'opacity-60'} />
-                    </div>
+              {invoices.map(inv => (
+                <div key={inv.id} className="bg-base-200 rounded-2xl p-4 press-card">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-medium text-base-content">
-                        {ts.hoursWorked?.toFixed(1) || '0'} hours
-                      </p>
-                      <p className="text-[10px] text-base-content/65">
-                        {new Date(ts.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm text-base-content">{inv.clientName}</p>
+                        <span className={`badge badge-xs ${
+                          inv.status === 'paid' ? 'badge-success' : inv.status === 'sent' ? 'badge-info' : inv.status === 'overdue' ? 'badge-error' : 'badge-ghost'
+                        }`}>{inv.status}</span>
+                      </div>
+                      <p className="text-xs text-base-content/60 mt-0.5">{inv.invoiceNumber} · Due {inv.dueDate}</p>
+                      <p className="text-xs text-base-content/50 mt-0.5">
+                        {inv.items.length} item{inv.items.length > 1 ? 's' : ''} · {inv.items.reduce((s, i) => s + i.hours, 0)}h
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-base-content">${(ts.totalPay || 0).toFixed(2)}</p>
-                    <span className={`text-[10px] ${ts.status === 'paid' ? 'text-success' : 'text-base-content/60'}`}>
-                      {ts.status}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-base-content">${inv.total.toFixed(2)}</p>
+                      <div className="flex gap-1 mt-1">
+                        {inv.status !== 'paid' && (
+                          <button onClick={() => handleMarkPaid(inv.id)} className="btn btn-success btn-xs gap-1">
+                            <DollarSign size={10} /> Paid
+                          </button>
+                        )}
+                        <button onClick={() => handleDeleteInvoice(inv.id)} className="btn btn-ghost btn-xs opacity-40">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* ---- TAX & DEDUCTIONS VIEW ---- */}
+      {view === 'tax' && (
+        <div className="px-4 space-y-4">
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/10">
+            <div className="flex items-center gap-2 mb-3">
+              <Calculator size={20} className="text-primary" />
+              <h3 className="font-bold text-sm text-base-content">{now.getFullYear()} Tax Summary</h3>
+            </div>
+            <p className="text-xs text-base-content/60 mb-4">Estimated figures — consult a tax professional</p>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-base-content/70">YTD Gross Income</span>
+                <span className="font-bold text-base-content">${ytdTotal.toFixed(0)}</span>
+              </div>
+              <div className="h-px bg-base-300" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Car size={14} className="text-base-content/50" />
+                  <span className="text-sm text-base-content/70">Mileage ({ytdMiles.toFixed(0)} mi × $0.67)</span>
+                </div>
+                <span className="font-medium text-success">-${mileageDeduction.toFixed(0)}</span>
+              </div>
+              <div className="h-px bg-base-300" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-base-content/70">Est. Self-Employment Tax (15.3%)</span>
+                <span className="font-medium text-error">${estSelfEmploymentTax.toFixed(0)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-base-content/70">Est. Income Tax (~22%)</span>
+                <span className="font-medium text-error">${estIncomeTax.toFixed(0)}</span>
+              </div>
+              <div className="h-px bg-base-300" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-base-content">Est. Net After Tax</span>
+                <span className="font-bold text-lg text-base-content">
+                  ${(ytdTotal - estSelfEmploymentTax - estIncomeTax).toFixed(0)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-base-200 rounded-2xl p-4">
+            <p className="font-semibold text-sm text-base-content mb-2">Quarterly Tax Reminder</p>
+            <p className="text-xs text-base-content/60">
+              As an independent caregiver, you may need to pay estimated taxes quarterly.
+              Set aside ~{Math.round(((estSelfEmploymentTax + estIncomeTax) / Math.max(ytdTotal, 1)) * 100)}% of each payment.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {[
+                { q: 'Q1', due: 'Apr 15', passed: now.getMonth() >= 3 },
+                { q: 'Q2', due: 'Jun 15', passed: now.getMonth() >= 5 },
+                { q: 'Q3', due: 'Sep 15', passed: now.getMonth() >= 8 },
+                { q: 'Q4', due: 'Jan 15', passed: false },
+              ].map(q => (
+                <div key={q.q} className={`rounded-xl p-2 text-center text-xs ${q.passed ? 'bg-base-300 opacity-60' : 'bg-primary/10'}`}>
+                  <span className="font-semibold">{q.q}</span> · Due {q.due}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-base-200 rounded-2xl p-4">
+            <p className="font-semibold text-sm text-base-content mb-2">Common Deductions for Caregivers</p>
+            <ul className="text-xs text-base-content/70 space-y-1.5">
+              <li>🚗 Mileage: $0.67/mile for work travel (tracked above)</li>
+              <li>📱 Phone & internet (% used for work)</li>
+              <li>👔 Scrubs, uniforms, PPE</li>
+              <li>📚 Training & certification costs</li>
+              <li>🏥 Professional liability insurance</li>
+              <li>💼 Professional association dues</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

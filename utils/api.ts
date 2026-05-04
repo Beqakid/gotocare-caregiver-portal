@@ -30,6 +30,7 @@ async function apiFetch(endpoint: string, options?: RequestInit): Promise<any> {
   return res.json()
 }
 
+// ── Payload CMS auth (agency caregivers) ──
 export async function login(email: string, password: string): Promise<any> {
   const data = await apiFetch('/api/users/login', {
     method: 'POST',
@@ -39,6 +40,42 @@ export async function login(email: string, password: string): Promise<any> {
   return data
 }
 
+// ── Marketplace caregiver auth ──
+export async function marketplaceRegister(name: string, email: string, password: string): Promise<any> {
+  return apiFetch('/api/caregiver-register', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password }),
+  })
+}
+
+export async function marketplaceLogin(email: string, password: string): Promise<any> {
+  return apiFetch('/api/caregiver-login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+}
+
+export async function googleAuth(credential: string): Promise<any> {
+  return apiFetch('/api/caregiver-auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential }),
+  })
+}
+
+export async function validateMarketplaceToken(token: string): Promise<any> {
+  const url = `${API_BASE}/api/caregiver-account?token=${token}`
+  const res = await fetch(url)
+  return res.json()
+}
+
+export async function saveCaregiverSetup(token: string, zipCode: string, careTypes: string[]): Promise<any> {
+  return apiFetch('/api/caregiver-setup', {
+    method: 'POST',
+    body: JSON.stringify({ token, zipCode, careTypes }),
+  })
+}
+
+// ── Existing endpoints ──
 export async function fetchCaregiverProfile(email: string): Promise<any> {
   return apiFetch(`/api/caregivers?where[email][equals]=${encodeURIComponent(email)}&depth=0`)
 }
@@ -83,14 +120,6 @@ export async function updateProfile(caregiverId: number, data: any): Promise<any
   })
 }
 
-export function getToken() {
-  return authToken
-}
-
-export function setToken(token: string) {
-  authToken = token
-}
-
-export function clearAuth() {
-  authToken = ''
-}
+export function getToken() { return authToken }
+export function setToken(token: string) { authToken = token }
+export function clearAuth() { authToken = '' }

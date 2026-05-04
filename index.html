@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#7c3aed" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Google OAuth Client ID — replace CONFIGURE_ME with your Client ID once available -->
+    <meta name="google-client-id" content="CONFIGURE_ME" />
     <title>GoToCare — Caregiver Portal</title>
 
     <!-- Google Fonts: Inter -->
@@ -93,6 +95,9 @@
     <!-- Tailwind v4 browser -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
+    <!-- Google Identity Services (for Google Sign-In) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <!-- Auto dark/light theme detection -->
     <script>
       (function() {
@@ -106,11 +111,6 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <!-- React + ReactDOM from jsDelivr -->
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <!-- Lucide React Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="bundle.js"></script>
   </body>
 </html>

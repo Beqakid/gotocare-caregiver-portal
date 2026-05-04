@@ -31,7 +31,7 @@ jobs:
         run: npm ci
       
       - name: Build bundle with esbuild
-        run: npx esbuild app.tsx --bundle --outfile=bundle.js --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=tsx --external:react --external:react-dom --external:lucide-react
+        run: npx esbuild app.tsx --bundle --outfile=bundle.js --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=tsx
       
       - name: Verify bundle was created
         run: |

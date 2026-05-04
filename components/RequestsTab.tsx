@@ -213,25 +213,27 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                           <button
                             onClick={() => handleUnlock(req, 'single')}
                             disabled={unlockLoading === req.id}
-                            className="btn btn-sm btn-outline btn-primary rounded-xl flex flex-col h-auto py-2.5 gap-0.5"
+                            style={{background:'rgba(255,255,255,0.12)', border:'1.5px solid rgba(124,58,237,0.7)', color:'#fff'}}
+                            className="btn btn-sm rounded-xl flex flex-col h-auto py-2.5 gap-0.5 hover:opacity-90"
                           >
                             {unlockLoading === req.id ? (
                               <span className="loading loading-spinner loading-xs" />
                             ) : (
                               <>
-                                <span className="text-xs font-bold">Unlock Once</span>
-                                <span className="text-xs opacity-70 font-normal">$4.99</span>
+                                <span className="text-xs font-bold text-white">Unlock Once</span>
+                                <span className="text-xs text-white/80 font-normal">$4.99</span>
                               </>
                             )}
                           </button>
                           <button
                             onClick={() => handleUnlock(req, 'unlimited')}
                             disabled={unlockLoading === req.id}
-                            className="btn btn-sm btn-primary rounded-xl flex flex-col h-auto py-2.5 gap-0.5"
+                            style={{background:'linear-gradient(135deg,#7c3aed,#3b82f6)', color:'#fff', border:'none'}}
+                            className="btn btn-sm rounded-xl flex flex-col h-auto py-2.5 gap-0.5 hover:opacity-90"
                           >
                             <>
-                              <span className="text-xs font-bold">Unlimited Plan</span>
-                              <span className="text-xs opacity-80 font-normal">$19.99/mo</span>
+                              <span className="text-xs font-bold text-white">Unlimited Plan</span>
+                              <span className="text-xs text-white/80 font-normal">$19.99/mo</span>
                             </>
                           </button>
                         </div>

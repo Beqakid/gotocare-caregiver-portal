@@ -33,9 +33,9 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
   const acceptedRequests = requests.filter(r => r.status === 'accepted')
 
   const urgencyBadge = (urgency?: string) => {
-    if (urgency === 'today') return { text: '🔴 Needs Today', cls: 'bg-error/15 text-error border border-error/30' }
-    if (urgency === 'this_week') return { text: '🟡 This Week', cls: 'bg-warning/15 text-warning border border-warning/30' }
-    return { text: '🟢 Flexible', cls: 'bg-success/15 text-success border border-success/30' }
+    if (urgency === 'today') return { text: '🔴 Needs Today', cls: 'bg-red-500/20 text-red-400 border border-red-400/50' }
+    if (urgency === 'this_week') return { text: '🟡 This Week', cls: 'bg-amber-400/20 text-amber-300 border border-amber-300/50' }
+    return { text: '🟢 Flexible', cls: 'bg-emerald-400/20 text-emerald-400 border border-emerald-400/50' }
   }
 
   const handleUnlock = async (req: CareRequest, planType: 'single' | 'unlimited') => {
@@ -82,7 +82,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
         <Heart size={56} className="mx-auto opacity-20 mb-4" />
         <h2 className="text-lg font-bold text-base-content">No Interview Requests Yet</h2>
         <p className="text-sm text-base-content/60 mt-2">Clients will send interview requests when they shortlist you.</p>
-        <p className="text-xs text-base-content/40 mt-1">Make sure your profile is complete to get discovered!</p>
+        <p className="text-xs text-base-content/65 mt-1">Make sure your profile is complete to get discovered!</p>
       </div>
     )
   }
@@ -100,7 +100,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
         {/* Earnings hint */}
         {pendingRequests.length > 0 && (
           <div className="text-right">
-            <div className="text-xs text-base-content/50">Potential</div>
+            <div className="text-xs text-base-content/70">Potential</div>
             <div className="text-base font-bold text-success">
               ${pendingRequests.reduce((s, r) => s + (r.hourlyRate || 28) * 4, 0)}/wk
             </div>
@@ -111,7 +111,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
       {/* Pending requests */}
       {pendingRequests.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-base-content/50 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-base-content/70 uppercase tracking-wider mb-3">
             Pending ({pendingRequests.length})
           </h2>
           <div className="flex flex-col gap-3">
@@ -144,8 +144,8 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                             <p className="text-sm text-base-content/70">{req.clientName}</p>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <Lock size={12} className="text-base-content/40" />
-                              <p className="text-sm text-base-content/40 blur-sm select-none">
+                              <Lock size={12} className="text-base-content/65" />
+                              <p className="text-sm text-base-content/65 blur-sm select-none">
                                 {req.clientName || 'Client Name'}
                               </p>
                             </div>
@@ -159,25 +159,25 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
 
                     {/* Details grid */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2">
+                      <div className="bg-base-300/60 rounded-xl p-2.5 flex items-center gap-2">
                         <MapPin size={14} className="text-primary shrink-0" />
                         <div>
-                          <p className="text-xs text-base-content/50">Location</p>
+                          <p className="text-xs text-base-content/70">Location</p>
                           <p className="text-sm font-medium">{req.location}</p>
                         </div>
                       </div>
-                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2">
+                      <div className="bg-base-300/60 rounded-xl p-2.5 flex items-center gap-2">
                         <DollarSign size={14} className="text-success shrink-0" />
                         <div>
-                          <p className="text-xs text-base-content/50">Rate</p>
+                          <p className="text-xs text-base-content/70">Rate</p>
                           <p className="text-sm font-bold text-success">${req.hourlyRate}/hr</p>
                         </div>
                       </div>
                       {/* Schedule — blurred unless unlocked */}
-                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2 col-span-2">
+                      <div className="bg-base-300/60 rounded-xl p-2.5 flex items-center gap-2 col-span-2">
                         <Clock size={14} className="text-primary shrink-0" />
                         <div className="flex-1">
-                          <p className="text-xs text-base-content/50">Interview Time</p>
+                          <p className="text-xs text-base-content/70">Interview Time</p>
                           {unlocked ? (
                             <p className="text-sm font-medium">{req.schedule}</p>
                           ) : (
@@ -200,13 +200,13 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                     {/* ── LOCKED STATE ── */}
                     {!unlocked ? (
                       <div className="mt-3">
-                        <div className="bg-primary/8 border border-primary/20 rounded-xl p-3 mb-3 flex items-center gap-3">
+                        <div className="bg-violet-500/15 border border-violet-400/30 rounded-xl p-3 mb-3 flex items-center gap-3">
                           <div className="bg-primary/15 p-2 rounded-lg">
                             <Lock size={16} className="text-primary" />
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-base-content">Unlock full details</p>
-                            <p className="text-xs text-base-content/60">See date, time & client info to respond</p>
+                            <p className="text-xs text-base-content/75">See date, time & client info to respond</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -239,14 +239,14 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                     ) : (
                       /* ── UNLOCKED STATE ── */
                       <div className="mt-3">
-                        <div className="bg-success/8 border border-success/25 rounded-xl p-2.5 mb-3 flex items-center gap-2">
+                        <div className="bg-emerald-400/15 border border-emerald-400/40 rounded-xl p-2.5 mb-3 flex items-center gap-2">
                           <Unlock size={14} className="text-success" />
                           <p className="text-xs font-semibold text-success">Details unlocked — respond to this request</p>
                         </div>
                         {req.description && !expanded && (
                           <button
                             onClick={() => setExpandedId(expanded ? null : req.id)}
-                            className="flex items-center gap-1 text-xs text-base-content/50 mb-3"
+                            className="flex items-center gap-1 text-xs text-base-content/70 mb-3"
                           >
                             <ChevronRight size={12} /> View care details
                           </button>
@@ -278,18 +278,18 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
       {/* Confirmed/accepted requests */}
       {acceptedRequests.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-base-content/50 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-base-content/70 uppercase tracking-wider mb-3">
             Confirmed ({acceptedRequests.length})
           </h2>
           <div className="flex flex-col gap-3">
             {acceptedRequests.map(req => (
-              <div key={req.id} className="bg-success/8 border border-success/25 rounded-2xl p-4 flex items-center gap-3">
+              <div key={req.id} className="bg-emerald-400/15 border border-emerald-400/40 rounded-2xl p-4 flex items-center gap-3">
                 <div className="bg-success/15 p-2.5 rounded-xl">
                   <Check size={18} className="text-success" />
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-base-content text-sm">{req.careType}</p>
-                  <p className="text-xs text-base-content/60">{req.clientName} · {req.schedule}</p>
+                  <p className="text-xs text-base-content/75">{req.clientName} · {req.schedule}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-success">${req.hourlyRate}/hr</p>

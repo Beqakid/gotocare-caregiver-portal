@@ -204,7 +204,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <Timer size={24} className="text-primary animate-pulse" />
               <div>
                 <p className="text-2xl font-mono font-bold text-base-content">{formatElapsed(elapsed)}</p>
-                <p className="text-xs text-base-content/60">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
+                <p className="text-xs text-base-content/75">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
               </div>
             </div>
             <button onClick={stopTimer} className="btn btn-error btn-sm gap-1">
@@ -221,12 +221,12 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <div className="text-center py-12">
               <Calendar size={40} className="mx-auto opacity-20 mb-3" />
               <p className="text-base-content/60 text-sm">No upcoming shifts</p>
-              <p className="text-xs text-base-content/40 mt-1">Check Requests for new care opportunities</p>
+              <p className="text-xs text-base-content/65 mt-1">Check Requests for new care opportunities</p>
             </div>
           ) : (
             Object.entries(grouped).map(([date, dateShifts]) => (
               <div key={date}>
-                <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-base-content/70 uppercase tracking-wide mb-2">
                   {formatDate(date)}
                 </p>
                 <div className="space-y-2">
@@ -237,7 +237,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                           <div className="flex flex-col items-center">
                             <span className="text-sm font-bold text-base-content">{shift.startTime || '9:00'}</span>
                             <div className="w-px h-4 bg-base-300 my-0.5" />
-                            <span className="text-xs text-base-content/50">{shift.endTime || '13:00'}</span>
+                            <span className="text-xs text-base-content/70">{shift.endTime || '13:00'}</span>
                           </div>
                           <div>
                             <p className="font-semibold text-sm text-base-content">
@@ -246,7 +246,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                                 : `Client #${shift.client}`}
                             </p>
                             {shift.careType && (
-                              <span className="inline-block mt-1 text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              <span className="inline-block mt-1 text-[10px] font-medium bg-violet-500/25 text-violet-300 px-2 py-0.5 rounded-full font-medium">
                                 {shift.careType}
                               </span>
                             )}
@@ -278,11 +278,11 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <div className="bg-base-200 rounded-2xl p-4 text-center">
               <Clock size={20} className="mx-auto text-primary mb-1" />
               <p className="text-xl font-bold text-base-content">{formatDuration(totalTrackedToday)}</p>
-              <p className="text-[10px] text-base-content/50 uppercase">Tracked Today</p>
+              <p className="text-[10px] text-base-content/70 uppercase">Tracked Today</p>
             </div>
             <div className="bg-base-200 rounded-2xl p-4 text-center">
               <div className="text-xl font-bold text-base-content">${totalEarnedToday.toFixed(0)}</div>
-              <p className="text-[10px] text-base-content/50 uppercase">Earned Today</p>
+              <p className="text-[10px] text-base-content/70 uppercase">Earned Today</p>
             </div>
           </div>
 
@@ -360,7 +360,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <div className="text-center py-8">
                 <Timer size={32} className="mx-auto opacity-20 mb-2" />
                 <p className="text-sm text-base-content/60">No time entries yet</p>
-                <p className="text-xs text-base-content/40">Start a timer to track your hours</p>
+                <p className="text-xs text-base-content/65">Start a timer to track your hours</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -372,7 +372,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                       </div>
                       <div>
                         <p className="text-sm font-medium text-base-content">{entry.clientName}</p>
-                        <p className="text-[10px] text-base-content/60">
+                        <p className="text-[11px] text-base-content/75">
                           {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           {entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}
                         </p>
@@ -397,7 +397,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       {/* ---- MY CLIENTS VIEW ---- */}
       {viewMode === 'clients' && (
         <div className="px-4 space-y-4">
-          <p className="text-xs text-base-content/60">
+          <p className="text-xs text-base-content/75">
             Manage your private clients — track hours and create invoices for anyone you work with, even outside GoToCare.
           </p>
 
@@ -431,7 +431,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <div className="text-center py-10">
               <Users size={36} className="mx-auto opacity-20 mb-2" />
               <p className="text-sm text-base-content/60">No clients yet</p>
-              <p className="text-xs text-base-content/40 mt-1">Add clients you work with privately to track hours and invoice them</p>
+              <p className="text-xs text-base-content/65 mt-1">Add clients you work with privately to track hours and invoice them</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -445,9 +445,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                       <div>
                         <p className="font-semibold text-sm text-base-content">{client.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-base-content/60">${client.hourlyRate}/hr</span>
+                          <span className="text-xs text-base-content/75">${client.hourlyRate}/hr</span>
                           {client.careType && (
-                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{client.careType}</span>
+                            <span className="text-[10px] bg-violet-500/25 text-violet-300 px-2 py-0.5 rounded-full font-medium">{client.careType}</span>
                           )}
                         </div>
                       </div>

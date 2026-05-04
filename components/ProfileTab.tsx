@@ -400,7 +400,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   {completenessItems.map((item, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       {item.done ? <CheckCircle2 size={12} className="text-success" /> : <div className="w-3 h-3 rounded-full border border-base-400" />}
-                      <span className={`text-[11px] ${item.done ? 'text-base-content/50 line-through' : 'text-base-content/70'}`}>{item.label}</span>
+                      <span className={`text-[11px] ${item.done ? 'text-base-content/70 line-through' : 'text-base-content/70'}`}>{item.label}</span>
                     </div>
                   ))}
                 </div>
@@ -412,17 +412,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <div className="bg-base-200 rounded-xl p-3 text-center">
                 <DollarSign size={16} className="mx-auto text-primary mb-1" />
                 <p className="text-base font-bold text-base-content">${profile.hourlyRate || 25}</p>
-                <p className="text-[10px] text-base-content/50">Per Hour</p>
+                <p className="text-[10px] text-base-content/70">Per Hour</p>
               </div>
               <div className="bg-base-200 rounded-xl p-3 text-center">
                 <Award size={16} className="mx-auto text-warning mb-1" />
                 <p className="text-base font-bold text-base-content">{profile.totalJobs || 0}</p>
-                <p className="text-[10px] text-base-content/50">Jobs Done</p>
+                <p className="text-[10px] text-base-content/70">Jobs Done</p>
               </div>
               <div className="bg-base-200 rounded-xl p-3 text-center">
                 <Star size={16} className="mx-auto text-success mb-1" />
                 <p className="text-base font-bold text-base-content">{profile.rating || '—'}</p>
-                <p className="text-[10px] text-base-content/50">Rating</p>
+                <p className="text-[10px] text-base-content/70">Rating</p>
               </div>
             </div>
 
@@ -437,7 +437,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   <textarea className="textarea textarea-bordered w-full text-sm" rows={3} value={editBio}
                     onChange={e => setEditBio(e.target.value)} placeholder="Tell clients about yourself..." />
                   <div>
-                    <label className="text-xs text-base-content/60 mb-1 block">Hourly Rate ($)</label>
+                    <label className="text-xs text-base-content/75 mb-1 block">Hourly Rate ($)</label>
                     <input type="number" className="input input-bordered input-sm w-full" value={editRate}
                       onChange={e => setEditRate(e.target.value)} />
                   </div>
@@ -488,7 +488,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
               {editingSkills ? (
                 <div>
-                  <p className="text-xs text-base-content/50 mb-3">Tap to select the care services you offer.</p>
+                  <p className="text-xs text-base-content/70 mb-3">Tap to select the care services you offer.</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {ALL_CARE_NEEDS.map(need => {
                       const active = selectedSkills.includes(need)
@@ -528,7 +528,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                       style={{ background: '#7c3aed', color: '#ffffff', border: '1.5px solid #7c3aed' }}
                     >{skill}</span>
                   )) : (
-                    <p className="text-xs text-base-content/50">No skills added yet. Tap Edit to select care services you offer.</p>
+                    <p className="text-xs text-base-content/70">No skills added yet. Tap Edit to select care services you offer.</p>
                   )}
                 </div>
               )}
@@ -572,7 +572,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         {/* ── DOCUMENTS ── */}
         {section === 'documents' && (
           <div className="px-4 space-y-4">
-            <p className="text-xs text-base-content/60">
+            <p className="text-xs text-base-content/75">
               Store your certifications, licenses, and training records. Get alerts before they expire.
             </p>
 
@@ -593,7 +593,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                     {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <div>
-                    <label className="text-xs text-base-content/60">Expiry date (optional)</label>
+                    <label className="text-xs text-base-content/75">Expiry date (optional)</label>
                     <input type="date" className="input input-bordered input-sm w-full" value={docExpiry}
                       onChange={e => setDocExpiry(e.target.value)} />
                   </div>
@@ -606,15 +606,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-success/10 rounded-xl p-3 text-center">
                   <p className="text-lg font-bold text-success">{docs.filter(d => d.status === 'valid' || d.status === 'no_expiry').length}</p>
-                  <p className="text-[10px] text-base-content/60">Valid</p>
+                  <p className="text-[11px] text-base-content/75">Valid</p>
                 </div>
                 <div className="bg-warning/10 rounded-xl p-3 text-center">
                   <p className="text-lg font-bold text-warning">{docs.filter(d => d.status === 'expiring_soon').length}</p>
-                  <p className="text-[10px] text-base-content/60">Expiring</p>
+                  <p className="text-[11px] text-base-content/75">Expiring</p>
                 </div>
                 <div className="bg-error/10 rounded-xl p-3 text-center">
                   <p className="text-lg font-bold text-error">{docs.filter(d => d.status === 'expired').length}</p>
-                  <p className="text-[10px] text-base-content/60">Expired</p>
+                  <p className="text-[11px] text-base-content/75">Expired</p>
                 </div>
               </div>
             )}
@@ -623,7 +623,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <div className="text-center py-10">
                 <FolderOpen size={36} className="mx-auto opacity-20 mb-2" />
                 <p className="text-sm text-base-content/60">No documents yet</p>
-                <p className="text-xs text-base-content/40 mt-1">Add your certifications, licenses, and training records</p>
+                <p className="text-xs text-base-content/65 mt-1">Add your certifications, licenses, and training records</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -638,14 +638,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-base-content">{doc.name}</p>
-                          <p className="text-xs text-base-content/60 mt-0.5">{DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}</p>
+                          <p className="text-xs text-base-content/75 mt-0.5">{DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}</p>
                           {doc.expiryDate && (
-                            <p className={`text-xs mt-0.5 ${doc.status === 'expired' ? 'text-error font-medium' : doc.status === 'expiring_soon' ? 'text-warning font-medium' : 'text-base-content/50'}`}>
+                            <p className={`text-xs mt-0.5 ${doc.status === 'expired' ? 'text-error font-medium' : doc.status === 'expiring_soon' ? 'text-warning font-medium' : 'text-base-content/70'}`}>
                               {doc.status === 'expired' ? 'Expired: ' : doc.status === 'expiring_soon' ? 'Expiring: ' : 'Expires: '}
                               {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           )}
-                          {!doc.expiryDate && <p className="text-xs text-base-content/40 mt-0.5">No expiry</p>}
+                          {!doc.expiryDate && <p className="text-xs text-base-content/65 mt-0.5">No expiry</p>}
                         </div>
                       </div>
                       <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
@@ -662,13 +662,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         {/* ── BADGES ── */}
         {section === 'badges' && (
           <div className="px-4 space-y-4">
-            <p className="text-xs text-base-content/60">
+            <p className="text-xs text-base-content/75">
               Earn badges to build trust with clients. Badges appear on your public profile and in search results.
             </p>
 
             {earnedBadges.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Earned</p>
+                <p className="text-xs font-semibold text-base-content/70 uppercase tracking-wide mb-2">Earned</p>
                 <div className="space-y-2">
                   {earnedBadges.map(badge => (
                     <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
@@ -677,7 +677,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                        <p className="text-xs text-base-content/60">{badge.desc}</p>
+                        <p className="text-xs text-base-content/75">{badge.desc}</p>
                       </div>
                       <CheckCircle2 size={20} className="text-success" />
                     </div>
@@ -688,16 +688,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
             {unearnedBadges.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Available to Earn</p>
+                <p className="text-xs font-semibold text-base-content/70 uppercase tracking-wide mb-2">Available to Earn</p>
                 <div className="space-y-2">
                   {unearnedBadges.map(badge => (
                     <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 opacity-60">
                       <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-                        <badge.icon size={24} className="text-base-content/40" />
+                        <badge.icon size={24} className="text-base-content/65" />
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                        <p className="text-xs text-base-content/60">{badge.desc}</p>
+                        <p className="text-xs text-base-content/75">{badge.desc}</p>
                       </div>
                       <div className="w-5 h-5 rounded-full border-2 border-base-400" />
                     </div>

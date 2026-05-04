@@ -51,6 +51,17 @@ export async function fetchTimesheets(caregiverId: number): Promise<any> {
   return apiFetch(`/api/timesheets?where[caregiver][equals]=${caregiverId}&sort=-date&depth=1&limit=50`)
 }
 
+export async function fetchBookings(caregiverId: number | string): Promise<any> {
+  return apiFetch(`/api/caregiver-bookings?caregiverId=${caregiverId}`)
+}
+
+export async function updateBookingStatus(bookingId: number, status: 'accepted' | 'declined'): Promise<any> {
+  return apiFetch('/api/update-booking', {
+    method: 'POST',
+    body: JSON.stringify({ bookingId, status }),
+  })
+}
+
 export async function clockIn(shiftId: number): Promise<any> {
   return apiFetch('/api/clock-in', {
     method: 'POST',

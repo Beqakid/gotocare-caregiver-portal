@@ -66,6 +66,9 @@ export interface CareRequest {
   status: 'pending' | 'accepted' | 'declined'
   clientPhoto?: string
   urgency?: 'today' | 'this_week' | 'flexible'
+  // Real data fields
+  caregiverId?: string | number
+  isUnlocked?: boolean
 }
 
 export interface Earning {

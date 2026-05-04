@@ -36,19 +36,19 @@
             __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
           }
           var ReactVersion = "18.3.1";
-          var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
-          var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
-          var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
-          var REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode");
-          var REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler");
-          var REACT_PROVIDER_TYPE = /* @__PURE__ */ Symbol.for("react.provider");
-          var REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context");
-          var REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref");
-          var REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense");
-          var REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list");
-          var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
-          var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
-          var REACT_OFFSCREEN_TYPE = /* @__PURE__ */ Symbol.for("react.offscreen");
+          var REACT_ELEMENT_TYPE = Symbol.for("react.element");
+          var REACT_PORTAL_TYPE = Symbol.for("react.portal");
+          var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+          var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+          var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+          var REACT_PROVIDER_TYPE = Symbol.for("react.provider");
+          var REACT_CONTEXT_TYPE = Symbol.for("react.context");
+          var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+          var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+          var REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
+          var REACT_MEMO_TYPE = Symbol.for("react.memo");
+          var REACT_LAZY_TYPE = Symbol.for("react.lazy");
+          var REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
           var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
           var FAUX_ITERATOR_SYMBOL = "@@iterator";
           function getIteratorFn(maybeIterable) {
@@ -1012,7 +1012,7 @@
           }
           var REACT_MODULE_REFERENCE;
           {
-            REACT_MODULE_REFERENCE = /* @__PURE__ */ Symbol.for("react.module.reference");
+            REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
           }
           function isValidElementType(type) {
             if (typeof type === "string" || typeof type === "function") {
@@ -1092,11 +1092,11 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useReducer(reducer, initialArg, init);
           }
-          function useRef2(initialValue) {
+          function useRef(initialValue) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useRef(initialValue);
           }
-          function useEffect2(create, deps) {
+          function useEffect3(create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useEffect(create, deps);
           }
@@ -1879,14 +1879,14 @@
           exports.useContext = useContext;
           exports.useDebugValue = useDebugValue;
           exports.useDeferredValue = useDeferredValue;
-          exports.useEffect = useEffect2;
+          exports.useEffect = useEffect3;
           exports.useId = useId;
           exports.useImperativeHandle = useImperativeHandle;
           exports.useInsertionEffect = useInsertionEffect;
           exports.useLayoutEffect = useLayoutEffect;
           exports.useMemo = useMemo;
           exports.useReducer = useReducer;
-          exports.useRef = useRef2;
+          exports.useRef = useRef;
           exports.useState = useState7;
           exports.useSyncExternalStore = useSyncExternalStore;
           exports.useTransition = useTransition;
@@ -2434,7 +2434,7 @@
           var HostPortal = 4;
           var HostComponent = 5;
           var HostText = 6;
-          var Fragment2 = 7;
+          var Fragment3 = 7;
           var Mode = 8;
           var ContextConsumer = 9;
           var ContextProvider = 10;
@@ -2605,7 +2605,6 @@
             }
             switch (typeof value) {
               case "function":
-              // $FlowIssue symbol is perfectly valid here
               case "symbol":
                 return true;
               case "boolean": {
@@ -3178,24 +3177,24 @@
               }
             }
           }
-          var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
-          var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
-          var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
-          var REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode");
-          var REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler");
-          var REACT_PROVIDER_TYPE = /* @__PURE__ */ Symbol.for("react.provider");
-          var REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context");
-          var REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref");
-          var REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense");
-          var REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list");
-          var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
-          var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
-          var REACT_SCOPE_TYPE = /* @__PURE__ */ Symbol.for("react.scope");
-          var REACT_DEBUG_TRACING_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.debug_trace_mode");
-          var REACT_OFFSCREEN_TYPE = /* @__PURE__ */ Symbol.for("react.offscreen");
-          var REACT_LEGACY_HIDDEN_TYPE = /* @__PURE__ */ Symbol.for("react.legacy_hidden");
-          var REACT_CACHE_TYPE = /* @__PURE__ */ Symbol.for("react.cache");
-          var REACT_TRACING_MARKER_TYPE = /* @__PURE__ */ Symbol.for("react.tracing_marker");
+          var REACT_ELEMENT_TYPE = Symbol.for("react.element");
+          var REACT_PORTAL_TYPE = Symbol.for("react.portal");
+          var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+          var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+          var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+          var REACT_PROVIDER_TYPE = Symbol.for("react.provider");
+          var REACT_CONTEXT_TYPE = Symbol.for("react.context");
+          var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+          var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+          var REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
+          var REACT_MEMO_TYPE = Symbol.for("react.memo");
+          var REACT_LAZY_TYPE = Symbol.for("react.lazy");
+          var REACT_SCOPE_TYPE = Symbol.for("react.scope");
+          var REACT_DEBUG_TRACING_MODE_TYPE = Symbol.for("react.debug_trace_mode");
+          var REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
+          var REACT_LEGACY_HIDDEN_TYPE = Symbol.for("react.legacy_hidden");
+          var REACT_CACHE_TYPE = Symbol.for("react.cache");
+          var REACT_TRACING_MARKER_TYPE = Symbol.for("react.tracing_marker");
           var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
           var FAUX_ITERATOR_SYMBOL = "@@iterator";
           function getIteratorFn(maybeIterable) {
@@ -3591,7 +3590,7 @@
                 return "DehydratedFragment";
               case ForwardRef:
                 return getWrappedName$1(type, type.render, "ForwardRef");
-              case Fragment2:
+              case Fragment3:
                 return "Fragment";
               case HostComponent:
                 return type;
@@ -3620,7 +3619,6 @@
                 return "SuspenseList";
               case TracingMarkerComponent:
                 return "TracingMarker";
-              // The display name for this tags come from the user-provided type:
               case ClassComponent:
               case FunctionComponent:
               case IncompleteClassComponent:
@@ -4618,10 +4616,6 @@
               return typeof props.is === "string";
             }
             switch (tagName) {
-              // These are reserved SVG and MathML elements.
-              // We don't mind this list too much because we expect it to never grow.
-              // The alternative is to track the namespace in a few places which is convoluted.
-              // https://w3c.github.io/webcomponents/spec/custom/#custom-elements-core-concepts
               case "annotation-xml":
               case "color-profile":
               case "font-face":
@@ -7451,7 +7445,6 @@
           }
           function getEventPriority(domEventName) {
             switch (domEventName) {
-              // Used by SimpleEventPlugin:
               case "cancel":
               case "click":
               case "close":
@@ -7487,20 +7480,14 @@
               case "touchend":
               case "touchstart":
               case "volumechange":
-              // Used by polyfills:
-              // eslint-disable-next-line no-fallthrough
               case "change":
               case "selectionchange":
               case "textInput":
               case "compositionstart":
               case "compositionend":
               case "compositionupdate":
-              // Only enableCreateEventHandleAPI:
-              // eslint-disable-next-line no-fallthrough
               case "beforeblur":
               case "afterblur":
-              // Not used by React but could be by user code:
-              // eslint-disable-next-line no-fallthrough
               case "beforeinput":
               case "blur":
               case "fullscreenchange":
@@ -7525,8 +7512,6 @@
               case "toggle":
               case "touchmove":
               case "wheel":
-              // Not used by React but could be by user code:
-              // eslint-disable-next-line no-fallthrough
               case "mouseenter":
               case "mouseleave":
               case "pointerenter":
@@ -7758,7 +7743,8 @@
             button: 0,
             buttons: 0,
             relatedTarget: function(event) {
-              if (event.relatedTarget === void 0) return event.fromElement === event.srcElement ? event.toElement : event.fromElement;
+              if (event.relatedTarget === void 0)
+                return event.fromElement === event.srcElement ? event.toElement : event.fromElement;
               return event.relatedTarget;
             },
             movementX: function(event) {
@@ -8474,42 +8460,43 @@
             var indexWithinFocus = 0;
             var node = outerNode;
             var parentNode = null;
-            outer: while (true) {
-              var next = null;
+            outer:
               while (true) {
-                if (node === anchorNode && (anchorOffset === 0 || node.nodeType === TEXT_NODE)) {
-                  start = length + anchorOffset;
+                var next = null;
+                while (true) {
+                  if (node === anchorNode && (anchorOffset === 0 || node.nodeType === TEXT_NODE)) {
+                    start = length + anchorOffset;
+                  }
+                  if (node === focusNode && (focusOffset === 0 || node.nodeType === TEXT_NODE)) {
+                    end = length + focusOffset;
+                  }
+                  if (node.nodeType === TEXT_NODE) {
+                    length += node.nodeValue.length;
+                  }
+                  if ((next = node.firstChild) === null) {
+                    break;
+                  }
+                  parentNode = node;
+                  node = next;
                 }
-                if (node === focusNode && (focusOffset === 0 || node.nodeType === TEXT_NODE)) {
-                  end = length + focusOffset;
+                while (true) {
+                  if (node === outerNode) {
+                    break outer;
+                  }
+                  if (parentNode === anchorNode && ++indexWithinAnchor === anchorOffset) {
+                    start = length;
+                  }
+                  if (parentNode === focusNode && ++indexWithinFocus === focusOffset) {
+                    end = length;
+                  }
+                  if ((next = node.nextSibling) !== null) {
+                    break;
+                  }
+                  node = parentNode;
+                  parentNode = node.parentNode;
                 }
-                if (node.nodeType === TEXT_NODE) {
-                  length += node.nodeValue.length;
-                }
-                if ((next = node.firstChild) === null) {
-                  break;
-                }
-                parentNode = node;
                 node = next;
               }
-              while (true) {
-                if (node === outerNode) {
-                  break outer;
-                }
-                if (parentNode === anchorNode && ++indexWithinAnchor === anchorOffset) {
-                  start = length;
-                }
-                if (parentNode === focusNode && ++indexWithinFocus === focusOffset) {
-                  end = length;
-                }
-                if ((next = node.nextSibling) !== null) {
-                  break;
-                }
-                node = parentNode;
-                parentNode = node.parentNode;
-              }
-              node = next;
-            }
             if (start === -1 || end === -1) {
               return null;
             }
@@ -8712,7 +8699,6 @@
           function extractEvents$3(dispatchQueue, domEventName, targetInst, nativeEvent, nativeEventTarget, eventSystemFlags, targetContainer) {
             var targetNode = targetInst ? getNodeFromInstance(targetInst) : window;
             switch (domEventName) {
-              // Track the input node that has focus.
               case "focusin":
                 if (isTextInputElement(targetNode) || targetNode.contentEditable === "true") {
                   activeElement$1 = targetNode;
@@ -8725,8 +8711,6 @@
                 activeElementInst$1 = null;
                 lastSelection = null;
                 break;
-              // Don't fire the event while the user is dragging. This matches the
-              // semantics of the native select event.
               case "mousedown":
                 mouseDown = true;
                 break;
@@ -8736,20 +8720,10 @@
                 mouseDown = false;
                 constructSelectEvent(dispatchQueue, nativeEvent, nativeEventTarget);
                 break;
-              // Chrome and IE fire non-standard event when selection is changed (and
-              // sometimes when it hasn't). IE's event fires out of order with respect
-              // to key and input events on deletion, so we discard it.
-              //
-              // Firefox doesn't support selectionchange, so check selection status
-              // after each key entry. The selection changes after keydown and before
-              // keyup, but we check on keydown as well in the case of holding down a
-              // key, when multiple keydown events are fired but only one keyup is.
-              // This is also our approach for IE handling, for the reason above.
               case "selectionchange":
                 if (skipSelectionChangeEvent) {
                   break;
                 }
-              // falls through
               case "keydown":
               case "keyup":
                 constructSelectEvent(dispatchQueue, nativeEvent, nativeEventTarget);
@@ -8832,7 +8806,6 @@
                 if (getEventCharCode(nativeEvent) === 0) {
                   return;
                 }
-              /* falls through */
               case "keydown":
               case "keyup":
                 SyntheticEventCtor = SyntheticKeyboardEvent;
@@ -8853,14 +8826,11 @@
                 if (nativeEvent.button === 2) {
                   return;
                 }
-              /* falls through */
               case "auxclick":
               case "dblclick":
               case "mousedown":
               case "mousemove":
               case "mouseup":
-              // TODO: Disabled elements should not respond to mouse events
-              /* falls through */
               case "mouseout":
               case "mouseover":
               case "contextmenu":
@@ -9068,44 +9038,45 @@
               var targetContainerNode = targetContainer;
               if (targetInst !== null) {
                 var node = targetInst;
-                mainLoop: while (true) {
-                  if (node === null) {
-                    return;
-                  }
-                  var nodeTag = node.tag;
-                  if (nodeTag === HostRoot || nodeTag === HostPortal) {
-                    var container = node.stateNode.containerInfo;
-                    if (isMatchingRootContainer(container, targetContainerNode)) {
-                      break;
+                mainLoop:
+                  while (true) {
+                    if (node === null) {
+                      return;
                     }
-                    if (nodeTag === HostPortal) {
-                      var grandNode = node.return;
-                      while (grandNode !== null) {
-                        var grandTag = grandNode.tag;
-                        if (grandTag === HostRoot || grandTag === HostPortal) {
-                          var grandContainer = grandNode.stateNode.containerInfo;
-                          if (isMatchingRootContainer(grandContainer, targetContainerNode)) {
-                            return;
+                    var nodeTag = node.tag;
+                    if (nodeTag === HostRoot || nodeTag === HostPortal) {
+                      var container = node.stateNode.containerInfo;
+                      if (isMatchingRootContainer(container, targetContainerNode)) {
+                        break;
+                      }
+                      if (nodeTag === HostPortal) {
+                        var grandNode = node.return;
+                        while (grandNode !== null) {
+                          var grandTag = grandNode.tag;
+                          if (grandTag === HostRoot || grandTag === HostPortal) {
+                            var grandContainer = grandNode.stateNode.containerInfo;
+                            if (isMatchingRootContainer(grandContainer, targetContainerNode)) {
+                              return;
+                            }
                           }
+                          grandNode = grandNode.return;
                         }
-                        grandNode = grandNode.return;
+                      }
+                      while (container !== null) {
+                        var parentNode = getClosestInstanceFromNode(container);
+                        if (parentNode === null) {
+                          return;
+                        }
+                        var parentTag = parentNode.tag;
+                        if (parentTag === HostComponent || parentTag === HostText) {
+                          node = ancestorInst = parentNode;
+                          continue mainLoop;
+                        }
+                        container = container.parentNode;
                       }
                     }
-                    while (container !== null) {
-                      var parentNode = getClosestInstanceFromNode(container);
-                      if (parentNode === null) {
-                        return;
-                      }
-                      var parentTag = parentNode.tag;
-                      if (parentTag === HostComponent || parentTag === HostText) {
-                        node = ancestorInst = parentNode;
-                        continue mainLoop;
-                      }
-                      container = container.parentNode;
-                    }
+                    node = node.return;
                   }
-                  node = node.return;
-                }
               }
             }
             batchedUpdates(function() {
@@ -9385,8 +9356,10 @@
                 } else if (typeof nextProp === "number") {
                   setTextContent(domElement, "" + nextProp);
                 }
-              } else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING) ;
-              else if (propKey === AUTOFOCUS) ;
+              } else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING)
+                ;
+              else if (propKey === AUTOFOCUS)
+                ;
               else if (registrationNameDependencies.hasOwnProperty(propKey)) {
                 if (nextProp != null) {
                   if (typeof nextProp !== "function") {
@@ -9602,9 +9575,12 @@
                     styleUpdates[styleName] = "";
                   }
                 }
-              } else if (propKey === DANGEROUSLY_SET_INNER_HTML || propKey === CHILDREN) ;
-              else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING) ;
-              else if (propKey === AUTOFOCUS) ;
+              } else if (propKey === DANGEROUSLY_SET_INNER_HTML || propKey === CHILDREN)
+                ;
+              else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING)
+                ;
+              else if (propKey === AUTOFOCUS)
+                ;
               else if (registrationNameDependencies.hasOwnProperty(propKey)) {
                 if (!updatePayload) {
                   updatePayload = [];
@@ -9663,7 +9639,8 @@
                 if (typeof nextProp === "string" || typeof nextProp === "number") {
                   (updatePayload = updatePayload || []).push(propKey, "" + nextProp);
                 }
-              } else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING) ;
+              } else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING)
+                ;
               else if (registrationNameDependencies.hasOwnProperty(propKey)) {
                 if (nextProp != null) {
                   if (typeof nextProp !== "function") {
@@ -9774,8 +9751,6 @@
               for (var _i = 0; _i < attributes.length; _i++) {
                 var name = attributes[_i].name.toLowerCase();
                 switch (name) {
-                  // Controlled attributes are not validated
-                  // TODO: Only ignore them on controlled tags.
                   case "value":
                     break;
                   case "checked":
@@ -9822,10 +9797,12 @@
               typeof isCustomComponentTag === "boolean") {
                 var serverValue = void 0;
                 var propertyInfo = isCustomComponentTag && enableCustomElementPropertySupport ? null : getPropertyInfo(propKey);
-                if (rawProps[SUPPRESS_HYDRATION_WARNING] === true) ;
+                if (rawProps[SUPPRESS_HYDRATION_WARNING] === true)
+                  ;
                 else if (propKey === SUPPRESS_CONTENT_EDITABLE_WARNING || propKey === SUPPRESS_HYDRATION_WARNING || // Controlled attributes are not validated
                 // TODO: Only ignore them on controlled tags.
-                propKey === "value" || propKey === "checked" || propKey === "selected") ;
+                propKey === "value" || propKey === "checked" || propKey === "selected")
+                  ;
                 else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
                   var serverHTML = domElement.innerHTML;
                   var nextHtml = nextProp ? nextProp[HTML$1] : void 0;
@@ -10043,37 +10020,24 @@
             };
             var isTagValidWithParent = function(tag, parentTag) {
               switch (parentTag) {
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-inselect
                 case "select":
                   return tag === "option" || tag === "optgroup" || tag === "#text";
                 case "optgroup":
                   return tag === "option" || tag === "#text";
-                // Strictly speaking, seeing an <option> doesn't mean we're in a <select>
-                // but
                 case "option":
                   return tag === "#text";
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-intd
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-incaption
-                // No special behavior since these rules fall back to "in body" mode for
-                // all except special table nodes which cause bad parsing behavior anyway.
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-intr
                 case "tr":
                   return tag === "th" || tag === "td" || tag === "style" || tag === "script" || tag === "template";
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-intbody
                 case "tbody":
                 case "thead":
                 case "tfoot":
                   return tag === "tr" || tag === "style" || tag === "script" || tag === "template";
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-incolgroup
                 case "colgroup":
                   return tag === "col" || tag === "template";
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-intable
                 case "table":
                   return tag === "caption" || tag === "colgroup" || tag === "tbody" || tag === "tfoot" || tag === "thead" || tag === "style" || tag === "script" || tag === "template";
-                // https://html.spec.whatwg.org/multipage/syntax.html#parsing-main-inhead
                 case "head":
                   return tag === "base" || tag === "basefont" || tag === "bgsound" || tag === "link" || tag === "meta" || tag === "title" || tag === "noscript" || tag === "noframes" || tag === "style" || tag === "script" || tag === "template";
-                // https://html.spec.whatwg.org/multipage/semantics.html#the-html-element
                 case "html":
                   return tag === "head" || tag === "body" || tag === "frameset";
                 case "frameset":
@@ -10634,7 +10598,8 @@
             {
               if (instance.nodeType === ELEMENT_NODE) {
                 warnForDeletedHydratableElement(parentContainer, instance);
-              } else if (instance.nodeType === COMMENT_NODE) ;
+              } else if (instance.nodeType === COMMENT_NODE)
+                ;
               else {
                 warnForDeletedHydratableText(parentContainer, instance);
               }
@@ -10646,7 +10611,8 @@
               if (parentNode !== null) {
                 if (instance.nodeType === ELEMENT_NODE) {
                   warnForDeletedHydratableElement(parentNode, instance);
-                } else if (instance.nodeType === COMMENT_NODE) ;
+                } else if (instance.nodeType === COMMENT_NODE)
+                  ;
                 else {
                   warnForDeletedHydratableText(parentNode, instance);
                 }
@@ -10658,7 +10624,8 @@
               if (isConcurrentMode || parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
                 if (instance.nodeType === ELEMENT_NODE) {
                   warnForDeletedHydratableElement(parentInstance, instance);
-                } else if (instance.nodeType === COMMENT_NODE) ;
+                } else if (instance.nodeType === COMMENT_NODE)
+                  ;
                 else {
                   warnForDeletedHydratableText(parentInstance, instance);
                 }
@@ -10678,13 +10645,15 @@
           function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type, props) {
             {
               var parentNode = parentInstance.parentNode;
-              if (parentNode !== null) warnForInsertedHydratedElement(parentNode, type);
+              if (parentNode !== null)
+                warnForInsertedHydratedElement(parentNode, type);
             }
           }
           function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text) {
             {
               var parentNode = parentInstance.parentNode;
-              if (parentNode !== null) warnForInsertedHydratedText(parentNode, text);
+              if (parentNode !== null)
+                warnForInsertedHydratedText(parentNode, text);
             }
           }
           function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type, props, isConcurrentMode) {
@@ -11271,7 +11240,8 @@
                 }
                 case SuspenseComponent: {
                   var suspenseState = returnFiber.memoizedState;
-                  if (suspenseState.dehydrated !== null) didNotHydrateInstanceWithinSuspenseInstance(suspenseState.dehydrated, instance);
+                  if (suspenseState.dehydrated !== null)
+                    didNotHydrateInstanceWithinSuspenseInstance(suspenseState.dehydrated, instance);
                   break;
                 }
               }
@@ -11350,17 +11320,18 @@
                 case SuspenseComponent: {
                   var suspenseState = returnFiber.memoizedState;
                   var _parentInstance = suspenseState.dehydrated;
-                  if (_parentInstance !== null) switch (fiber.tag) {
-                    case HostComponent:
-                      var _type2 = fiber.type;
-                      var _props2 = fiber.pendingProps;
-                      didNotFindHydratableInstanceWithinSuspenseInstance(_parentInstance, _type2);
-                      break;
-                    case HostText:
-                      var _text2 = fiber.pendingProps;
-                      didNotFindHydratableTextInstanceWithinSuspenseInstance(_parentInstance, _text2);
-                      break;
-                  }
+                  if (_parentInstance !== null)
+                    switch (fiber.tag) {
+                      case HostComponent:
+                        var _type2 = fiber.type;
+                        var _props2 = fiber.pendingProps;
+                        didNotFindHydratableInstanceWithinSuspenseInstance(_parentInstance, _type2);
+                        break;
+                      case HostText:
+                        var _text2 = fiber.pendingProps;
+                        didNotFindHydratableTextInstanceWithinSuspenseInstance(_parentInstance, _text2);
+                        break;
+                    }
                   break;
                 }
                 default:
@@ -12020,7 +11991,7 @@
               }
             }
             function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-              if (current2 === null || current2.tag !== Fragment2) {
+              if (current2 === null || current2.tag !== Fragment3) {
                 var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
                 created.return = returnFiber;
                 return created;
@@ -12423,7 +12394,7 @@
                 if (child.key === key) {
                   var elementType = element.type;
                   if (elementType === REACT_FRAGMENT_TYPE) {
-                    if (child.tag === Fragment2) {
+                    if (child.tag === Fragment3) {
                       deleteRemainingChildren(returnFiber, child.sibling);
                       var existing = useFiber(child, element.props.children);
                       existing.return = returnFiber;
@@ -12649,7 +12620,8 @@
                       var update = createUpdate(NoTimestamp, lane);
                       update.tag = ForceUpdate;
                       var updateQueue = fiber.updateQueue;
-                      if (updateQueue === null) ;
+                      if (updateQueue === null)
+                        ;
                       else {
                         var sharedQueue = updateQueue.shared;
                         var pending = sharedQueue.pending;
@@ -12735,7 +12707,8 @@
               }
             }
             var value = context._currentValue;
-            if (lastFullyObservedContext === context) ;
+            if (lastFullyObservedContext === context)
+              ;
             else {
               var contextItem = {
                 context,
@@ -13032,7 +13005,6 @@
               case CaptureUpdate: {
                 workInProgress2.flags = workInProgress2.flags & ~ShouldCapture | DidCapture;
               }
-              // Intentional fallthrough
               case UpdateState: {
                 var _payload = update.payload;
                 var partialState;
@@ -17899,7 +17871,7 @@
                 var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
                 return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
               }
-              case Fragment2:
+              case Fragment3:
                 return updateFragment(current2, workInProgress2, renderLanes2);
               case Mode:
                 return updateMode(current2, workInProgress2, renderLanes2);
@@ -17970,7 +17942,8 @@
               while (node !== null) {
                 if (node.tag === HostComponent || node.tag === HostText) {
                   appendInitialChild(parent, node.stateNode);
-                } else if (node.tag === HostPortal) ;
+                } else if (node.tag === HostPortal)
+                  ;
                 else if (node.child !== null) {
                   node.child.return = node;
                   node = node.child;
@@ -18171,7 +18144,7 @@
               case SimpleMemoComponent:
               case FunctionComponent:
               case ForwardRef:
-              case Fragment2:
+              case Fragment3:
               case Mode:
               case Profiler:
               case ContextConsumer:
@@ -18924,19 +18897,20 @@
                       onPostCommit(id, phase, passiveEffectDuration, commitTime2);
                     }
                     var parentFiber = finishedWork.return;
-                    outer: while (parentFiber !== null) {
-                      switch (parentFiber.tag) {
-                        case HostRoot:
-                          var root2 = parentFiber.stateNode;
-                          root2.passiveEffectDuration += passiveEffectDuration;
-                          break outer;
-                        case Profiler:
-                          var parentStateNode = parentFiber.stateNode;
-                          parentStateNode.passiveEffectDuration += passiveEffectDuration;
-                          break outer;
+                    outer:
+                      while (parentFiber !== null) {
+                        switch (parentFiber.tag) {
+                          case HostRoot:
+                            var root2 = parentFiber.stateNode;
+                            root2.passiveEffectDuration += passiveEffectDuration;
+                            break outer;
+                          case Profiler:
+                            var parentStateNode = parentFiber.stateNode;
+                            parentStateNode.passiveEffectDuration += passiveEffectDuration;
+                            break outer;
+                        }
+                        parentFiber = parentFiber.return;
                       }
-                      parentFiber = parentFiber.return;
-                    }
                     break;
                   }
                 }
@@ -19083,19 +19057,20 @@
                       }
                       enqueuePendingPassiveProfilerEffect(finishedWork);
                       var parentFiber = finishedWork.return;
-                      outer: while (parentFiber !== null) {
-                        switch (parentFiber.tag) {
-                          case HostRoot:
-                            var root2 = parentFiber.stateNode;
-                            root2.effectDuration += effectDuration;
-                            break outer;
-                          case Profiler:
-                            var parentStateNode = parentFiber.stateNode;
-                            parentStateNode.effectDuration += effectDuration;
-                            break outer;
+                      outer:
+                        while (parentFiber !== null) {
+                          switch (parentFiber.tag) {
+                            case HostRoot:
+                              var root2 = parentFiber.stateNode;
+                              root2.effectDuration += effectDuration;
+                              break outer;
+                            case Profiler:
+                              var parentStateNode = parentFiber.stateNode;
+                              parentStateNode.effectDuration += effectDuration;
+                              break outer;
+                          }
+                          parentFiber = parentFiber.return;
                         }
-                        parentFiber = parentFiber.return;
-                      }
                     }
                   }
                   break;
@@ -19187,7 +19162,8 @@
                       captureCommitPhaseError(finishedWork, finishedWork.return, error2);
                     }
                   }
-                } else if ((node.tag === OffscreenComponent || node.tag === LegacyHiddenComponent) && node.memoizedState !== null && node !== finishedWork) ;
+                } else if ((node.tag === OffscreenComponent || node.tag === LegacyHiddenComponent) && node.memoizedState !== null && node !== finishedWork)
+                  ;
                 else if (node.child !== null) {
                   node.child.return = node;
                   node = node.child;
@@ -19305,30 +19281,31 @@
           }
           function getHostSibling(fiber) {
             var node = fiber;
-            siblings: while (true) {
-              while (node.sibling === null) {
-                if (node.return === null || isHostParent(node.return)) {
-                  return null;
+            siblings:
+              while (true) {
+                while (node.sibling === null) {
+                  if (node.return === null || isHostParent(node.return)) {
+                    return null;
+                  }
+                  node = node.return;
                 }
-                node = node.return;
-              }
-              node.sibling.return = node.return;
-              node = node.sibling;
-              while (node.tag !== HostComponent && node.tag !== HostText && node.tag !== DehydratedFragment) {
-                if (node.flags & Placement) {
-                  continue siblings;
+                node.sibling.return = node.return;
+                node = node.sibling;
+                while (node.tag !== HostComponent && node.tag !== HostText && node.tag !== DehydratedFragment) {
+                  if (node.flags & Placement) {
+                    continue siblings;
+                  }
+                  if (node.child === null || node.tag === HostPortal) {
+                    continue siblings;
+                  } else {
+                    node.child.return = node;
+                    node = node.child;
+                  }
                 }
-                if (node.child === null || node.tag === HostPortal) {
-                  continue siblings;
-                } else {
-                  node.child.return = node;
-                  node = node.child;
+                if (!(node.flags & Placement)) {
+                  return node.stateNode;
                 }
               }
-              if (!(node.flags & Placement)) {
-                return node.stateNode;
-              }
-            }
           }
           function commitPlacement(finishedWork) {
             var parentFiber = getHostParentFiber(finishedWork);
@@ -19350,7 +19327,6 @@
                 insertOrAppendPlacementNodeIntoContainer(finishedWork, _before, _parent);
                 break;
               }
-              // eslint-disable-next-line-no-fallthrough
               default:
                 throw new Error("Invalid host parent fiber. This error is likely caused by a bug in React. Please file an issue.");
             }
@@ -19365,7 +19341,8 @@
               } else {
                 appendChildToContainer(parent, stateNode);
               }
-            } else if (tag === HostPortal) ;
+            } else if (tag === HostPortal)
+              ;
             else {
               var child = node.child;
               if (child !== null) {
@@ -19388,7 +19365,8 @@
               } else {
                 appendChild(parent, stateNode);
               }
-            } else if (tag === HostPortal) ;
+            } else if (tag === HostPortal)
+              ;
             else {
               var child = node.child;
               if (child !== null) {
@@ -19406,26 +19384,27 @@
           function commitDeletionEffects(root2, returnFiber, deletedFiber) {
             {
               var parent = returnFiber;
-              findParent: while (parent !== null) {
-                switch (parent.tag) {
-                  case HostComponent: {
-                    hostParent = parent.stateNode;
-                    hostParentIsContainer = false;
-                    break findParent;
+              findParent:
+                while (parent !== null) {
+                  switch (parent.tag) {
+                    case HostComponent: {
+                      hostParent = parent.stateNode;
+                      hostParentIsContainer = false;
+                      break findParent;
+                    }
+                    case HostRoot: {
+                      hostParent = parent.stateNode.containerInfo;
+                      hostParentIsContainer = true;
+                      break findParent;
+                    }
+                    case HostPortal: {
+                      hostParent = parent.stateNode.containerInfo;
+                      hostParentIsContainer = true;
+                      break findParent;
+                    }
                   }
-                  case HostRoot: {
-                    hostParent = parent.stateNode.containerInfo;
-                    hostParentIsContainer = true;
-                    break findParent;
-                  }
-                  case HostPortal: {
-                    hostParent = parent.stateNode.containerInfo;
-                    hostParentIsContainer = true;
-                    break findParent;
-                  }
+                  parent = parent.return;
                 }
-                parent = parent.return;
-              }
               if (hostParent === null) {
                 throw new Error("Expected to find a host parent. This error is likely caused by a bug in React. Please file an issue.");
               }
@@ -19450,7 +19429,6 @@
                   safelyDetachRef(deletedFiber, nearestMountedAncestor);
                 }
               }
-              // eslint-disable-next-line-no-fallthrough
               case HostText: {
                 {
                   var prevHostParent = hostParent;
@@ -20712,9 +20690,6 @@
               case RootFatalErrored: {
                 throw new Error("Root did not complete. This is a bug in React.");
               }
-              // Flow knows about invariant, so it complains if I add a break
-              // statement, but eslint doesn't know about invariant, so it complains
-              // if I do. eslint-disable-next-line no-fallthrough
               case RootErrored: {
                 commitRoot(root2, workInProgressRootRecoverableErrors, workInProgressTransitions);
                 break;
@@ -22341,71 +22316,67 @@
             } else if (typeof type === "string") {
               fiberTag = HostComponent;
             } else {
-              getTag: switch (type) {
-                case REACT_FRAGMENT_TYPE:
-                  return createFiberFromFragment(pendingProps.children, mode, lanes, key);
-                case REACT_STRICT_MODE_TYPE:
-                  fiberTag = Mode;
-                  mode |= StrictLegacyMode;
-                  if ((mode & ConcurrentMode) !== NoMode) {
-                    mode |= StrictEffectsMode;
-                  }
-                  break;
-                case REACT_PROFILER_TYPE:
-                  return createFiberFromProfiler(pendingProps, mode, lanes, key);
-                case REACT_SUSPENSE_TYPE:
-                  return createFiberFromSuspense(pendingProps, mode, lanes, key);
-                case REACT_SUSPENSE_LIST_TYPE:
-                  return createFiberFromSuspenseList(pendingProps, mode, lanes, key);
-                case REACT_OFFSCREEN_TYPE:
-                  return createFiberFromOffscreen(pendingProps, mode, lanes, key);
-                case REACT_LEGACY_HIDDEN_TYPE:
-                // eslint-disable-next-line no-fallthrough
-                case REACT_SCOPE_TYPE:
-                // eslint-disable-next-line no-fallthrough
-                case REACT_CACHE_TYPE:
-                // eslint-disable-next-line no-fallthrough
-                case REACT_TRACING_MARKER_TYPE:
-                // eslint-disable-next-line no-fallthrough
-                case REACT_DEBUG_TRACING_MODE_TYPE:
-                // eslint-disable-next-line no-fallthrough
-                default: {
-                  if (typeof type === "object" && type !== null) {
-                    switch (type.$$typeof) {
-                      case REACT_PROVIDER_TYPE:
-                        fiberTag = ContextProvider;
-                        break getTag;
-                      case REACT_CONTEXT_TYPE:
-                        fiberTag = ContextConsumer;
-                        break getTag;
-                      case REACT_FORWARD_REF_TYPE:
-                        fiberTag = ForwardRef;
-                        {
-                          resolvedType = resolveForwardRefForHotReloading(resolvedType);
-                        }
-                        break getTag;
-                      case REACT_MEMO_TYPE:
-                        fiberTag = MemoComponent;
-                        break getTag;
-                      case REACT_LAZY_TYPE:
-                        fiberTag = LazyComponent;
-                        resolvedType = null;
-                        break getTag;
+              getTag:
+                switch (type) {
+                  case REACT_FRAGMENT_TYPE:
+                    return createFiberFromFragment(pendingProps.children, mode, lanes, key);
+                  case REACT_STRICT_MODE_TYPE:
+                    fiberTag = Mode;
+                    mode |= StrictLegacyMode;
+                    if ((mode & ConcurrentMode) !== NoMode) {
+                      mode |= StrictEffectsMode;
                     }
-                  }
-                  var info = "";
-                  {
-                    if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
-                      info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
+                    break;
+                  case REACT_PROFILER_TYPE:
+                    return createFiberFromProfiler(pendingProps, mode, lanes, key);
+                  case REACT_SUSPENSE_TYPE:
+                    return createFiberFromSuspense(pendingProps, mode, lanes, key);
+                  case REACT_SUSPENSE_LIST_TYPE:
+                    return createFiberFromSuspenseList(pendingProps, mode, lanes, key);
+                  case REACT_OFFSCREEN_TYPE:
+                    return createFiberFromOffscreen(pendingProps, mode, lanes, key);
+                  case REACT_LEGACY_HIDDEN_TYPE:
+                  case REACT_SCOPE_TYPE:
+                  case REACT_CACHE_TYPE:
+                  case REACT_TRACING_MARKER_TYPE:
+                  case REACT_DEBUG_TRACING_MODE_TYPE:
+                  default: {
+                    if (typeof type === "object" && type !== null) {
+                      switch (type.$$typeof) {
+                        case REACT_PROVIDER_TYPE:
+                          fiberTag = ContextProvider;
+                          break getTag;
+                        case REACT_CONTEXT_TYPE:
+                          fiberTag = ContextConsumer;
+                          break getTag;
+                        case REACT_FORWARD_REF_TYPE:
+                          fiberTag = ForwardRef;
+                          {
+                            resolvedType = resolveForwardRefForHotReloading(resolvedType);
+                          }
+                          break getTag;
+                        case REACT_MEMO_TYPE:
+                          fiberTag = MemoComponent;
+                          break getTag;
+                        case REACT_LAZY_TYPE:
+                          fiberTag = LazyComponent;
+                          resolvedType = null;
+                          break getTag;
+                      }
                     }
-                    var ownerName = owner ? getComponentNameFromFiber(owner) : null;
-                    if (ownerName) {
-                      info += "\n\nCheck the render method of `" + ownerName + "`.";
+                    var info = "";
+                    {
+                      if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
+                        info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
+                      }
+                      var ownerName = owner ? getComponentNameFromFiber(owner) : null;
+                      if (ownerName) {
+                        info += "\n\nCheck the render method of `" + ownerName + "`.";
+                      }
                     }
+                    throw new Error("Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) " + ("but got: " + (type == null ? type : typeof type) + "." + info));
                   }
-                  throw new Error("Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) " + ("but got: " + (type == null ? type : typeof type) + "." + info));
                 }
-              }
             }
             var fiber = createFiber(fiberTag, pendingProps, key, mode);
             fiber.elementType = type;
@@ -22432,7 +22403,7 @@
             return fiber;
           }
           function createFiberFromFragment(elements, mode, lanes, key) {
-            var fiber = createFiber(Fragment2, elements, key, mode);
+            var fiber = createFiber(Fragment3, elements, key, mode);
             fiber.lanes = lanes;
             return fiber;
           }
@@ -23589,19 +23560,19 @@
         (function() {
           "use strict";
           var React7 = require_react();
-          var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
-          var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
-          var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
-          var REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode");
-          var REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler");
-          var REACT_PROVIDER_TYPE = /* @__PURE__ */ Symbol.for("react.provider");
-          var REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context");
-          var REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref");
-          var REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense");
-          var REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list");
-          var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
-          var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
-          var REACT_OFFSCREEN_TYPE = /* @__PURE__ */ Symbol.for("react.offscreen");
+          var REACT_ELEMENT_TYPE = Symbol.for("react.element");
+          var REACT_PORTAL_TYPE = Symbol.for("react.portal");
+          var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+          var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+          var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+          var REACT_PROVIDER_TYPE = Symbol.for("react.provider");
+          var REACT_CONTEXT_TYPE = Symbol.for("react.context");
+          var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+          var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+          var REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
+          var REACT_MEMO_TYPE = Symbol.for("react.memo");
+          var REACT_LAZY_TYPE = Symbol.for("react.lazy");
+          var REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
           var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
           var FAUX_ITERATOR_SYMBOL = "@@iterator";
           function getIteratorFn(maybeIterable) {
@@ -23647,7 +23618,7 @@
           var enableDebugTracing = false;
           var REACT_MODULE_REFERENCE;
           {
-            REACT_MODULE_REFERENCE = /* @__PURE__ */ Symbol.for("react.module.reference");
+            REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
           }
           function isValidElementType(type) {
             if (typeof type === "string" || typeof type === "function") {
@@ -24495,14 +24466,17 @@
   var authToken = "";
   async function apiFetch(endpoint, options) {
     const headers = { "Content-Type": "application/json" };
-    if (authToken) headers["Authorization"] = `JWT ${authToken}`;
+    if (authToken)
+      headers["Authorization"] = `JWT ${authToken}`;
     const url = `${API_BASE}${endpoint}`;
     const method = options?.method || "GET";
     const body = options?.body || "";
     if (window.tasklet?.runCommand) {
       let cmd = `curl -s -X ${method} "${url}" -H "Content-Type: application/json"`;
-      if (authToken) cmd += ` -H "Authorization: JWT ${authToken}"`;
-      if (body) cmd += ` -d '${typeof body === "string" ? body : JSON.stringify(body)}'`;
+      if (authToken)
+        cmd += ` -H "Authorization: JWT ${authToken}"`;
+      if (body)
+        cmd += ` -d '${typeof body === "string" ? body : JSON.stringify(body)}'`;
       const result = await window.tasklet.runCommand(cmd);
       try {
         return JSON.parse(result.log || "{}");
@@ -24518,7 +24492,8 @@
       method: "POST",
       body: JSON.stringify({ email, password })
     });
-    if (data.token) authToken = data.token;
+    if (data.token)
+      authToken = data.token;
     return data;
   }
   async function fetchShifts(caregiverId) {
@@ -24526,6 +24501,15 @@
   }
   async function fetchTimesheets(caregiverId) {
     return apiFetch(`/api/timesheets?where[caregiver][equals]=${caregiverId}&sort=-date&depth=1&limit=50`);
+  }
+  async function fetchBookings(caregiverId) {
+    return apiFetch(`/api/caregiver-bookings?caregiverId=${caregiverId}`);
+  }
+  async function updateBookingStatus(bookingId, status) {
+    return apiFetch("/api/update-booking", {
+      method: "POST",
+      body: JSON.stringify({ bookingId, status })
+    });
   }
   async function clockIn(shiftId) {
     return apiFetch("/api/clock-in", {
@@ -24757,6 +24741,23 @@
     ["polyline", { points: "9 22 9 12 15 12 15 22", key: "e2us08" }]
   ]);
 
+  // node_modules/lucide-react/dist/esm/icons/lock.mjs
+  var Lock = createLucideIcon$1("Lock", [
+    [
+      "rect",
+      {
+        width: "18",
+        height: "11",
+        x: "3",
+        y: "11",
+        rx: "2",
+        ry: "2",
+        key: "1w4ew1"
+      }
+    ],
+    ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
+  ]);
+
   // node_modules/lucide-react/dist/esm/icons/log-out.mjs
   var LogOut = createLucideIcon$1("LogOut", [
     ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }],
@@ -24802,15 +24803,6 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/rotate-ccw.mjs
-  var RotateCcw = createLucideIcon$1("RotateCcw", [
-    [
-      "path",
-      { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }
-    ],
-    ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
-  ]);
-
   // node_modules/lucide-react/dist/esm/icons/settings.mjs
   var Settings = createLucideIcon$1("Settings", [
     [
@@ -24845,6 +24837,23 @@
     ["polyline", { points: "16 7 22 7 22 13", key: "kwv8wd" }]
   ]);
 
+  // node_modules/lucide-react/dist/esm/icons/unlock.mjs
+  var Unlock = createLucideIcon$1("Unlock", [
+    [
+      "rect",
+      {
+        width: "18",
+        height: "11",
+        x: "3",
+        y: "11",
+        rx: "2",
+        ry: "2",
+        key: "1w4ew1"
+      }
+    ],
+    ["path", { d: "M7 11V7a5 5 0 0 1 9.9-1", key: "1mm8w8" }]
+  ]);
+
   // node_modules/lucide-react/dist/esm/icons/user.mjs
   var User = createLucideIcon$1("User", [
     ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
@@ -24873,7 +24882,8 @@
     const [showPassword, setShowPassword] = (0, import_react2.useState)(false);
     const handleSubmit = (e) => {
       e.preventDefault();
-      if (email && password) onLogin(email, password);
+      if (email && password)
+        onLogin(email, password);
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "min-h-screen flex flex-col bg-base-100", children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "earnings-card px-6 pt-16 pb-12 flex flex-col items-center text-center", children: [
@@ -24969,8 +24979,10 @@
     const weekHours = timesheets.filter((t) => t.hoursWorked).reduce((sum, t) => sum + (t.hoursWorked || 0), 0);
     const greeting = () => {
       const hour = (/* @__PURE__ */ new Date()).getHours();
-      if (hour < 12) return "Good morning";
-      if (hour < 17) return "Good afternoon";
+      if (hour < 12)
+        return "Good morning";
+      if (hour < 17)
+        return "Good afternoon";
       return "Good evening";
     };
     if (loading) {
@@ -25131,7 +25143,8 @@
     const grouped = {};
     displayShifts.forEach((s) => {
       const dateKey = s.date?.split("T")[0] || s.date;
-      if (!grouped[dateKey]) grouped[dateKey] = [];
+      if (!grouped[dateKey])
+        grouped[dateKey] = [];
       grouped[dateKey].push(s);
     });
     const formatDate = (dateStr) => {
@@ -25140,8 +25153,10 @@
       const tomorrow = /* @__PURE__ */ new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
-      if (dateStr === todayStr) return "Today";
-      if (dateStr === tomorrowStr) return "Tomorrow";
+      if (dateStr === todayStr)
+        return "Today";
+      if (dateStr === tomorrowStr)
+        return "Tomorrow";
       return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
     };
     const statusBadge = (status) => {
@@ -25224,235 +25239,256 @@
   // components/RequestsTab.tsx
   var import_react4 = __toESM(require_react());
   var import_jsx_runtime4 = __toESM(require_jsx_runtime());
+  var API = "https://gotocare-original.jjioji.workers.dev/api";
   var RequestsTab = ({ requests, loading, onAccept, onDecline }) => {
-    const [currentIndex, setCurrentIndex] = (0, import_react4.useState)(0);
-    const [swiping, setSwiping] = (0, import_react4.useState)(false);
-    const [swipeDir, setSwipeDir] = (0, import_react4.useState)(0);
-    const [history, setHistory] = (0, import_react4.useState)([]);
-    const startX = (0, import_react4.useRef)(0);
-    const startY = (0, import_react4.useRef)(0);
+    const [unlockedIds, setUnlockedIds] = (0, import_react4.useState)(() => {
+      return new Set(requests.filter((r) => r.isUnlocked).map((r) => r.id));
+    });
+    const [expandedId, setExpandedId] = (0, import_react4.useState)(null);
+    const [unlockLoading, setUnlockLoading] = (0, import_react4.useState)(null);
+    (0, import_react4.useEffect)(() => {
+      setUnlockedIds((prev) => {
+        const fromData = new Set(requests.filter((r) => r.isUnlocked).map((r) => r.id));
+        return /* @__PURE__ */ new Set([...prev, ...fromData]);
+      });
+    }, [requests]);
     const pendingRequests = requests.filter((r) => r.status === "pending");
-    const currentRequest = pendingRequests[currentIndex];
-    const triggerHaptic = (pattern) => {
-      if (navigator.vibrate) {
-        const patterns = {
-          light: 20,
-          medium: 50,
-          heavy: 100
-        };
-        navigator.vibrate(patterns[pattern]);
-      }
-    };
+    const acceptedRequests = requests.filter((r) => r.status === "accepted");
     const urgencyBadge = (urgency) => {
-      if (urgency === "today") return { text: "Needs Today", class: "bg-error/10 text-error" };
-      if (urgency === "this_week") return { text: "This Week", class: "bg-warning/10 text-warning" };
-      return { text: "Flexible", class: "bg-info/10 text-info" };
+      if (urgency === "today")
+        return { text: "\u{1F534} Needs Today", cls: "bg-error/15 text-error border border-error/30" };
+      if (urgency === "this_week")
+        return { text: "\u{1F7E1} This Week", cls: "bg-warning/15 text-warning border border-warning/30" };
+      return { text: "\u{1F7E2} Flexible", cls: "bg-success/15 text-success border border-success/30" };
     };
-    const handleSwipeStart = (e) => {
-      startX.current = e.touches[0].clientX;
-      startY.current = e.touches[0].clientY;
-    };
-    const handleSwipeMove = (e) => {
-      if (!currentRequest) return;
-      const currentX = e.touches[0].clientX;
-      const diff = currentX - startX.current;
-      const verticalDiff = Math.abs(e.touches[0].clientY - startY.current);
-      if (Math.abs(diff) > verticalDiff && Math.abs(diff) > 10) {
-        setSwiping(true);
-        setSwipeDir(diff);
-      }
-    };
-    const handleSwipeEnd = () => {
-      const threshold = 80;
-      if (Math.abs(swipeDir) > threshold) {
-        triggerHaptic("heavy");
-        const action = swipeDir > 0 ? "accept" : "decline";
-        setHistory([...history, { id: currentRequest.id, action }]);
-        if (action === "accept") {
-          onAccept(currentRequest.id);
+    const handleUnlock = async (req, planType) => {
+      setUnlockLoading(req.id);
+      try {
+        const endpoint = planType === "unlimited" ? `${API}/create-caregiver-subscription-checkout` : `${API}/unlock-booking`;
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId: req.id, caregiverId: req.caregiverId || req.id })
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else if (data.unlocked) {
+          setUnlockedIds((prev) => /* @__PURE__ */ new Set([...prev, req.id]));
         } else {
-          onDecline(currentRequest.id);
+          setUnlockedIds((prev) => /* @__PURE__ */ new Set([...prev, req.id]));
         }
-        setTimeout(() => {
-          setCurrentIndex((prev) => prev + 1);
-          setSwiping(false);
-          setSwipeDir(0);
-        }, 300);
-      } else {
-        setSwiping(false);
-        setSwipeDir(0);
+      } catch (e) {
+        setUnlockedIds((prev) => /* @__PURE__ */ new Set([...prev, req.id]));
+      } finally {
+        setUnlockLoading(null);
       }
-    };
-    const handleUndo = () => {
-      if (history.length === 0) return;
-      const lastAction = history[history.length - 1];
-      setHistory(history.slice(0, -1));
-      setCurrentIndex((prev) => prev - 1);
-      triggerHaptic("light");
-    };
-    const handleQuickAction = (action) => {
-      triggerHaptic("medium");
-      setHistory([...history, { id: currentRequest.id, action }]);
-      if (action === "accept") {
-        onAccept(currentRequest.id);
-      } else {
-        onDecline(currentRequest.id);
-      }
-      setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
-      }, 300);
     };
     if (loading) {
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex flex-col h-full items-center justify-center p-4", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "skeleton-shimmer w-full h-96 rounded-3xl" }) });
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex flex-col gap-4 p-4", children: [1, 2, 3].map((i) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "skeleton-shimmer rounded-2xl h-48" }, i)) });
     }
-    if (pendingRequests.length === 0) {
+    if (pendingRequests.length === 0 && acceptedRequests.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex flex-col h-full items-center justify-center p-6 text-center", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Heart, { size: 56, className: "mx-auto opacity-20 mb-4" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { className: "text-lg font-bold text-base-content", children: "No Care Requests Yet" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/60 mt-2", children: "Check back soon!" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/40 mt-1", children: "New requests will appear as clients find you" })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { className: "text-lg font-bold text-base-content", children: "No Interview Requests Yet" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/60 mt-2", children: "Clients will send interview requests when they shortlist you." }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/40 mt-1", children: "Make sure your profile is complete to get discovered!" })
       ] });
     }
-    if (currentIndex >= pendingRequests.length) {
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex flex-col h-full items-center justify-center p-6 text-center", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Check, { size: 56, className: "mx-auto text-success mb-4" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { className: "text-lg font-bold text-base-content", children: "All Reviewed!" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/60 mt-2", children: "You've reviewed all pending requests" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            onClick: () => {
-              setCurrentIndex(0);
-              setHistory([]);
-            },
-            className: "btn btn-primary btn-sm mt-4",
-            children: "Start Over"
-          }
-        )
-      ] });
-    }
-    const ub = urgencyBadge(currentRequest.urgency);
-    const cardStyle = {
-      transform: swiping ? `translateX(${swipeDir * 0.3}px) rotate(${swipeDir * 0.05}deg)` : "translateX(0) rotate(0)",
-      opacity: swiping ? 1 - Math.abs(swipeDir) / 300 : 1,
-      transition: swiping ? "none" : "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
-    };
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex flex-col h-full pb-20", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "px-4 pt-4 pb-2 flex items-center justify-between", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex flex-col pb-24 p-4 gap-4", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center justify-between pt-2", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h1", { className: "text-xl font-bold text-base-content", children: "Care Requests" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h1", { className: "text-xl font-bold text-base-content", children: "Interview Requests" }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-sm text-base-content/60 mt-0.5", children: [
-            currentIndex + 1,
-            " of ",
-            pendingRequests.length
+            pendingRequests.length,
+            " pending \xB7 ",
+            acceptedRequests.length,
+            " confirmed"
           ] })
         ] }),
-        history.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            onClick: handleUndo,
-            className: "btn btn-ghost btn-sm",
-            title: "Undo last action",
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(RotateCcw, { size: 16 })
-          }
-        )
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex-1 px-4 mt-4 flex items-center justify-center", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-        "div",
-        {
-          className: "w-full max-w-sm cursor-grab active:cursor-grabbing",
-          onTouchStart: handleSwipeStart,
-          onTouchMove: handleSwipeMove,
-          onTouchEnd: handleSwipeEnd,
-          style: cardStyle,
-          children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-base-200 rounded-3xl overflow-hidden shadow-xl", children: [
-            currentRequest.matchScore && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "earnings-card px-4 py-3 flex items-center justify-between", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-white/90 text-sm font-medium", children: "Perfect Match" }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "text-white font-bold text-lg", children: [
-                currentRequest.matchScore,
-                "%"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "p-5", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-start justify-between mb-4", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex-1", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "font-bold text-xl text-base-content", children: currentRequest.clientName }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/60 mt-0.5", children: currentRequest.careType })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: `text-xs font-semibold px-3 py-1.5 rounded-full ${ub.class}`, children: ub.text })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "space-y-3 mb-4", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-3 text-base text-base-content/80", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-primary/10 p-2.5 rounded-lg", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MapPin, { size: 18, className: "text-primary" }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/60", children: "Location" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "font-medium", children: currentRequest.location })
-                  ] })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-3 text-base text-base-content/80", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-primary/10 p-2.5 rounded-lg", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Clock, { size: 18, className: "text-primary" }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/60", children: "Schedule" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "font-medium", children: currentRequest.schedule })
-                  ] })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-3 text-base text-base-content/80", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-success/10 p-2.5 rounded-lg", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(DollarSign, { size: 18, className: "text-success" }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/60", children: "Hourly Rate" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "font-medium text-lg", children: [
-                      "$",
-                      currentRequest.hourlyRate,
-                      "/hr"
-                    ] })
-                  ] })
-                ] }),
-                currentRequest.weeklyEarnings && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-3 text-base text-base-content/80", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-warning/10 p-2.5 rounded-lg", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Star, { size: 18, className: "text-warning" }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/60", children: "Potential Earnings" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "font-medium", children: [
-                      "$",
-                      currentRequest.weeklyEarnings,
-                      "/week"
-                    ] })
-                  ] })
-                ] })
-              ] }),
-              currentRequest.description && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-base-300/30 rounded-xl p-3 mb-4", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-sm text-base-content/80 leading-relaxed", children: [
-                '"',
-                currentRequest.description,
-                '"'
-              ] }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "text-center text-xs text-base-content/40 mb-4", children: "\u2190 Swipe \u2192 or use buttons below" })
-            ] })
+        pendingRequests.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "text-right", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "text-xs text-base-content/50", children: "Potential" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "text-base font-bold text-success", children: [
+            "$",
+            pendingRequests.reduce((s, r) => s + (r.hourlyRate || 28) * 4, 0),
+            "/wk"
           ] })
-        }
-      ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-base-100 to-transparent pt-6", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex gap-3 max-w-sm mx-auto", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-          "button",
-          {
-            onClick: () => handleQuickAction("decline"),
-            className: "btn btn-outline btn-lg flex-1 rounded-2xl text-lg",
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(X, { size: 20 }),
-              " Pass"
-            ]
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-          "button",
-          {
-            onClick: () => handleQuickAction("accept"),
-            className: "btn btn-primary btn-lg flex-1 rounded-2xl text-lg",
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Check, { size: 20 }),
-              " Accept"
-            ]
-          }
-        )
-      ] }) })
+        ] })
+      ] }),
+      pendingRequests.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("h2", { className: "text-sm font-semibold text-base-content/50 uppercase tracking-wider mb-3", children: [
+          "Pending (",
+          pendingRequests.length,
+          ")"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex flex-col gap-3", children: pendingRequests.map((req) => {
+          const unlocked = unlockedIds.has(req.id);
+          const expanded = expandedId === req.id;
+          const ub = urgencyBadge(req.urgency);
+          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+            "div",
+            {
+              className: "bg-base-200 rounded-2xl overflow-hidden shadow-sm border border-base-300/50",
+              children: [
+                req.matchScore && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "earnings-card px-4 py-2.5 flex items-center justify-between", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-white/90 text-sm font-semibold", children: "\u{1F3AF} Match Score" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "text-white font-bold text-base", children: [
+                    req.matchScore,
+                    "%"
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "p-4", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-start justify-between mb-3", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "font-bold text-base text-base-content", children: req.careType }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex items-center gap-2 mt-1", children: unlocked ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/70", children: req.clientName }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex items-center gap-1.5", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Lock, { size: 12, className: "text-base-content/40" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm text-base-content/40 blur-sm select-none", children: req.clientName || "Client Name" })
+                      ] }) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: `text-xs font-semibold px-2.5 py-1 rounded-full ${ub.cls}`, children: ub.text })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "grid grid-cols-2 gap-2 mb-3", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MapPin, { size: 14, className: "text-primary shrink-0" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/50", children: "Location" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm font-medium", children: req.location })
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(DollarSign, { size: 14, className: "text-success shrink-0" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/50", children: "Rate" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-sm font-bold text-success", children: [
+                          "$",
+                          req.hourlyRate,
+                          "/hr"
+                        ] })
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2 col-span-2", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Clock, { size: 14, className: "text-primary shrink-0" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex-1", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/50", children: "Interview Time" }),
+                        unlocked ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm font-medium", children: req.schedule }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm font-medium blur-sm text-base-content/30 select-none", children: req.schedule || "Monday 9-11 AM" })
+                      ] }),
+                      !unlocked && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Lock, { size: 12, className: "text-base-content/30 shrink-0" })
+                    ] })
+                  ] }),
+                  req.description && expanded && unlocked && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-base-300/30 rounded-xl p-3 mb-3", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-sm text-base-content/80 leading-relaxed", children: [
+                    '"',
+                    req.description,
+                    '"'
+                  ] }) }),
+                  !unlocked ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "mt-3", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-primary/8 border border-primary/20 rounded-xl p-3 mb-3 flex items-center gap-3", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-primary/15 p-2 rounded-lg", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Lock, { size: 16, className: "text-primary" }) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex-1", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-sm font-semibold text-base-content", children: "Unlock full details" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs text-base-content/60", children: "See date, time & client info to respond" })
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "grid grid-cols-2 gap-2", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        "button",
+                        {
+                          onClick: () => handleUnlock(req, "single"),
+                          disabled: unlockLoading === req.id,
+                          className: "btn btn-sm btn-outline btn-primary rounded-xl flex flex-col h-auto py-2.5 gap-0.5",
+                          children: unlockLoading === req.id ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "loading loading-spinner loading-xs" }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-xs font-bold", children: "Unlock Once" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-xs opacity-70 font-normal", children: "$4.99" })
+                          ] })
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        "button",
+                        {
+                          onClick: () => handleUnlock(req, "unlimited"),
+                          disabled: unlockLoading === req.id,
+                          className: "btn btn-sm btn-primary rounded-xl flex flex-col h-auto py-2.5 gap-0.5",
+                          children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-xs font-bold", children: "Unlimited Plan" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "text-xs opacity-80 font-normal", children: "$19.99/mo" })
+                          ] })
+                        }
+                      )
+                    ] })
+                  ] }) : (
+                    /* ── UNLOCKED STATE ── */
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "mt-3", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-success/8 border border-success/25 rounded-xl p-2.5 mb-3 flex items-center gap-2", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Unlock, { size: 14, className: "text-success" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "text-xs font-semibold text-success", children: "Details unlocked \u2014 respond to this request" })
+                      ] }),
+                      req.description && !expanded && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                        "button",
+                        {
+                          onClick: () => setExpandedId(expanded ? null : req.id),
+                          className: "flex items-center gap-1 text-xs text-base-content/50 mb-3",
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ChevronRight, { size: 12 }),
+                            " View care details"
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex gap-2", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                          "button",
+                          {
+                            onClick: () => onDecline(req.id),
+                            className: "btn btn-outline btn-sm flex-1 rounded-xl",
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(X, { size: 14 }),
+                              " Pass"
+                            ]
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                          "button",
+                          {
+                            onClick: () => onAccept(req.id),
+                            className: "btn btn-primary btn-sm flex-1 rounded-xl",
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Check, { size: 14 }),
+                              " Confirm"
+                            ]
+                          }
+                        )
+                      ] })
+                    ] })
+                  )
+                ] })
+              ]
+            },
+            req.id
+          );
+        }) })
+      ] }),
+      acceptedRequests.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("h2", { className: "text-sm font-semibold text-base-content/50 uppercase tracking-wider mb-3", children: [
+          "Confirmed (",
+          acceptedRequests.length,
+          ")"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "flex flex-col gap-3", children: acceptedRequests.map((req) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "bg-success/8 border border-success/25 rounded-2xl p-4 flex items-center gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "bg-success/15 p-2.5 rounded-xl", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Check, { size: 18, className: "text-success" }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "flex-1", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { className: "font-bold text-base-content text-sm", children: req.careType }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-xs text-base-content/60", children: [
+              req.clientName,
+              " \xB7 ",
+              req.schedule
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "text-right", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("p", { className: "text-sm font-bold text-success", children: [
+            "$",
+            req.hourlyRate,
+            "/hr"
+          ] }) })
+        ] }, req.id)) })
+      ] })
     ] });
   };
 
@@ -25465,7 +25501,8 @@
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
     const filterByPeriod = (ts) => {
-      if (period === "all") return ts;
+      if (period === "all")
+        return ts;
       const cutoff = period === "week" ? weekAgo : monthAgo;
       return ts.filter((t) => new Date(t.date) >= cutoff);
     };
@@ -25648,7 +25685,8 @@
       onUpdateProfile({ skills: selectedSkills });
       setEditingSkills(false);
     };
-    if (!profile) return null;
+    if (!profile)
+      return null;
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "pb-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "earnings-card px-4 pt-6 pb-8 text-center", children: [
         /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "relative inline-block mb-3", children: [
@@ -25870,7 +25908,7 @@
   var DEMO_REQUESTS = [
     {
       id: 1,
-      clientName: "Sarah Mitchell",
+      clientName: "Sarah M.",
       careType: "Dementia Care",
       description: "Looking for a compassionate caregiver for my 82-year-old mother who has early-stage dementia. Needs help with meals, light activities, and companionship.",
       location: "Buckhead, Atlanta",
@@ -25886,7 +25924,7 @@
     },
     {
       id: 2,
-      clientName: "Robert Chen",
+      clientName: "R. Chen",
       careType: "Post-Surgery Recovery",
       description: "Need assistance after hip replacement surgery. Help with mobility, medication reminders, and light housekeeping.",
       location: "Midtown, Atlanta",
@@ -25902,7 +25940,7 @@
     },
     {
       id: 3,
-      clientName: "Emily Torres",
+      clientName: "E. Torres",
       careType: "Overnight Care",
       description: "Seeking overnight caregiver for my father. Needs monitoring and occasional assistance throughout the night.",
       location: "Decatur, GA",
@@ -25917,6 +25955,35 @@
       urgency: "flexible"
     }
   ];
+  function mapBookingToRequest(b) {
+    const scheduleStr = b.preferredDate && b.preferredTime ? `${b.preferredDate} at ${b.preferredTime}` : b.preferredDate || "Schedule TBD";
+    let urgency = "flexible";
+    if (b.preferredDate) {
+      const daysDiff = (new Date(b.preferredDate).getTime() - Date.now()) / (1e3 * 86400);
+      if (daysDiff <= 1)
+        urgency = "today";
+      else if (daysDiff <= 7)
+        urgency = "this_week";
+    }
+    return {
+      id: b.id,
+      clientName: b.clientEmail || "Client",
+      careType: b.careNeeds || "Care Request",
+      description: b.notes || "",
+      location: b.isUnlocked ? "See details below" : "Unlock to view",
+      distance: "",
+      schedule: scheduleStr,
+      hourlyRate: 25,
+      weeklyHours: void 0,
+      weeklyEarnings: void 0,
+      matchScore: void 0,
+      postedAt: b.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
+      status: b.status || "pending",
+      urgency,
+      isUnlocked: b.isUnlocked,
+      caregiverId: b.caregiverId
+    };
+  }
   var App = () => {
     const [loggedIn, setLoggedIn] = (0, import_react7.useState)(false);
     const [loginError, setLoginError] = (0, import_react7.useState)("");
@@ -25926,22 +25993,41 @@
     const [shifts, setShifts] = (0, import_react7.useState)([]);
     const [timesheets, setTimesheets] = (0, import_react7.useState)([]);
     const [requests, setRequests] = (0, import_react7.useState)(DEMO_REQUESTS);
+    const [usingDemoRequests, setUsingDemoRequests] = (0, import_react7.useState)(true);
     const [loading, setLoading] = (0, import_react7.useState)(false);
     const loadData = (0, import_react7.useCallback)(async (caregiverId) => {
       setLoading(true);
       try {
-        const [shiftRes, tsRes] = await Promise.all([
+        const [shiftRes, tsRes, bookingsRes] = await Promise.all([
           fetchShifts(caregiverId),
-          fetchTimesheets(caregiverId)
+          fetchTimesheets(caregiverId),
+          fetchBookings(caregiverId)
         ]);
-        if (shiftRes?.docs) setShifts(shiftRes.docs);
-        if (tsRes?.docs) setTimesheets(tsRes.docs);
+        if (shiftRes?.docs)
+          setShifts(shiftRes.docs);
+        if (tsRes?.docs)
+          setTimesheets(tsRes.docs);
+        if (bookingsRes?.bookings && bookingsRes.bookings.length > 0) {
+          setRequests(bookingsRes.bookings.map(mapBookingToRequest));
+          setUsingDemoRequests(false);
+        }
       } catch (e) {
         console.error("Failed to load data:", e);
       } finally {
         setLoading(false);
       }
     }, []);
+    (0, import_react7.useEffect)(() => {
+      if (!loggedIn || !profile)
+        return;
+      const params = new URLSearchParams(window.location.search);
+      const unlockedBookingId = params.get("booking_unlocked");
+      const subscriptionSuccess = params.get("subscription");
+      if (unlockedBookingId || subscriptionSuccess === "success") {
+        loadData(profile.id);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }, [loggedIn, profile, loadData]);
     const handleLogin = async (email, password) => {
       setLoginError("");
       setLoginLoading(true);
@@ -25983,12 +26069,15 @@
       setProfile(null);
       setShifts([]);
       setTimesheets([]);
+      setRequests(DEMO_REQUESTS);
+      setUsingDemoRequests(true);
       setActiveTab("home");
     };
     const handleClockIn = async (shiftId) => {
       try {
         await clockIn(shiftId);
-        if (profile) await loadData(profile.id);
+        if (profile)
+          await loadData(profile.id);
       } catch (e) {
         console.error("Clock in failed:", e);
       }
@@ -25996,19 +26085,35 @@
     const handleClockOut = async (timesheetId) => {
       try {
         await clockOut(timesheetId, profile?.hourlyRate || 25);
-        if (profile) await loadData(profile.id);
+        if (profile)
+          await loadData(profile.id);
       } catch (e) {
         console.error("Clock out failed:", e);
       }
     };
-    const handleAcceptRequest = (requestId) => {
+    const handleAcceptRequest = async (requestId) => {
       setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "accepted" } : r));
+      if (!usingDemoRequests) {
+        try {
+          await updateBookingStatus(requestId, "accepted");
+        } catch (e) {
+          console.error("Failed to update booking status:", e);
+        }
+      }
     };
-    const handleDeclineRequest = (requestId) => {
+    const handleDeclineRequest = async (requestId) => {
       setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "declined" } : r));
+      if (!usingDemoRequests) {
+        try {
+          await updateBookingStatus(requestId, "declined");
+        } catch (e) {
+          console.error("Failed to update booking status:", e);
+        }
+      }
     };
     const handleUpdateProfile = async (data) => {
-      if (!profile) return;
+      if (!profile)
+        return;
       try {
         await updateProfile(profile.id, data);
         setProfile((prev) => prev ? { ...prev, ...data } : prev);

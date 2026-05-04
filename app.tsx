@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType } from './types'
-import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
+import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
 import { LoginScreen } from './components/LoginScreen'
 import { HomeTab } from './components/HomeTab'
 import { ScheduleTab } from './components/ScheduleTab'
@@ -11,30 +11,64 @@ import { EarningsTab } from './components/EarningsTab'
 import { ProfileTab } from './components/ProfileTab'
 import { BottomNav } from './components/BottomNav'
 
-// Demo care requests (until we build the real endpoint)
+// Demo care requests — shown when no real bookings exist yet
 const DEMO_REQUESTS: CareRequest[] = [
   {
-    id: 1, clientName: 'Sarah Mitchell', careType: 'Dementia Care',
+    id: 1, clientName: 'Sarah M.', careType: 'Dementia Care',
     description: 'Looking for a compassionate caregiver for my 82-year-old mother who has early-stage dementia. Needs help with meals, light activities, and companionship.',
     location: 'Buckhead, Atlanta', distance: '2.3 mi', schedule: 'Mon-Fri, 9am-1pm',
     hourlyRate: 24, weeklyHours: 20, weeklyEarnings: 480, matchScore: 95,
     postedAt: new Date().toISOString(), status: 'pending', urgency: 'this_week'
   },
   {
-    id: 2, clientName: 'Robert Chen', careType: 'Post-Surgery Recovery',
+    id: 2, clientName: 'R. Chen', careType: 'Post-Surgery Recovery',
     description: 'Need assistance after hip replacement surgery. Help with mobility, medication reminders, and light housekeeping.',
     location: 'Midtown, Atlanta', distance: '4.1 mi', schedule: 'Daily, 2pm-6pm',
     hourlyRate: 28, weeklyHours: 28, weeklyEarnings: 784, matchScore: 88,
     postedAt: new Date().toISOString(), status: 'pending', urgency: 'today'
   },
   {
-    id: 3, clientName: 'Emily Torres', careType: 'Overnight Care',
+    id: 3, clientName: 'E. Torres', careType: 'Overnight Care',
     description: 'Seeking overnight caregiver for my father. Needs monitoring and occasional assistance throughout the night.',
     location: 'Decatur, GA', distance: '6.5 mi', schedule: 'Weekends, 8pm-8am',
     hourlyRate: 22, weeklyHours: 24, weeklyEarnings: 528, matchScore: 78,
     postedAt: new Date().toISOString(), status: 'pending', urgency: 'flexible'
   },
 ]
+
+// Map a D1 booking record to CareRequest shape
+function mapBookingToRequest(b: any): CareRequest {
+  const scheduleStr = b.preferredDate && b.preferredTime
+    ? `${b.preferredDate} at ${b.preferredTime}`
+    : b.preferredDate || 'Schedule TBD'
+
+  // Rough urgency from date
+  let urgency: 'today' | 'this_week' | 'flexible' = 'flexible'
+  if (b.preferredDate) {
+    const daysDiff = (new Date(b.preferredDate).getTime() - Date.now()) / (1000 * 86400)
+    if (daysDiff <= 1) urgency = 'today'
+    else if (daysDiff <= 7) urgency = 'this_week'
+  }
+
+  return {
+    id: b.id,
+    clientName: b.clientEmail || 'Client',
+    careType: b.careNeeds || 'Care Request',
+    description: b.notes || '',
+    location: b.isUnlocked ? 'See details below' : 'Unlock to view',
+    distance: '',
+    schedule: scheduleStr,
+    hourlyRate: 25,
+    weeklyHours: undefined,
+    weeklyEarnings: undefined,
+    matchScore: undefined,
+    postedAt: b.createdAt || new Date().toISOString(),
+    status: (b.status as any) || 'pending',
+    urgency,
+    isUnlocked: b.isUnlocked,
+    caregiverId: b.caregiverId,
+  }
+}
 
 const App: React.FC<{}> = () => {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -45,23 +79,44 @@ const App: React.FC<{}> = () => {
   const [shifts, setShifts] = useState<Shift[]>([])
   const [timesheets, setTimesheets] = useState<Timesheet[]>([])
   const [requests, setRequests] = useState<CareRequest[]>(DEMO_REQUESTS)
+  const [usingDemoRequests, setUsingDemoRequests] = useState(true)
   const [loading, setLoading] = useState(false)
 
   const loadData = useCallback(async (caregiverId: number) => {
     setLoading(true)
     try {
-      const [shiftRes, tsRes] = await Promise.all([
+      const [shiftRes, tsRes, bookingsRes] = await Promise.all([
         fetchShifts(caregiverId),
         fetchTimesheets(caregiverId),
+        fetchBookings(caregiverId),
       ])
       if (shiftRes?.docs) setShifts(shiftRes.docs)
       if (tsRes?.docs) setTimesheets(tsRes.docs)
+      // Use real bookings if any exist, else keep demo
+      if (bookingsRes?.bookings && bookingsRes.bookings.length > 0) {
+        setRequests(bookingsRes.bookings.map(mapBookingToRequest))
+        setUsingDemoRequests(false)
+      }
     } catch (e) {
       console.error('Failed to load data:', e)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  // Handle Stripe return URLs
+  useEffect(() => {
+    if (!loggedIn || !profile) return
+    const params = new URLSearchParams(window.location.search)
+    const unlockedBookingId = params.get('booking_unlocked')
+    const subscriptionSuccess = params.get('subscription')
+    if (unlockedBookingId || subscriptionSuccess === 'success') {
+      // Refresh bookings to show newly unlocked data
+      loadData(profile.id)
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [loggedIn, profile, loadData])
 
   const handleLogin = async (email: string, password: string) => {
     setLoginError('')
@@ -108,6 +163,8 @@ const App: React.FC<{}> = () => {
     setProfile(null)
     setShifts([])
     setTimesheets([])
+    setRequests(DEMO_REQUESTS)
+    setUsingDemoRequests(true)
     setActiveTab('home')
   }
 
@@ -129,12 +186,28 @@ const App: React.FC<{}> = () => {
     }
   }
 
-  const handleAcceptRequest = (requestId: number) => {
+  const handleAcceptRequest = async (requestId: number) => {
+    // Optimistic update
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'accepted' as const } : r))
+    if (!usingDemoRequests) {
+      try {
+        await updateBookingStatus(requestId, 'accepted')
+      } catch (e) {
+        console.error('Failed to update booking status:', e)
+      }
+    }
   }
 
-  const handleDeclineRequest = (requestId: number) => {
+  const handleDeclineRequest = async (requestId: number) => {
+    // Optimistic update
     setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'declined' as const } : r))
+    if (!usingDemoRequests) {
+      try {
+        await updateBookingStatus(requestId, 'declined')
+      } catch (e) {
+        console.error('Failed to update booking status:', e)
+      }
+    }
   }
 
   const handleUpdateProfile = async (data: any) => {

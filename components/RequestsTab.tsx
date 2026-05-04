@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MapPin, Clock, DollarSign, Star, Lock, Unlock, Check, X, Heart, ChevronRight } from 'lucide-react'
 import { CareRequest } from '../types'
 
@@ -13,9 +13,21 @@ interface RequestsTabProps {
 }
 
 export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onAccept, onDecline }) => {
-  const [unlockedIds, setUnlockedIds] = useState<Set<number>>(new Set())
+  const [unlockedIds, setUnlockedIds] = useState<Set<number>>(() => {
+    // Seed from any pre-unlocked bookings in the data
+    return new Set(requests.filter(r => r.isUnlocked).map(r => r.id))
+  })
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [unlockLoading, setUnlockLoading] = useState<number | null>(null)
+
+  // When requests change (e.g., after refresh), sync unlocked state
+  useEffect(() => {
+    setUnlockedIds(prev => {
+      const fromData = new Set(requests.filter(r => r.isUnlocked).map(r => r.id))
+      // Merge: keep any locally unlocked IDs too
+      return new Set([...prev, ...fromData])
+    })
+  }, [requests])
 
   const pendingRequests = requests.filter(r => r.status === 'pending')
   const acceptedRequests = requests.filter(r => r.status === 'accepted')
@@ -41,10 +53,9 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
       if (data.url) {
         window.location.href = data.url
       } else if (data.unlocked) {
-        // Already unlocked or dev mode
         setUnlockedIds(prev => new Set([...prev, req.id]))
       } else {
-        // Demo mode — unlock locally
+        // Demo mode — unlock locally so UI still works
         setUnlockedIds(prev => new Set([...prev, req.id]))
       }
     } catch (e) {
@@ -179,8 +190,8 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                       </div>
                     </div>
 
-                    {/* Description (visible) */}
-                    {req.description && expanded && (
+                    {/* Description (visible only when expanded + unlocked) */}
+                    {req.description && expanded && unlocked && (
                       <div className="bg-base-300/30 rounded-xl p-3 mb-3">
                         <p className="text-sm text-base-content/80 leading-relaxed">"{req.description}"</p>
                       </div>

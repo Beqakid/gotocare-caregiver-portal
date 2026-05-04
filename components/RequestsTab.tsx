@@ -220,8 +220,8 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                               <span className="loading loading-spinner loading-xs" />
                             ) : (
                               <>
-                                <span className="text-xs font-bold text-white">Unlock Once</span>
-                                <span className="text-xs text-white/80 font-normal">$4.99</span>
+                                <span className="text-xs font-bold text-gray-900">Unlock Once</span>
+                                <span className="text-xs text-gray-700 font-normal">$4.99</span>
                               </>
                             )}
                           </button>

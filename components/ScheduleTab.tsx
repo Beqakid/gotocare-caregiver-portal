@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, User, Users, Play, Square, Plus, Trash2, Timer, X, Car, ChevronDown, ChevronUp, Zap, Edit2, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Shift, TimeEntry, PrivateClient, MileageEntry } from '../types'
 import { getTimeEntries, addTimeEntry, updateTimeEntry, deleteTimeEntry, getActiveTimer, setActiveTimer, getPrivateClients, addPrivateClient, deletePrivateClient, addMileageEntry, getMileageEntries } from '../utils/storage'
+import { cloudGetTimeEntries, cloudAddTimeEntry, cloudDeleteTimeEntry, cloudGetActiveTimer, cloudSetActiveTimer, cloudGetPrivateClients, cloudAddPrivateClient, cloudDeletePrivateClient, cloudAddMileage, cloudGetMileage } from '../utils/cloud-api'
 
 interface ScheduleTabProps {
   shifts: Shift[]
@@ -175,10 +176,33 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const [mileageClient, setMileageClient] = useState('')
   const [mileageMiles, setMileageMiles] = useState('')
 
-  const refresh = () => {
+  const refresh = async () => {
+    // Always load localStorage first for instant render
     setTimeEntries(getTimeEntries())
     setActiveTimerState(getActiveTimer())
     setClients(getPrivateClients())
+    // Then merge cloud data
+    const token = localStorage.getItem('cgp_token')
+    if (token) {
+      const [cloudEntries, cloudTimer, cloudClients] = await Promise.all([
+        cloudGetTimeEntries(),
+        cloudGetActiveTimer(),
+        cloudGetPrivateClients(),
+      ])
+      // Merge: cloud entries take precedence (they have cloudId prefix)
+      const localOnly = getTimeEntries().filter(e => !e.id.startsWith('cloud_') && !e.cloudId)
+      const merged = [...cloudEntries, ...localOnly]
+      merged.sort((a, b) => (b.date > a.date ? 1 : -1))
+      setTimeEntries(merged)
+      if (cloudTimer && !getActiveTimer()) {
+        // Restore timer from cloud if not running locally
+        setActiveTimerState({ ...cloudTimer, id: 'cloud_timer', createdAt: new Date().toISOString() })
+      }
+      if (cloudClients.length > 0) {
+        const localOnly2 = getPrivateClients().filter(c => !c.id.startsWith('cloud_'))
+        setClients([...cloudClients, ...localOnly2])
+      }
+    }
   }
 
   // Timer tick
@@ -312,6 +336,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     })
     setActiveTimer(entry)
     setActiveTimerState(entry)
+    cloudSetActiveTimer({ clientName: entry.clientName, startTime: entry.startTime, hourlyRate: entry.hourlyRate, billingType: entry.billingType || 'hourly', otAfterHrs: entry.overtimeAfterHours || 8, otMultiplier: entry.overtimeMultiplier || 1.5, notes: entry.notes || '' })
     setShowStartTimer(false)
     setTimerClient('')
     setTimerClientObj(null)
@@ -346,6 +371,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     setActiveTimer(null)
     setActiveTimerState(null)
     setElapsed(0)
+    cloudSetActiveTimer(null)
+    const completedEntry = getTimeEntries().find(e => e.id === activeTimer.id)
+    if (completedEntry) cloudAddTimeEntry(completedEntry)
     refresh()
     onTimerUpdate()
   }
@@ -446,7 +474,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   const handleAddClient = () => {
     if (!newClientName.trim()) return
-    addPrivateClient({
+    const newClientData = {
       name: newClientName.trim(),
       phone: newClientPhone || undefined,
       hourlyRate: parseFloat(newClientRate) || 25,
@@ -454,7 +482,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       billingType: newClientBilling,
       overtimeAfterHours: newClientBilling === 'split_rate' ? parseFloat(newClientOTHours) || 8 : undefined,
       overtimeMultiplier: newClientBilling === 'split_rate' ? parseFloat(newClientOTMult) || 1.5 : undefined,
-    })
+    }
+    addPrivateClient(newClientData)
+    cloudAddPrivateClient({ name: newClientData.name, phone: newClientData.phone || '', hourlyRate: newClientData.hourlyRate, careType: newClientData.careType || '', billingType: newClientData.billingType, otAfterHrs: newClientData.overtimeAfterHours || 8, otMultiplier: newClientData.overtimeMultiplier || 1.5 })
     setShowAddClient(false)
     setNewClientName('')
     setNewClientPhone('')
@@ -466,13 +496,21 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     refresh()
   }
 
-  const handleDeleteTimeEntry = (id: string) => {
+  const handleDeleteTimeEntry = (id: string, entry?: TimeEntry) => {
     deleteTimeEntry(id)
+    if (id.startsWith('cloud_')) {
+      cloudDeleteTimeEntry(id.replace('cloud_', ''))
+    } else if (entry?.cloudId) {
+      cloudDeleteTimeEntry(String(entry.cloudId))
+    }
     refresh()
     onTimerUpdate()
   }
 
   const handleDeleteClient = (id: string) => {
+    if (id.startsWith('cloud_')) {
+      cloudDeletePrivateClient(id.replace('cloud_', ''))
+    }
     deletePrivateClient(id)
     refresh()
   }
@@ -484,6 +522,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       clientName: mileageClient.trim(),
       miles: parseFloat(mileageMiles) || 0,
     })
+    cloudAddMileage({ date: new Date().toISOString().split('T')[0], clientName: mileageClient.trim(), miles: parseFloat(mileageMiles) || 0 })
     setShowMileage(false)
     setMileageClient('')
     setMileageMiles('')

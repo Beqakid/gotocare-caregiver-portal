@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { DollarSign, TrendingUp, Clock, CreditCard, FileText, Plus, Send, Download, Trash2, X, Calculator, Car } from 'lucide-react'
 import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
+import { cloudGetInvoices, cloudAddInvoice, cloudUpdateInvoiceStatus, cloudDeleteInvoice, cloudGetMileage } from '../utils/cloud-api'
 
 interface EarningsTabProps {
   timesheets: Timesheet[]
@@ -14,6 +15,22 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
   const [invoices, setInvoices] = useState<Invoice[]>(getInvoices())
   const [showCreate, setShowCreate] = useState(false)
+
+  React.useEffect(() => {
+    const loadCloud = async () => {
+      const token = localStorage.getItem('cgp_token')
+      if (!token) return
+      const [cloudInvoices] = await Promise.all([
+        cloudGetInvoices(),
+      ])
+      if (cloudInvoices.length > 0) {
+        const localOnly = getInvoices().filter(i => !i.id.startsWith('cloud_'))
+        const merged = [...cloudInvoices, ...localOnly]
+        setInvoices(merged)
+      }
+    }
+    loadCloud()
+  }, [])
 
   // Invoice form state
   const [invClient, setInvClient] = useState('')
@@ -107,6 +124,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       dueDate: dueDate.toISOString().split('T')[0],
       notes: invNotes || undefined,
     })
+    cloudAddInvoice(inv)
     setInvoices(getInvoices())
     setShowCreate(false)
     setInvClient(''); setInvClientEmail(''); setInvNotes('')
@@ -115,11 +133,13 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   const handleMarkPaid = (id: string) => {
     updateInvoice(id, { status: 'paid' })
+    if (id.startsWith('cloud_')) cloudUpdateInvoiceStatus(id.replace('cloud_', ''), 'paid')
     setInvoices(getInvoices())
   }
 
   const handleDeleteInvoice = (id: string) => {
     deleteInvoice(id)
+    if (id.startsWith('cloud_')) cloudDeleteInvoice(id.replace('cloud_', ''))
     setInvoices(getInvoices())
   }
 
@@ -237,7 +257,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   </span>
                   <div className="w-full rounded-t-lg bg-primary/85 min-h-[4px] transition-all"
                     style={{ height: `${(d.amount / maxDaily) * 80}px` }} />
-                  <span className="text-[11px] text-base-content/75">{d.day}</span>
+                  <span className="text-[10px] text-base-content/60">{d.day}</span>
                 </div>
               ))}
             </div>
@@ -290,17 +310,17 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="text-[11px] text-base-content/75">Hours</label>
+                          <label className="text-[10px] text-base-content/60">Hours</label>
                           <input type="number" step="0.25" className="input input-bordered input-xs w-full"
                             value={item.hours || ''} onChange={e => updateItem(i, 'hours', parseFloat(e.target.value) || 0)} />
                         </div>
                         <div className="flex-1">
-                          <label className="text-[11px] text-base-content/75">Rate</label>
+                          <label className="text-[10px] text-base-content/60">Rate</label>
                           <input type="number" className="input input-bordered input-xs w-full"
                             value={item.rate || ''} onChange={e => updateItem(i, 'rate', parseFloat(e.target.value) || 0)} />
                         </div>
                         <div className="flex-1">
-                          <label className="text-[11px] text-base-content/75">Amount</label>
+                          <label className="text-[10px] text-base-content/60">Amount</label>
                           <p className="text-sm font-bold text-base-content pt-1">${item.amount.toFixed(2)}</p>
                         </div>
                       </div>
@@ -318,7 +338,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-[11px] text-base-content/75">Due in (days)</label>
+                    <label className="text-[10px] text-base-content/60">Due in (days)</label>
                     <input type="number" className="input input-bordered input-xs w-full"
                       value={invDueDays} onChange={e => setInvDueDays(e.target.value)} />
                   </div>
@@ -339,7 +359,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             <div className="text-center py-10">
               <FileText size={36} className="mx-auto opacity-20 mb-2" />
               <p className="text-sm text-base-content/60">No invoices yet</p>
-              <p className="text-xs text-base-content/65 mt-1">Create professional invoices for your private clients</p>
+              <p className="text-xs text-base-content/40 mt-1">Create professional invoices for your private clients</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -353,8 +373,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                           inv.status === 'paid' ? 'badge-success' : inv.status === 'sent' ? 'badge-info' : inv.status === 'overdue' ? 'badge-error' : 'badge-ghost'
                         }`}>{inv.status}</span>
                       </div>
-                      <p className="text-xs text-base-content/75 mt-0.5">{inv.invoiceNumber} · Due {inv.dueDate}</p>
-                      <p className="text-xs text-base-content/70 mt-0.5">
+                      <p className="text-xs text-base-content/60 mt-0.5">{inv.invoiceNumber} · Due {inv.dueDate}</p>
+                      <p className="text-xs text-base-content/50 mt-0.5">
                         {inv.items.length} item{inv.items.length > 1 ? 's' : ''} · {inv.items.reduce((s, i) => s + i.hours, 0)}h
                       </p>
                     </div>
@@ -387,7 +407,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <Calculator size={20} className="text-primary" />
               <h3 className="font-bold text-sm text-base-content">{now.getFullYear()} Tax Summary</h3>
             </div>
-            <p className="text-xs text-base-content/75 mb-4">Estimated figures — consult a tax professional</p>
+            <p className="text-xs text-base-content/60 mb-4">Estimated figures — consult a tax professional</p>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -397,7 +417,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <div className="h-px bg-base-300" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Car size={14} className="text-base-content/70" />
+                  <Car size={14} className="text-base-content/50" />
                   <span className="text-sm text-base-content/70">Mileage ({ytdMiles.toFixed(0)} mi × $0.67)</span>
                 </div>
                 <span className="font-medium text-success">-${mileageDeduction.toFixed(0)}</span>
@@ -423,7 +443,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
           <div className="bg-base-200 rounded-2xl p-4">
             <p className="font-semibold text-sm text-base-content mb-2">Quarterly Tax Reminder</p>
-            <p className="text-xs text-base-content/75">
+            <p className="text-xs text-base-content/60">
               As an independent caregiver, you may need to pay estimated taxes quarterly.
               Set aside ~{Math.round(((estSelfEmploymentTax + estIncomeTax) / Math.max(ytdTotal, 1)) * 100)}% of each payment.
             </p>

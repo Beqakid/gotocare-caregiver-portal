@@ -106,6 +106,15 @@ export interface TimeEntry {
   notes?: string
   status: 'active' | 'completed'
   createdAt: string
+  // Billing breakdown (for split-rate shifts)
+  billingType?: 'hourly' | 'split_rate'
+  overtimeAfterHours?: number  // threshold for OT (default 8)
+  overtimeMultiplier?: number  // OT rate multiplier (default 1.5)
+  regularHours?: number
+  overtimeHours?: number
+  regularPay?: number
+  overtimePay?: number
+  totalPay?: number
 }
 
 export interface CaregiverDocument {
@@ -151,6 +160,10 @@ export interface PrivateClient {
   hourlyRate: number
   notes?: string
   createdAt: string
+  // Billing rules
+  billingType?: 'hourly' | 'split_rate'  // 'split_rate' = overtime after threshold
+  overtimeAfterHours?: number             // hours before OT kicks in (default 8)
+  overtimeMultiplier?: number             // OT multiplier (default 1.5)
 }
 
 export interface MileageEntry {

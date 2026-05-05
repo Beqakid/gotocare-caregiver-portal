@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, MapPin, User, Users, Play, Square, Plus, Trash2, Timer, X, Car, ChevronDown, ChevronUp, Zap } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Users, Play, Square, Plus, Trash2, Timer, X, Car, ChevronDown, ChevronUp, Zap, Edit2, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Shift, TimeEntry, PrivateClient, MileageEntry } from '../types'
 import { getTimeEntries, addTimeEntry, updateTimeEntry, deleteTimeEntry, getActiveTimer, setActiveTimer, getPrivateClients, addPrivateClient, deletePrivateClient, addMileageEntry, getMileageEntries } from '../utils/storage'
 
@@ -50,6 +50,81 @@ function fmtHrs(hrs: number) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
+// ---- Mini Calendar Component ----
+interface MiniCalendarProps {
+  selectedDates: string[] // 'YYYY-MM-DD'
+  onToggleDate: (date: string) => void
+}
+const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate }) => {
+  const [viewDate, setViewDate] = useState(() => {
+    const d = new Date(); d.setDate(1); return d
+  })
+
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
+  const monthName = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < firstDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  const toStr = (day: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+  const prevMonth = () => { const d = new Date(year, month - 1, 1); setViewDate(d) }
+  const nextMonth = () => { const d = new Date(year, month + 1, 1); setViewDate(d) }
+
+  return (
+    <div className="bg-base-100 rounded-2xl p-3 border border-base-300">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={prevMonth} className="btn btn-ghost btn-xs btn-circle"><ChevronLeft size={14} /></button>
+        <span className="text-xs font-semibold text-base-content">{monthName}</span>
+        <button onClick={nextMonth} className="btn btn-ghost btn-xs btn-circle"><ChevronRight size={14} /></button>
+      </div>
+      {/* Day labels */}
+      <div className="grid grid-cols-7 mb-1">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} className="text-center text-[9px] font-medium text-base-content/40 py-0.5">{d}</div>
+        ))}
+      </div>
+      {/* Days grid */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e-${i}`} />
+          const dateStr = toStr(day)
+          const isSelected = selectedDates.includes(dateStr)
+          const isToday = dateStr === todayStr
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onToggleDate(dateStr)}
+              className={`aspect-square rounded-lg text-[11px] font-medium transition-all
+                ${isSelected
+                  ? 'bg-primary text-white'
+                  : isToday
+                    ? 'border border-primary/40 text-primary'
+                    : 'hover:bg-base-200 text-base-content/80'
+                }`}
+            >
+              {day}
+            </button>
+          )
+        })}
+      </div>
+      {selectedDates.length > 0 && (
+        <p className="text-[10px] text-primary text-center mt-2 font-medium">
+          {selectedDates.length} day{selectedDates.length !== 1 ? 's' : ''} selected
+        </p>
+      )}
+    </div>
+  )
+}
+
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate }) => {
   const [viewMode, setViewMode] = useState<'schedule' | 'timesheet' | 'clients'>('schedule')
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(getTimeEntries())
@@ -58,7 +133,14 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const [clients, setClients] = useState<PrivateClient[]>(getPrivateClients())
   const [showAddClient, setShowAddClient] = useState(false)
   const [showStartTimer, setShowStartTimer] = useState(false)
+  const [showLogHours, setShowLogHours] = useState(false)
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null)
+  const [editingEntry, setEditingEntry] = useState<string | null>(null)
+
+  // Edit state for a time entry
+  const [editDate, setEditDate] = useState('')
+  const [editStart, setEditStart] = useState('')
+  const [editEnd, setEditEnd] = useState('')
 
   // Add client form state
   const [newClientName, setNewClientName] = useState('')
@@ -74,6 +156,19 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const [timerClientObj, setTimerClientObj] = useState<PrivateClient | null>(null)
   const [timerRate, setTimerRate] = useState('25')
   const [timerNotes, setTimerNotes] = useState('')
+  // Manual start time for timer
+  const [timerCustomStart, setTimerCustomStart] = useState('')
+  const [timerCustomEnd, setTimerCustomEnd] = useState('')
+  const [timerMode, setTimerMode] = useState<'live' | 'manual'>('live')
+
+  // Log Hours (calendar) state
+  const [logClient, setLogClient] = useState('')
+  const [logClientObj, setLogClientObj] = useState<PrivateClient | null>(null)
+  const [logRate, setLogRate] = useState('25')
+  const [logSelectedDates, setLogSelectedDates] = useState<string[]>([])
+  const [logHoursPerDay, setLogHoursPerDay] = useState('24')
+  const [logStartTime, setLogStartTime] = useState('08:00')
+  const [logNotes, setLogNotes] = useState('')
 
   // Mileage
   const [showMileage, setShowMileage] = useState(false)
@@ -123,16 +218,91 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       )
     : null
 
-  // Is the active timer currently in OT?
   const liveInOT = liveEarnings && activeTimer?.billingType === 'split_rate' && liveEarnings.overtimeHours > 0
+
+  // ---- Log Hours Preview Calculation ----
+  const logPreview = () => {
+    if (!logSelectedDates.length || !logHoursPerDay) return null
+    const hrs = parseFloat(logHoursPerDay) || 0
+    const rate = parseFloat(logRate) || 25
+    const billing = logClientObj?.billingType || 'hourly'
+    const otAfter = logClientObj?.overtimeAfterHours || 8
+    const otMult = logClientObj?.overtimeMultiplier || 1.5
+    const perDay = calcEarnings(hrs * 60, rate, billing, otAfter, otMult)
+    const days = logSelectedDates.length
+    return {
+      days,
+      hrs,
+      totalHrs: hrs * days,
+      perDay,
+      totalPay: perDay.totalPay * days,
+      regularPay: perDay.regularPay * days,
+      overtimePay: perDay.overtimePay * days,
+      regularHours: perDay.regularHours * days,
+      overtimeHours: perDay.overtimeHours * days,
+      isSplit: billing === 'split_rate' && perDay.overtimeHours > 0,
+    }
+  }
 
   const startTimer = () => {
     if (!timerClient.trim()) return
     const client = timerClientObj
+
+    let startISO = new Date().toISOString()
+    if (timerMode === 'manual' && timerCustomStart) {
+      const today = new Date().toISOString().split('T')[0]
+      startISO = new Date(`${today}T${timerCustomStart}:00`).toISOString()
+    }
+
+    // If manual mode with end time, just save a completed entry
+    if (timerMode === 'manual' && timerCustomStart && timerCustomEnd) {
+      const today = new Date().toISOString().split('T')[0]
+      const startDt = new Date(`${today}T${timerCustomStart}:00`)
+      const endDt = new Date(`${today}T${timerCustomEnd}:00`)
+      // handle overnight
+      if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
+      const durationMins = Math.round((endDt.getTime() - startDt.getTime()) / 60000)
+      const billing = calcEarnings(
+        durationMins,
+        parseFloat(timerRate) || 25,
+        client?.billingType || 'hourly',
+        client?.overtimeAfterHours || 8,
+        client?.overtimeMultiplier || 1.5
+      )
+      addTimeEntry({
+        clientName: timerClient.trim(),
+        date: today,
+        startTime: startDt.toISOString(),
+        endTime: endDt.toISOString(),
+        duration: durationMins,
+        hourlyRate: parseFloat(timerRate) || 25,
+        notes: timerNotes || undefined,
+        status: 'completed',
+        billingType: client?.billingType || 'hourly',
+        overtimeAfterHours: client?.overtimeAfterHours || 8,
+        overtimeMultiplier: client?.overtimeMultiplier || 1.5,
+        regularHours: billing.regularHours,
+        overtimeHours: billing.overtimeHours,
+        regularPay: billing.regularPay,
+        overtimePay: billing.overtimePay,
+        totalPay: billing.totalPay,
+      })
+      setShowStartTimer(false)
+      setTimerClient('')
+      setTimerClientObj(null)
+      setTimerNotes('')
+      setTimerCustomStart('')
+      setTimerCustomEnd('')
+      setTimerMode('live')
+      refresh()
+      onTimerUpdate()
+      return
+    }
+
     const entry = addTimeEntry({
       clientName: timerClient.trim(),
       date: new Date().toISOString().split('T')[0],
-      startTime: new Date().toISOString(),
+      startTime: startISO,
       hourlyRate: parseFloat(timerRate) || 25,
       notes: timerNotes || undefined,
       status: 'active',
@@ -146,6 +316,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     setTimerClient('')
     setTimerClientObj(null)
     setTimerNotes('')
+    setTimerCustomStart('')
+    setTimerCustomEnd('')
+    setTimerMode('live')
     onTimerUpdate()
   }
 
@@ -173,6 +346,100 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     setActiveTimer(null)
     setActiveTimerState(null)
     setElapsed(0)
+    refresh()
+    onTimerUpdate()
+  }
+
+  // ---- Edit a completed time entry ----
+  const openEditEntry = (entry: TimeEntry) => {
+    setEditingEntry(entry.id)
+    setEditDate(entry.date)
+    // parse start/end times to HH:MM
+    if (entry.startTime) {
+      const d = new Date(entry.startTime)
+      setEditStart(`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)
+    }
+    if (entry.endTime) {
+      const d = new Date(entry.endTime)
+      setEditEnd(`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)
+    }
+  }
+
+  const saveEditEntry = (entry: TimeEntry) => {
+    if (!editDate || !editStart || !editEnd) return
+    const startDt = new Date(`${editDate}T${editStart}:00`)
+    const endDt = new Date(`${editDate}T${editEnd}:00`)
+    if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1) // overnight
+    const durationMins = Math.round((endDt.getTime() - startDt.getTime()) / 60000)
+    const billing = calcEarnings(
+      durationMins,
+      entry.hourlyRate,
+      entry.billingType || 'hourly',
+      entry.overtimeAfterHours || 8,
+      entry.overtimeMultiplier || 1.5
+    )
+    updateTimeEntry(entry.id, {
+      date: editDate,
+      startTime: startDt.toISOString(),
+      endTime: endDt.toISOString(),
+      duration: durationMins,
+      regularHours: billing.regularHours,
+      overtimeHours: billing.overtimeHours,
+      regularPay: billing.regularPay,
+      overtimePay: billing.overtimePay,
+      totalPay: billing.totalPay,
+    })
+    setEditingEntry(null)
+    refresh()
+    onTimerUpdate()
+  }
+
+  // ---- Log Hours from calendar selection ----
+  const handleLogHours = () => {
+    if (!logClient.trim() || !logSelectedDates.length || !logHoursPerDay) return
+    const hrsPerDay = parseFloat(logHoursPerDay) || 0
+    const rate = parseFloat(logRate) || 25
+    const client = logClientObj
+
+    logSelectedDates.sort().forEach(dateStr => {
+      const startDt = new Date(`${dateStr}T${logStartTime}:00`)
+      const endDt = new Date(startDt.getTime() + hrsPerDay * 3600 * 1000)
+      const durationMins = hrsPerDay * 60
+      const billing = calcEarnings(
+        durationMins,
+        rate,
+        client?.billingType || 'hourly',
+        client?.overtimeAfterHours || 8,
+        client?.overtimeMultiplier || 1.5
+      )
+      addTimeEntry({
+        clientName: logClient.trim(),
+        date: dateStr,
+        startTime: startDt.toISOString(),
+        endTime: endDt.toISOString(),
+        duration: durationMins,
+        hourlyRate: rate,
+        notes: logNotes || undefined,
+        status: 'completed',
+        billingType: client?.billingType || 'hourly',
+        overtimeAfterHours: client?.overtimeAfterHours || 8,
+        overtimeMultiplier: client?.overtimeMultiplier || 1.5,
+        regularHours: billing.regularHours,
+        overtimeHours: billing.overtimeHours,
+        regularPay: billing.regularPay,
+        overtimePay: billing.overtimePay,
+        totalPay: billing.totalPay,
+      })
+    })
+
+    setShowLogHours(false)
+    setLogClient('')
+    setLogClientObj(null)
+    setLogRate('25')
+    setLogSelectedDates([])
+    setLogHoursPerDay('24')
+    setLogStartTime('08:00')
+    setLogNotes('')
     refresh()
     onTimerUpdate()
   }
@@ -250,6 +517,8 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const totalEarnedToday = completedEntries
     .filter(e => e.date === new Date().toISOString().split('T')[0])
     .reduce((sum, e) => sum + (e.totalPay ?? ((e.duration || 0) / 60) * e.hourlyRate), 0)
+
+  const preview = logPreview()
 
   if (loading) {
     return (
@@ -408,20 +677,42 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             </div>
           </div>
 
-          {/* Start timer button */}
-          {!activeTimer && !showStartTimer && (
-            <button onClick={() => setShowStartTimer(true)} className="btn btn-primary w-full gap-2 rounded-2xl">
-              <Play size={18} /> Start New Timer
-            </button>
+          {/* Action buttons */}
+          {!activeTimer && !showStartTimer && !showLogHours && (
+            <div className="flex gap-2">
+              <button onClick={() => setShowStartTimer(true)} className="btn btn-primary flex-1 gap-1.5 rounded-2xl">
+                <Play size={16} /> Live Timer
+              </button>
+              <button onClick={() => setShowLogHours(true)} className="btn btn-outline flex-1 gap-1.5 rounded-2xl border-primary/40 text-primary">
+                <Calendar size={16} /> Log Hours
+              </button>
+            </div>
           )}
 
-          {/* Start timer form */}
+          {/* ---- LIVE TIMER FORM ---- */}
           {showStartTimer && !activeTimer && (
             <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-sm">Start Timer</p>
-                <button onClick={() => { setShowStartTimer(false); setTimerClientObj(null) }} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+                <button onClick={() => { setShowStartTimer(false); setTimerClientObj(null); setTimerMode('live') }} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
               </div>
+
+              {/* Live vs Manual toggle */}
+              <div className="flex gap-1.5 mb-3 bg-base-300 rounded-xl p-1">
+                <button
+                  onClick={() => setTimerMode('live')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${timerMode === 'live' ? 'bg-base-100 text-base-content shadow-sm' : 'text-base-content/50'}`}
+                >
+                  ⏱ Live
+                </button>
+                <button
+                  onClick={() => setTimerMode('manual')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${timerMode === 'manual' ? 'bg-base-100 text-base-content shadow-sm' : 'text-base-content/50'}`}
+                >
+                  ✏️ Manual
+                </button>
+              </div>
+
               <div className="space-y-2">
                 {/* Client chips */}
                 {clients.length > 0 && (
@@ -439,24 +730,20 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                         }`}
                       >
                         {c.name}
-                        {c.billingType === 'split_rate' && (
-                          <span className="ml-1 text-amber-400">⚡</span>
-                        )}
+                        {c.billingType === 'split_rate' && <span className="ml-1 text-amber-400">⚡</span>}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {/* Selected client billing info banner */}
+                {/* Split-rate billing banner */}
                 {timerClientObj?.billingType === 'split_rate' && (
                   <div className="bg-amber-500/10 border border-amber-400/30 rounded-xl px-3 py-2">
-                    <p className="text-xs text-amber-400 font-semibold">
-                      ⚡ Split-Rate Billing
-                    </p>
+                    <p className="text-xs text-amber-400 font-semibold">⚡ Split-Rate Billing</p>
                     <p className="text-[11px] text-base-content/70 mt-0.5">
                       First {timerClientObj.overtimeAfterHours || 8}h @ ${timerClientObj.hourlyRate}/hr
                       {' · '}
-                      After {timerClientObj.overtimeAfterHours || 8}h @ ${(timerClientObj.hourlyRate * (timerClientObj.overtimeMultiplier || 1.5)).toFixed(2)}/hr ({((timerClientObj.overtimeMultiplier || 1.5) * 100 - 100).toFixed(0)}% extra)
+                      After {timerClientObj.overtimeAfterHours || 8}h @ ${(timerClientObj.hourlyRate * (timerClientObj.overtimeMultiplier || 1.5)).toFixed(2)}/hr
                     </p>
                   </div>
                 )}
@@ -477,8 +764,155 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                     value={timerNotes} onChange={e => setTimerNotes(e.target.value)}
                   />
                 </div>
+
+                {/* Manual start/end time */}
+                {timerMode === 'manual' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/50 block mb-1">Start Time</label>
+                        <input type="time" className="input input-bordered input-sm w-full"
+                          value={timerCustomStart} onChange={e => setTimerCustomStart(e.target.value)} />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/50 block mb-1">End Time</label>
+                        <input type="time" className="input input-bordered input-sm w-full"
+                          value={timerCustomEnd} onChange={e => setTimerCustomEnd(e.target.value)} />
+                      </div>
+                    </div>
+                    {timerCustomStart && timerCustomEnd && (() => {
+                      const s = new Date(`2000-01-01T${timerCustomStart}:00`)
+                      const e = new Date(`2000-01-01T${timerCustomEnd}:00`)
+                      if (e <= s) e.setDate(2)
+                      const mins = Math.round((e.getTime() - s.getTime()) / 60000)
+                      const bill = calcEarnings(mins, parseFloat(timerRate)||25, timerClientObj?.billingType||'hourly', timerClientObj?.overtimeAfterHours||8, timerClientObj?.overtimeMultiplier||1.5)
+                      return (
+                        <div className="bg-base-100 rounded-xl px-3 py-2 text-xs text-base-content/70">
+                          Duration: <span className="font-semibold text-base-content">{formatDuration(mins)}</span>
+                          {' · '}Total: <span className="font-bold text-primary">${bill.totalPay.toFixed(2)}</span>
+                          {bill.overtimeHours > 0 && <span className="ml-1 text-amber-400">⚡ incl. OT</span>}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
                 <button onClick={startTimer} className="btn btn-primary btn-sm w-full gap-1">
-                  <Play size={14} /> Start Timer
+                  {timerMode === 'live'
+                    ? <><Play size={14} /> Start Timer</>
+                    : <><Check size={14} /> Save Entry</>
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ---- LOG HOURS (CALENDAR) FORM ---- */}
+          {showLogHours && (
+            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-semibold text-sm">Log Hours by Day</p>
+                <button onClick={() => { setShowLogHours(false); setLogSelectedDates([]) }} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+              </div>
+              <div className="space-y-3">
+                {/* Client chips */}
+                {clients.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {clients.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setLogClient(c.name)
+                          setLogRate(String(c.hourlyRate))
+                          setLogClientObj(c)
+                          if (c.billingType === 'split_rate') setLogHoursPerDay('24')
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                          logClient === c.name ? 'bg-primary text-white border-primary' : 'bg-base-100 border-base-300 text-base-content/70'
+                        }`}
+                      >
+                        {c.name}
+                        {c.billingType === 'split_rate' && <span className="ml-1 text-amber-400">⚡</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                  value={logClient} onChange={e => { setLogClient(e.target.value); setLogClientObj(null) }} />
+
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-base-content/50 block mb-1">Rate ($/hr)</label>
+                    <input type="number" className="input input-bordered input-sm w-full" placeholder="25"
+                      value={logRate} onChange={e => setLogRate(e.target.value)} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-base-content/50 block mb-1">Hours per day</label>
+                    <input type="number" step="0.5" className="input input-bordered input-sm w-full" placeholder="24"
+                      value={logHoursPerDay} onChange={e => setLogHoursPerDay(e.target.value)} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-base-content/50 block mb-1">Start time</label>
+                    <input type="time" className="input input-bordered input-sm w-full"
+                      value={logStartTime} onChange={e => setLogStartTime(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Split-rate info */}
+                {logClientObj?.billingType === 'split_rate' && (
+                  <div className="bg-amber-500/10 border border-amber-400/30 rounded-xl px-3 py-2">
+                    <p className="text-[11px] text-amber-400 font-semibold">
+                      ⚡ Split-Rate · First {logClientObj.overtimeAfterHours || 8}h @ ${logClientObj.hourlyRate}/hr · After @ ${(logClientObj.hourlyRate * (logClientObj.overtimeMultiplier || 1.5)).toFixed(2)}/hr
+                    </p>
+                  </div>
+                )}
+
+                {/* Calendar */}
+                <MiniCalendar
+                  selectedDates={logSelectedDates}
+                  onToggleDate={d => setLogSelectedDates(prev =>
+                    prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                  )}
+                />
+
+                <input type="text" className="input input-bordered input-sm w-full" placeholder="Notes (optional)"
+                  value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+
+                {/* Preview */}
+                {preview && (
+                  <div className="bg-base-100 rounded-2xl p-3 space-y-1.5 border border-base-300">
+                    <p className="text-xs font-semibold text-base-content mb-2">Invoice Preview</p>
+                    {preview.isSplit ? (
+                      <>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-base-content/70">Regular ({fmtHrs(preview.regularHours)} @ ${parseFloat(logRate)||25}/hr)</span>
+                          <span className="font-semibold">${preview.regularPay.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-amber-400">Overtime ({fmtHrs(preview.overtimeHours)} @ ${((parseFloat(logRate)||25) * (logClientObj?.overtimeMultiplier||1.5)).toFixed(2)}/hr)</span>
+                          <span className="font-semibold text-amber-400">${preview.overtimePay.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-t border-base-300 pt-1.5">
+                          <span className="font-bold">{preview.days} day{preview.days !== 1 ? 's' : ''} × {preview.hrs}h/day = {preview.totalHrs}h total</span>
+                          <span className="font-bold text-primary">${preview.totalPay.toFixed(2)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-base-content/70">{preview.days} day{preview.days !== 1 ? 's' : ''} × {preview.hrs}h × ${parseFloat(logRate)||25}/hr</span>
+                        <span className="font-bold text-primary">${preview.totalPay.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleLogHours}
+                  disabled={!logClient.trim() || !logSelectedDates.length || !logHoursPerDay}
+                  className="btn btn-primary btn-sm w-full gap-1 disabled:opacity-40"
+                >
+                  <Check size={14} /> Save {logSelectedDates.length > 1 ? `${logSelectedDates.length} Entries` : 'Entry'}
                 </button>
               </div>
             </div>
@@ -507,50 +941,112 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <div className="text-center py-8">
                 <Timer size={32} className="mx-auto opacity-20 mb-2" />
                 <p className="text-sm text-base-content/60">No time entries yet</p>
-                <p className="text-xs text-base-content/40">Start a timer to track your hours</p>
+                <p className="text-xs text-base-content/40">Start a timer or log hours to track your shifts</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {completedEntries.slice(0, 20).map(entry => {
+                {completedEntries.slice(0, 30).map(entry => {
                   const isSplit = entry.billingType === 'split_rate' && entry.overtimeHours > 0
                   const pay = entry.totalPay ?? ((entry.duration || 0) / 60 * entry.hourlyRate)
                   const isExpanded = expandedEntry === entry.id
+                  const isEditing = editingEntry === entry.id
+
                   return (
                     <div key={entry.id} className="bg-base-200 rounded-xl overflow-hidden">
-                      <div className="p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSplit ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
-                            {isSplit ? <Zap size={14} className="text-amber-400" /> : <Clock size={14} className="text-primary" />}
+                      {/* View mode */}
+                      {!isEditing && (
+                        <div className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSplit ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+                              {isSplit ? <Zap size={14} className="text-amber-400" /> : <Clock size={14} className="text-primary" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-base-content">{entry.clientName}</p>
+                              <p className="text-[10px] text-base-content/60">
+                                {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                {entry.startTime && entry.endTime && (() => {
+                                  const s = new Date(entry.startTime)
+                                  const e = new Date(entry.endTime)
+                                  return ` · ${s.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})} – ${e.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})}`
+                                })()}
+                                {entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}
+                                {isSplit && <span className="ml-1 text-amber-400">⚡</span>}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-base-content">{entry.clientName}</p>
-                            <p className="text-[10px] text-base-content/60">
-                              {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              {entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}
-                              {isSplit && <span className="ml-1 text-amber-400">⚡ split</span>}
-                            </p>
+                          <div className="flex items-center gap-1">
+                            <div className="text-right">
+                              <span className="text-sm font-bold text-base-content">${pay.toFixed(2)}</span>
+                              {isSplit && (
+                                <button
+                                  onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
+                                  className="block ml-auto text-[10px] text-base-content/40 hover:text-base-content/70"
+                                >
+                                  {isExpanded ? '▲ hide' : '▼ breakdown'}
+                                </button>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => openEditEntry(entry)}
+                              className="btn btn-ghost btn-xs btn-circle opacity-50 hover:opacity-100"
+                              title="Edit times"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
+                              <Trash2 size={12} />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <span className="text-sm font-bold text-base-content">${pay.toFixed(2)}</span>
-                            {isSplit && (
-                              <button
-                                onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
-                                className="block ml-auto text-[10px] text-base-content/40 hover:text-base-content/70"
-                              >
-                                {isExpanded ? '▲ hide' : '▼ breakdown'}
-                              </button>
-                            )}
+                      )}
+
+                      {/* Edit mode */}
+                      {isEditing && (
+                        <div className="p-3 space-y-2 border-2 border-primary/30 rounded-xl">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-semibold text-base-content">Edit: {entry.clientName}</p>
+                            <button onClick={() => setEditingEntry(null)} className="btn btn-ghost btn-xs btn-circle"><X size={12} /></button>
                           </div>
-                          <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
-                            <Trash2 size={12} />
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="text-[10px] text-base-content/50 block mb-1">Date</label>
+                              <input type="date" className="input input-bordered input-xs w-full"
+                                value={editDate} onChange={e => setEditDate(e.target.value)} />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-[10px] text-base-content/50 block mb-1">Start Time</label>
+                              <input type="time" className="input input-bordered input-xs w-full"
+                                value={editStart} onChange={e => setEditStart(e.target.value)} />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-[10px] text-base-content/50 block mb-1">End Time</label>
+                              <input type="time" className="input input-bordered input-xs w-full"
+                                value={editEnd} onChange={e => setEditEnd(e.target.value)} />
+                            </div>
+                          </div>
+                          {editStart && editEnd && (() => {
+                            const s = new Date(`${editDate || entry.date}T${editStart}:00`)
+                            const e = new Date(`${editDate || entry.date}T${editEnd}:00`)
+                            if (e <= s) e.setDate(e.getDate() + 1)
+                            const mins = Math.round((e.getTime() - s.getTime()) / 60000)
+                            const bill = calcEarnings(mins, entry.hourlyRate, entry.billingType||'hourly', entry.overtimeAfterHours||8, entry.overtimeMultiplier||1.5)
+                            return (
+                              <div className="bg-base-100 rounded-xl px-3 py-2 text-xs text-base-content/70">
+                                <span className="font-semibold text-base-content">{formatDuration(mins)}</span>
+                                {' → '}
+                                <span className="font-bold text-primary">${bill.totalPay.toFixed(2)}</span>
+                                {bill.overtimeHours > 0 && <span className="ml-1 text-amber-400">⚡ incl. OT</span>}
+                              </div>
+                            )
+                          })()}
+                          <button onClick={() => saveEditEntry(entry)} className="btn btn-primary btn-xs w-full gap-1">
+                            <Check size={11} /> Save Changes
                           </button>
                         </div>
-                      </div>
+                      )}
 
                       {/* Breakdown panel */}
-                      {isSplit && isExpanded && (
+                      {!isEditing && isSplit && isExpanded && (
                         <div className="px-3 pb-3 border-t border-base-300/50">
                           <div className="bg-base-100 rounded-xl p-3 mt-2 space-y-1.5">
                             <div className="flex justify-between text-xs">
@@ -687,11 +1183,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                           <p className="font-semibold text-sm text-base-content">{client.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {isSplit ? (
-                              <>
-                                <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
-                                  ⚡ ${client.hourlyRate}/hr → ${otRate}/hr after {client.overtimeAfterHours || 8}h
-                                </span>
-                              </>
+                              <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
+                                ⚡ ${client.hourlyRate}/hr → ${otRate}/hr after {client.overtimeAfterHours || 8}h
+                              </span>
                             ) : (
                               <span className="text-xs text-base-content/60">${client.hourlyRate}/hr</span>
                             )}

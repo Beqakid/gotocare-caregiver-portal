@@ -82,7 +82,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
   useEffect(() => {
     if (section !== 'clients') return
-    const token = localStorage.getItem('gc_cg_token')
+    const token = localStorage.getItem('cgp_token')
     if (!token || clientsLoading) return
     setClientsLoading(true)
     fetch(`${API_BASE}/api/my-clients?token=${encodeURIComponent(token)}`)

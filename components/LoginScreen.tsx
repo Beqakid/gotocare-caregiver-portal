@@ -67,7 +67,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     if (!response.credential) return
     setLoading(true); setError('')
     try {
-      const res = await fetch(`${API_BASE}/api/caregiver-auth/google`, {
+      const res = await fetch(`${API_BASE}/api/caregiver-google-auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),
@@ -297,7 +297,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <input style={inputStyle} placeholder="Full name" value={name} onChange={e => setName(e.target.value)} />
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password (6+ characters)" value={password} onChange={e => setPassword(e.target.value)} />
-            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: 'rgba(239, 68, 68, 0.4)', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Creating account…' : 'Create free account'}</button>
           </form>
           <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Sign in instead</button>
@@ -327,7 +327,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <form onSubmit={handleSignIn}>
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: 'rgba(239, 68, 68, 0.4)', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Signing in…' : 'Sign in'}</button>
           </form>
           <button onClick={() => setScreen('register')} style={{ ...btnOutline, marginBottom: 0 }}>Create an account instead</button>
@@ -350,7 +350,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <form onSubmit={handleAgencySubmit}>
             <input style={inputStyle} type="email" placeholder="Agency email" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-            {(agencyError || error) && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: 'rgba(239, 68, 68, 0.4)', fontSize: '13px', marginBottom: '12px' }}>{agencyError || error}</div>}
+            {(agencyError || error) && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{agencyError || error}</div>}
             <button type="submit" disabled={agencyLoading} style={btnPrimary}>{agencyLoading ? 'Signing in…' : 'Sign in'}</button>
           </form>
         </div>

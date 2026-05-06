@@ -215,7 +215,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
 
                     {/* Contact info — visible only when unlocked */}
                     {unlocked && (req.clientPhone || req.clientEmail) && (
-                      <div className="bg-primary/6 border border-primary/20 rounded-xl p-3 mb-3">
+                      <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-3">
                         <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
                           <Unlock size={11} /> Client Contact Info
                         </p>
@@ -255,7 +255,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                     {/* ── LOCKED STATE ── */}
                     {!unlocked ? (
                       <div className="mt-3">
-                        <div className="bg-primary/8 border border-primary/20 rounded-xl p-3 mb-3 flex items-center gap-3">
+                        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-3 flex items-center gap-3">
                           <div className="bg-primary/15 p-2 rounded-lg">
                             <Lock size={16} className="text-primary" />
                           </div>
@@ -294,7 +294,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                     ) : (
                       /* ── UNLOCKED STATE ── */
                       <div className="mt-3">
-                        <div className="bg-success/8 border border-success/25 rounded-xl p-2.5 mb-3 flex items-center gap-2">
+                        <div className="bg-success/10 border border-success/25 rounded-xl p-2.5 mb-3 flex items-center gap-2">
                           <Unlock size={14} className="text-success" />
                           <p className="text-xs font-semibold text-success">Details unlocked — respond to this request</p>
                         </div>
@@ -309,7 +309,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                         <div className="flex gap-2">
                           <button
                             onClick={() => onDecline(req.id)}
-                            className="btn btn-outline btn-sm flex-1 rounded-xl"
+                            className="btn btn-outline btn-error btn-sm flex-1 rounded-xl"
                           >
                             <X size={14} /> Pass
                           </button>
@@ -338,7 +338,7 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
           </h2>
           <div className="flex flex-col gap-3">
             {acceptedRequests.map(req => (
-              <div key={req.id} className="bg-success/8 border border-success/25 rounded-2xl p-4 flex items-center gap-3">
+              <div key={req.id} className="bg-success/10 border border-success/25 rounded-2xl p-4 flex items-center gap-3">
                 <div className="bg-success/15 p-2.5 rounded-xl">
                   <Check size={18} className="text-success" />
                 </div>

@@ -136,9 +136,15 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
       {/* Rating row */}
       <div className="flex items-center justify-center gap-4 mt-3 px-6">
         <div className="flex items-center gap-1">
-          <Star size={14} className="text-warning fill-warning" />
-          <span className="text-sm font-bold text-base-content">4.9</span>
-          <span className="text-xs text-base-content/50">(12 reviews)</span>
+          {(profile.rating && profile.total_reviews) ? (
+            <>
+              <Star size={14} className="text-warning fill-warning" />
+              <span className="text-sm font-bold text-base-content">{profile.rating}</span>
+              <span className="text-xs text-base-content/50">({profile.total_reviews} reviews)</span>
+            </>
+          ) : (
+            <span className="text-xs font-medium text-base-content/50 bg-base-200 px-2.5 py-1 rounded-full">New Caregiver</span>
+          )}
         </div>
         {certs.length > 0 && (
           <div className="flex items-center gap-1">
@@ -216,14 +222,16 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
       </div>
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-base-100 border-t border-base-200" style={{ maxWidth: 480, margin: '0 auto', left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
-        <button
-          onClick={handleRequestCare}
-          className="w-full py-4 rounded-2xl text-white font-bold text-base"
-          style={{ background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)' }}
-        >
-          Request Care from {firstName}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-base-100 border-t border-base-200" style={{ zIndex: 50 }}>
+        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+          <button
+            onClick={handleRequestCare}
+            className="w-full py-4 rounded-2xl text-white font-bold text-base"
+            style={{ background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)', boxShadow: '0 4px 20px rgba(124,92,255,0.35)' }}
+          >
+            Request Care from {firstName}
+          </button>
+        </div>
       </div>
     </div>
   )

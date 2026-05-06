@@ -218,7 +218,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   key={i}
                   onClick={step.action}
                   disabled={step.done}
-                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${step.done ? 'bg-success/8 opacity-60' : 'bg-base-100 press-card'}`}
+                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${step.done ? 'bg-success/10 opacity-60' : 'bg-base-100 press-card'}`}
                 >
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-success' : 'bg-primary/10 border-2 border-dashed border-primary/30'}`}>
                     {step.done
@@ -241,7 +241,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       {/* 2. Online/Offline toggle card — HERO ELEMENT */}
       <div
         onClick={toggleOnline}
-        className={`rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all press-card ${isOnline ? 'bg-success/8 border-l-4 border-success' : 'bg-base-200 border-l-4 border-base-300'}`}
+        className={`rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all press-card ${isOnline ? 'bg-success/10 border-l-4 border-success' : 'bg-base-200 border-l-4 border-base-300'}`}
       >
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isOnline ? 'bg-success/15' : 'bg-base-300/60'}`}>

@@ -13,7 +13,7 @@ interface ProfileTabProps {
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
   deepLink?: string
-  initialSection?: 'profile' | 'documents' | 'badges'
+  initialSection?: 'profile' | 'documents' | 'badges' | 'clients'
   onNavigateHome?: () => void
 }
 
@@ -60,7 +60,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [langInput, setLangInput] = useState('')
   const [showLangInput, setShowLangInput] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [section, setSection] = useState<'profile' | 'documents' | 'badges'>(initialSection || 'profile')
+  const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients'>(initialSection || 'profile')
+  const [myClients, setMyClients] = useState<any[]>([])
+  const [clientsLoading, setClientsLoading] = useState(false)
 
   // Deep-link: jump to correct section + scroll to target
   useEffect(() => {
@@ -77,6 +79,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       }, 150)
     }
   }, [deepLink, initialSection])
+
+  useEffect(() => {
+    if (section !== 'clients') return
+    const token = localStorage.getItem('gc_cg_token')
+    if (!token || clientsLoading) return
+    setClientsLoading(true)
+    fetch(`${API_BASE}/api/my-clients?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setMyClients(d.clients || []) })
+      .catch(() => {})
+      .finally(() => setClientsLoading(false))
+  }, [section])
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
   const [docType, setDocType] = useState('certification')
@@ -319,6 +333,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           { key: 'profile' as const, label: 'Profile' },
           { key: 'documents' as const, label: `Documents (${docs.length})` },
           { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
+          { key: 'clients' as const, label: `My Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
         ].map(t => (
           <button key={t.key}
             className={`btn btn-sm rounded-full ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
@@ -725,6 +740,43 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* ---- BADGES SECTION ---- */}
+
+      {section === 'clients' && (
+        <div className="px-4 space-y-3 pb-4">
+          <p className="text-xs text-base-content/60">
+            Families who have added you to their care team. You can coordinate schedules and communicate through the platform.
+          </p>
+          {clientsLoading && (
+            <div className="text-center py-8 text-base-content/40 text-sm">Loading your clients…</div>
+          )}
+          {!clientsLoading && myClients.length === 0 && (
+            <div className="bg-base-200 rounded-2xl p-6 text-center">
+              <div className="text-4xl mb-3">👤</div>
+              <p className="font-semibold text-sm text-base-content">No clients yet</p>
+              <p className="text-xs text-base-content/60 mt-1">When a family adds you to their care team, they'll appear here.</p>
+            </div>
+          )}
+          {myClients.map((client, i) => {
+            const initials = (client.name || client.clientEmail || '?').substring(0, 2).toUpperCase()
+            const hiredDate = client.hiredAt ? new Date(client.hiredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+            return (
+              <div key={i} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-base-content">{client.name || 'Client'}</p>
+                  <p className="text-xs text-base-content/50">{hiredDate ? `Added ${hiredDate}` : 'Hired via GoToCare'}</p>
+                </div>
+                <div className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">
+                  Active
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {section === 'badges' && (
         <div className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">

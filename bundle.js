@@ -991,7 +991,7 @@
         exports.useTransition = function() {
           return resolveDispatcher().useTransition();
         };
-        exports.version = "19.2.5";
+        exports.version = "19.2.6";
         "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
       })();
     }
@@ -1518,7 +1518,7 @@
         exports.useFormStatus = function() {
           return resolveDispatcher().useHostTransitionStatus();
         };
-        exports.version = "19.2.5";
+        exports.version = "19.2.6";
         "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
       })();
     }
@@ -21310,9 +21310,9 @@
         };
         (function() {
           var isomorphicReactPackageVersion = React8.version;
-          if ("19.2.5" !== isomorphicReactPackageVersion)
+          if ("19.2.6" !== isomorphicReactPackageVersion)
             throw Error(
-              'Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:\n  - react:      ' + (isomorphicReactPackageVersion + "\n  - react-dom:  19.2.5\nLearn more: https://react.dev/warnings/version-mismatch")
+              'Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:\n  - react:      ' + (isomorphicReactPackageVersion + "\n  - react-dom:  19.2.6\nLearn more: https://react.dev/warnings/version-mismatch")
             );
         })();
         "function" === typeof Map && null != Map.prototype && "function" === typeof Map.prototype.forEach && "function" === typeof Set && null != Set.prototype && "function" === typeof Set.prototype.clear && "function" === typeof Set.prototype.forEach || console.error(
@@ -21336,10 +21336,10 @@
         if (!(function() {
           var internals = {
             bundleType: 1,
-            version: "19.2.5",
+            version: "19.2.6",
             rendererPackageName: "react-dom",
             currentDispatcherRef: ReactSharedInternals,
-            reconcilerVersion: "19.2.5"
+            reconcilerVersion: "19.2.6"
           };
           internals.overrideHookState = overrideHookState;
           internals.overrideHookStateDeletePath = overrideHookStateDeletePath;
@@ -21430,7 +21430,7 @@
           listenToAllSupportedEvents(container);
           return new ReactDOMHydrationRoot(initialChildren);
         };
-        exports.version = "19.2.5";
+        exports.version = "19.2.6";
         "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
       })();
     }
@@ -25512,6 +25512,8 @@
     const [showLangInput, setShowLangInput] = (0, import_react8.useState)(false);
     const photoInputRef = (0, import_react8.useRef)(null);
     const [section, setSection] = (0, import_react8.useState)(initialSection || "profile");
+    const [myClients, setMyClients] = (0, import_react8.useState)([]);
+    const [clientsLoading, setClientsLoading] = (0, import_react8.useState)(false);
     (0, import_react8.useEffect)(() => {
       if (initialSection) setSection(initialSection);
       if (deepLink) {
@@ -25525,6 +25527,16 @@
         }, 150);
       }
     }, [deepLink, initialSection]);
+    (0, import_react8.useEffect)(() => {
+      if (section !== "clients") return;
+      const token = localStorage.getItem("gc_cg_token");
+      if (!token || clientsLoading) return;
+      setClientsLoading(true);
+      fetch(`${API_BASE3}/api/my-clients?token=${encodeURIComponent(token)}`).then((r) => r.json()).then((d) => {
+        if (d.success) setMyClients(d.clients || []);
+      }).catch(() => {
+      }).finally(() => setClientsLoading(false));
+    }, [section]);
     const [showAddDoc, setShowAddDoc] = (0, import_react8.useState)(false);
     const [docName, setDocName] = (0, import_react8.useState)("");
     const [docType, setDocType] = (0, import_react8.useState)("certification");
@@ -25754,7 +25766,8 @@
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "px-4 mt-4 mb-3 flex gap-2", children: [
         { key: "profile", label: "Profile" },
         { key: "documents", label: `Documents (${docs.length})` },
-        { key: "badges", label: `Badges (${earnedBadges.length})` }
+        { key: "badges", label: `Badges (${earnedBadges.length})` },
+        { key: "clients", label: `My Clients${myClients.length > 0 ? " (" + myClients.length + ")" : ""}` }
       ].map((t) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         "button",
         {
@@ -26161,6 +26174,27 @@
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { onClick: () => handleDeleteDocument(doc.id), className: "btn btn-ghost btn-xs btn-circle opacity-40", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Trash2, { size: 12 }) })
         ] }) }, doc.id)) })
+      ] }),
+      section === "clients" && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "px-4 space-y-3 pb-4", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "text-xs text-base-content/60", children: "Families who have added you to their care team. You can coordinate schedules and communicate through the platform." }),
+        clientsLoading && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-center py-8 text-base-content/40 text-sm", children: "Loading your clients\u2026" }),
+        !clientsLoading && myClients.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "bg-base-200 rounded-2xl p-6 text-center", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-4xl mb-3", children: "\u{1F464}" }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "font-semibold text-sm text-base-content", children: "No clients yet" }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "text-xs text-base-content/60 mt-1", children: "When a family adds you to their care team, they'll appear here." })
+        ] }),
+        myClients.map((client, i) => {
+          const initials = (client.name || client.clientEmail || "?").substring(0, 2).toUpperCase();
+          const hiredDate = client.hiredAt ? new Date(client.hiredAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+          return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "bg-base-200 rounded-2xl p-4 flex items-center gap-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg flex-shrink-0", children: initials }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "flex-1 min-w-0", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "font-semibold text-sm text-base-content", children: client.name || "Client" }),
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "text-xs text-base-content/50", children: hiredDate ? `Added ${hiredDate}` : "Hired via GoToCare" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20", children: "Active" })
+          ] }, i);
+        })
       ] }),
       section === "badges" && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "px-4 space-y-4", children: [
         /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "text-xs text-base-content/60", children: "Earn badges to build trust with clients. Badges appear on your public profile and in search results." }),

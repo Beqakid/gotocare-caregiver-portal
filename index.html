@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#7c3aed" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="google-client-id" content="888877756290-t1chv8b5d5hg0kiosd4qcr34g6rpd33b.apps.googleusercontent.com" />
     <title>Carehia — Caregiver Portal</title>
 
     <!-- Google Fonts: Inter -->
@@ -15,6 +16,9 @@
 
     <!-- DaisyUI v5 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" type="text/css" />
+
+    <!-- Google Sign-In SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
 /* ══ Carehia Light Theme ══ */
@@ -106,11 +110,7 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <!-- React + ReactDOM from jsDelivr -->
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <!-- Lucide React Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="bundle.js"></script>
+    <!-- App bundle (ESM code-split, built by GitHub Actions) -->
+    <script type="module" src="dist/app.js"></script>
   </body>
 </html>

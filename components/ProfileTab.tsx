@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react'
-import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload } from 'lucide-react'
+import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2 } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
 
@@ -497,6 +497,40 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             )}
           </div>
+
+          {/* Share Your Profile card */}
+                <div id="section-share" className="bg-gradient-to-br from-primary/8 to-primary/4 border border-primary/15 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Link2 size={15} className="text-primary" />
+                    <p className="font-bold text-sm text-base-content">Share Your Profile</p>
+                  </div>
+                  <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
+                  <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
+                    <span className="text-xs text-base-content/60 truncate flex-1">
+                      work.carehia.com?caregiver={profile?.id}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const url = `https://work.carehia.com?caregiver=${profile?.id}`
+                        try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
+                      }}
+                      className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
+                    >
+                      {linkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+                    </button>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const url = `https://work.carehia.com?caregiver=${profile?.id}`
+                      try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
+                        try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
+                      }
+                    }}
+                    className="btn btn-primary btn-sm w-full gap-1.5 rounded-xl"
+                  >
+                    <Share2 size={14} /> Share Profile
+                  </button>
+                </div>
 
           {/* Skills */}
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">

@@ -14,6 +14,7 @@ const RequestsTab = React.lazy(() => import('./components/RequestsTab').then(m =
 const MarketingTab = React.lazy(() => import('./components/MarketingTab'))
 const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m => ({ default: m.EarningsTab })))
 const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))
+const PublicProfileView = React.lazy(() => import('./components/PublicProfileView'))
 
 const TabSpinner = () => (
   <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
@@ -82,6 +83,11 @@ function mapBookingToRequest(b: any): CareRequest {
 }
 
 const App: React.FC<{}> = () => {
+  const [publicCaregiverId] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('caregiver')
+    } catch { return null }
+  })
   const [loggedIn, setLoggedIn] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
@@ -310,6 +316,15 @@ const App: React.FC<{}> = () => {
         }
       }
     } catch (e) { /* keep demo requests */ }
+  }
+
+  // Public profile route — no login required
+  if (publicCaregiverId) {
+    return (
+      <React.Suspense fallback={<TabSpinner />}>
+        <PublicProfileView caregiverId={publicCaregiverId} onBack={() => window.location.href = 'https://work.carehia.com'} />
+      </React.Suspense>
+    )
   }
 
   if (!loggedIn) {

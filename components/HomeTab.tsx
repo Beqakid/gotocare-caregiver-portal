@@ -182,6 +182,62 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
+      {/* 1.5 — "3 Steps to Start Earning" onboarding checklist */}
+      {(() => {
+        const hasPhoto = !!(profile?.profilePhoto)
+        const hasAvailability = (() => {
+          try {
+            const av = JSON.parse(localStorage.getItem('cgp_availability') || '{}')
+            return Object.values(av).some((d: any) => d.available)
+          } catch { return false }
+        })()
+        const hasDocs = documents.length > 0
+        if (hasPhoto && hasAvailability && hasDocs) return null
+        const steps = [
+          { done: hasPhoto, label: 'Add your photo', hint: 'Caregivers with photos get 3× more requests', action: () => onNavigateToSection('profile', 'section-photo') },
+          { done: hasAvailability, label: 'Set your availability', hint: 'Tell clients when you\'re free to work', action: onNavigateToSchedule },
+          { done: hasDocs, label: 'Upload a document', hint: 'ID, cert, or background check', action: () => onNavigateToSection('documents', 'section-docs') },
+        ]
+        const doneCount = steps.filter(s => s.done).length
+        return (
+          <div className="bg-gradient-to-br from-primary/8 to-primary/4 border border-primary/15 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="font-bold text-sm text-base-content">3 Steps to Start Earning</p>
+                <p className="text-xs text-base-content/50">{doneCount}/3 complete</p>
+              </div>
+              <div className="flex gap-1">
+                {steps.map((s, i) => (
+                  <div key={i} className={`w-2 h-2 rounded-full ${s.done ? 'bg-success' : 'bg-base-300'}`} />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {steps.map((step, i) => (
+                <button
+                  key={i}
+                  onClick={step.action}
+                  disabled={step.done}
+                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${step.done ? 'bg-success/8 opacity-60' : 'bg-base-100 press-card'}`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-success' : 'bg-primary/10 border-2 border-dashed border-primary/30'}`}>
+                    {step.done
+                      ? <span className="text-white text-xs">✓</span>
+                      : <span className="text-xs font-bold text-primary">{i + 1}</span>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold ${step.done ? 'text-success line-through' : 'text-base-content'}`}>{step.label}</p>
+                    {!step.done && <p className="text-[10px] text-base-content/50 truncate">{step.hint}</p>}
+                  </div>
+                  {!step.done && <span className="text-[10px] text-primary font-semibold flex-shrink-0">→</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* 2. Online/Offline toggle card — HERO ELEMENT */}
       <div
         onClick={toggleOnline}

@@ -127,7 +127,13 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
 }
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate }) => {
-  const [viewMode, setViewMode] = useState<'schedule' | 'timesheet' | 'clients'>('schedule')
+  const [viewMode, setViewMode] = useState<'schedule' | 'timesheet' | 'clients' | 'availability'>('schedule')
+
+  // Availability state
+  const [availability, setAvailability] = useState<Record<string, { available: boolean; start: string; end: string }>>(() => {
+    try { return JSON.parse(localStorage.getItem('cgp_availability') || '{}') } catch { return {} }
+  })
+  const [availabilitySaved, setAvailabilitySaved] = useState(false)
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(getTimeEntries())
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(getActiveTimer())
   const [elapsed, setElapsed] = useState(0)
@@ -175,6 +181,59 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const [showMileage, setShowMileage] = useState(false)
   const [mileageClient, setMileageClient] = useState('')
   const [mileageMiles, setMileageMiles] = useState('')
+
+  const DAYS = [
+    { key: 'mon', label: 'Monday' },
+    { key: 'tue', label: 'Tuesday' },
+    { key: 'wed', label: 'Wednesday' },
+    { key: 'thu', label: 'Thursday' },
+    { key: 'fri', label: 'Friday' },
+    { key: 'sat', label: 'Saturday' },
+    { key: 'sun', label: 'Sunday' },
+  ]
+
+  const toggleDay = (key: string) => {
+    setAvailability(prev => ({
+      ...prev,
+      [key]: { available: !prev[key]?.available, start: prev[key]?.start || '08:00', end: prev[key]?.end || '18:00' }
+    }))
+  }
+
+  const updateDayTime = (key: string, field: 'start' | 'end', value: string) => {
+    setAvailability(prev => ({ ...prev, [key]: { ...prev[key], [field]: value, available: true } }))
+  }
+
+  const saveAvailability = async () => {
+    localStorage.setItem('cgp_availability', JSON.stringify(availability))
+    // Cloud sync
+    const token = localStorage.getItem('cgp_token')
+    if (token) {
+      try {
+        await fetch(`https://gotocare-original.jjioji.workers.dev/api/caregiver-availability?token=${encodeURIComponent(token)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ availability }),
+        })
+      } catch {}
+    }
+    setAvailabilitySaved(true)
+    setTimeout(() => setAvailabilitySaved(false), 2500)
+  }
+
+  const quickSet = (preset: 'weekdays' | 'weekends' | 'everyday') => {
+    const defaultSlot = { available: true, start: '08:00', end: '18:00' }
+    const offSlot = { available: false, start: '', end: '' }
+    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri']
+    const weekends = ['sat', 'sun']
+    const all = [...weekdays, ...weekends]
+    const newAv: Record<string, any> = {}
+    all.forEach(d => {
+      if (preset === 'weekdays') newAv[d] = weekdays.includes(d) ? defaultSlot : offSlot
+      else if (preset === 'weekends') newAv[d] = weekends.includes(d) ? defaultSlot : offSlot
+      else newAv[d] = defaultSlot
+    })
+    setAvailability(newAv)
+  }
 
   const refresh = async () => {
     // Always load localStorage first for instant render
@@ -576,6 +635,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             { key: 'schedule' as const, label: 'Schedule' },
             { key: 'timesheet' as const, label: 'Time Tracker' },
             { key: 'clients' as const, label: 'My Clients' },
+            { key: 'availability' as const, label: '🗓 Availability' },
           ].map(t => (
             <button
               key={t.key}
@@ -1109,6 +1169,104 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ---- AVAILABILITY VIEW ---- */}
+      {viewMode === 'availability' && (
+        <div className="px-4 space-y-4 pb-4">
+          <p className="text-xs text-base-content/60">
+            Set your weekly schedule so clients know when you're available. This helps match you with the right care requests.
+          </p>
+
+          {/* Quick set buttons */}
+          <div className="flex gap-2">
+            {[
+              { label: 'Mon–Fri', preset: 'weekdays' as const },
+              { label: 'Weekends', preset: 'weekends' as const },
+              { label: 'Every Day', preset: 'everyday' as const },
+            ].map(b => (
+              <button
+                key={b.preset}
+                onClick={() => quickSet(b.preset)}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-primary/10 text-primary border border-primary/20 press-card"
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Days */}
+          <div className="space-y-2">
+            {DAYS.map(({ key, label }) => {
+              const day = availability[key] || { available: false, start: '08:00', end: '18:00' }
+              return (
+                <div
+                  key={key}
+                  className={`rounded-2xl border transition-all ${day.available ? 'bg-success/5 border-success/25' : 'bg-base-200 border-transparent'}`}
+                >
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        onClick={() => toggleDay(key)}
+                        className={`w-12 h-6 rounded-full cursor-pointer transition-all relative flex-shrink-0 ${day.available ? 'bg-success' : 'bg-base-300'}`}
+                      >
+                        <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${day.available ? 'left-6' : 'left-0.5'}`} />
+                      </div>
+                      <span className={`text-sm font-semibold ${day.available ? 'text-base-content' : 'text-base-content/40'}`}>
+                        {label}
+                      </span>
+                    </div>
+                    {day.available && (
+                      <span className="text-xs text-success font-medium">
+                        {day.start} – {day.end}
+                      </span>
+                    )}
+                  </div>
+                  {day.available && (
+                    <div className="flex gap-3 px-4 pb-3">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/50 block mb-1">Start</label>
+                        <input
+                          type="time"
+                          className="input input-bordered input-xs w-full"
+                          value={day.start || '08:00'}
+                          onChange={e => updateDayTime(key, 'start', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/50 block mb-1">End</label>
+                        <input
+                          type="time"
+                          className="input input-bordered input-xs w-full"
+                          value={day.end || '18:00'}
+                          onChange={e => updateDayTime(key, 'end', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Summary */}
+          {Object.values(availability).some((d: any) => d.available) && (
+            <div className="bg-success/8 border border-success/20 rounded-2xl p-3">
+              <p className="text-xs font-semibold text-success mb-1">Your Schedule</p>
+              <p className="text-xs text-base-content/70">
+                Available {Object.values(availability).filter((d: any) => d.available).length} day{Object.values(availability).filter((d: any) => d.available).length !== 1 ? 's' : ''} per week
+              </p>
+            </div>
+          )}
+
+          {/* Save button */}
+          <button
+            onClick={saveAvailability}
+            className={`btn w-full rounded-2xl gap-2 ${availabilitySaved ? 'btn-success' : 'btn-primary'}`}
+          >
+            {availabilitySaved ? '✓ Saved!' : 'Save Availability'}
+          </button>
         </div>
       )}
 

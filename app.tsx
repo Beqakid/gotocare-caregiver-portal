@@ -235,7 +235,7 @@ const App: React.FC<{}> = () => {
         if (data.certifications !== undefined) payload.certifications = data.certifications
         if (data.profilePhoto !== undefined)  payload.photoUrl = data.profilePhoto
         const res = await fetch('https://gotocare-original.jjioji.workers.dev/api/caregiver-profile', {
-          method: 'PATCH',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })

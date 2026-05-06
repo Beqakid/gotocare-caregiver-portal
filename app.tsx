@@ -145,9 +145,9 @@ const App: React.FC<{}> = () => {
           email: user.email || email,
           phone: user.phone || '',
           status: 'active',
-          hourlyRate: 25,
-          skills: user.skills || ['Elder Care', 'Dementia Care', 'Companionship', 'Medication Management'],
-          languages: ['English'],
+          hourlyRate: user.hourlyRate || 0,
+          skills: user.skills || user.care_types?.split(',').map((s: string) => s.trim()) || [],
+          languages: user.languages || [],
           rating: 4.8,
           totalJobs: 47,
           totalReviews: 12,
@@ -238,9 +238,9 @@ const App: React.FC<{}> = () => {
       email: account.email || '',
       phone: account.phone || '',
       status: 'active',
-      hourlyRate: 25,
-      skills: account.care_types ? account.care_types.split(',').map((s: string) => s.trim()) : ['Elder Care', 'Companionship'],
-      languages: ['English'],
+      hourlyRate: account.hourlyRate || 0,
+      skills: account.care_types ? account.care_types.split(',').map((s: string) => s.trim()) : [],
+      languages: account.languages || [],
       rating: 4.8,
       totalJobs: 0,
       totalReviews: 0,
@@ -309,6 +309,7 @@ const App: React.FC<{}> = () => {
               onDocumentsChange={refreshDocs}
               deepLink={profileDeepLink}
               initialSection={profileInitialSection}
+              onNavigateHome={() => { setActiveTab('home'); setProfileDeepLink(undefined); setProfileInitialSection(undefined); }}
             />
           )}
         </div>

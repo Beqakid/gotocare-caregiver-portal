@@ -14,6 +14,7 @@ interface ProfileTabProps {
   onDocumentsChange: () => void
   deepLink?: string
   initialSection?: 'profile' | 'documents' | 'badges'
+  onNavigateHome?: () => void
 }
 
 const ALL_CARE_NEEDS = [
@@ -45,7 +46,7 @@ const BADGES = [
   { id: 'caregiver_pro', icon: Heart, label: 'Caregiver Pro', desc: 'Fully certified & insured', color: 'text-error', earn: (p: any, d: CaregiverDocument[]) => d.filter(x => x.type === 'certification' || x.type === 'license').length >= 2 && d.some(x => x.type === 'insurance') },
 ]
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection }) => {
+export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, onNavigateHome }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
@@ -182,6 +183,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
   return (
     <div className="pb-4">
+      {/* Deep-link back banner — only shows when navigated from profile strength widget */}
+      {deepLink && onNavigateHome && (
+        <div
+          onClick={onNavigateHome}
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 50,
+            background: 'linear-gradient(135deg, #7C5CFF 0%, #4A90E2 100%)',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(124,92,255,0.3)',
+          }}
+        >
+          <span style={{ fontSize: '16px' }}>←</span>
+          <span style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>Back to Profile Strength</span>
+          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginLeft: 'auto' }}>Keep going →</span>
+        </div>
+      )}
       {/* Profile header */}
       <div id="section-photo" className="earnings-card px-4 pt-6 pb-8 text-center">
         <div className="relative inline-block mb-3">

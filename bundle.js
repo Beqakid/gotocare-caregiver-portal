@@ -23349,7 +23349,7 @@
     if (!token) return;
     try {
       await fetch(`${BASE}/caregiver-personal-invoices`, {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, cloudId, updates: { status } })
       });
@@ -26509,6 +26509,20 @@
       };
       setProfile(cgProfile);
       setLoggedIn(true);
+      try {
+        const cgId = fullAccount.id;
+        if (cgId) {
+          const bookingsRes = await fetch(
+            `https://gotocare-original.jjioji.workers.dev/api/caregiver-bookings?caregiverId=${cgId}`
+          );
+          const bookingsData = await bookingsRes.json();
+          if (bookingsData?.bookings && bookingsData.bookings.length > 0) {
+            setRequests(bookingsData.bookings.map(mapBookingToRequest));
+            setUsingDemoRequests(false);
+          }
+        }
+      } catch (e) {
+      }
     };
     if (!loggedIn) {
       return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(

@@ -93,8 +93,9 @@ export async function cloudUpdateInvoiceStatus(cloudId: string, status: string):
   const token = getToken()
   if (!token) return
   try {
+    // Use POST with cloudId + updates (PATCH not supported by Payload CMS router)
     await fetch(`${BASE}/caregiver-personal-invoices`, {
-      method: 'PATCH',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, cloudId, updates: { status } })
     })

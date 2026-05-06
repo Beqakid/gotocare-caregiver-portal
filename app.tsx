@@ -284,6 +284,21 @@ const App: React.FC<{}> = () => {
     }
     setProfile(cgProfile)
     setLoggedIn(true)
+
+    // Fetch real booking requests for this caregiver (use D1 account id)
+    try {
+      const cgId = fullAccount.id
+      if (cgId) {
+        const bookingsRes = await fetch(
+          `https://gotocare-original.jjioji.workers.dev/api/caregiver-bookings?caregiverId=${cgId}`
+        )
+        const bookingsData = await bookingsRes.json()
+        if (bookingsData?.bookings && bookingsData.bookings.length > 0) {
+          setRequests(bookingsData.bookings.map(mapBookingToRequest))
+          setUsingDemoRequests(false)
+        }
+      }
+    } catch (e) { /* keep demo requests */ }
   }
 
   if (!loggedIn) {

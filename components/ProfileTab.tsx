@@ -12,6 +12,8 @@ interface ProfileTabProps {
   onLogout: () => void
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
+  deepLink?: string
+  initialSection?: 'profile' | 'documents' | 'badges'
 }
 
 const ALL_CARE_NEEDS = [
@@ -43,14 +45,28 @@ const BADGES = [
   { id: 'caregiver_pro', icon: Heart, label: 'Caregiver Pro', desc: 'Fully certified & insured', color: 'text-error', earn: (p: any, d: CaregiverDocument[]) => d.filter(x => x.type === 'certification' || x.type === 'license').length >= 2 && d.some(x => x.type === 'insurance') },
 ]
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange }) => {
+export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
   const [editRate, setEditRate] = useState(String(profile?.hourlyRate || ''))
   const [editingSkills, setEditingSkills] = useState(false)
   const [selectedSkills, setSelectedSkills] = useState<string[]>(profile?.skills || [])
-  const [section, setSection] = useState<'profile' | 'documents' | 'badges'>('profile')
+  const [section, setSection] = useState<'profile' | 'documents' | 'badges'>(initialSection || 'profile')
+
+  // Deep-link: jump to correct section + scroll to target
+  useEffect(() => {
+    if (initialSection) setSection(initialSection)
+    if (deepLink) {
+      setTimeout(() => {
+        const el = document.getElementById(deepLink)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Open editing if applicable
+        if (deepLink === 'section-bio') setEditing(true)
+        if (deepLink === 'section-skills') setEditingSkills(true)
+      }, 150)
+    }
+  }, [deepLink, initialSection])
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
   const [docType, setDocType] = useState('certification')
@@ -167,7 +183,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   return (
     <div className="pb-4">
       {/* Profile header */}
-      <div className="earnings-card px-4 pt-6 pb-8 text-center">
+      <div id="section-photo" className="earnings-card px-4 pt-6 pb-8 text-center">
         <div className="relative inline-block mb-3">
           <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center avatar-ring">
             <span className="text-2xl font-bold text-white">
@@ -280,7 +296,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           {/* Bio */}
-          <div className="bg-base-200 rounded-2xl p-4">
+          <div id="section-bio" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="font-semibold text-sm text-base-content">About</p>
               <button onClick={() => setEditing(!editing)} className="btn btn-ghost btn-xs gap-1"><Edit3 size={12} /> Edit</button>
@@ -307,7 +323,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           {/* Contact */}
-          <div className="bg-base-200 rounded-2xl p-4 space-y-3">
+          <div id="section-contact" className="bg-base-200 rounded-2xl p-4 space-y-3">
             <p className="font-semibold text-sm text-base-content">Contact</p>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Mail size={14} className="text-primary" /></div>
@@ -328,7 +344,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           {/* Skills */}
-          <div className="bg-base-200 rounded-2xl p-4">
+          <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-sm text-base-content">Skills & Specializations</p>
               <button
@@ -370,19 +386,53 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           {/* Languages */}
-          {profile.languages && profile.languages.length > 0 && (
-            <div className="bg-base-200 rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-2">
+          <div id="section-languages" className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
                 <Globe size={14} className="text-primary" />
                 <p className="font-semibold text-sm text-base-content">Languages</p>
               </div>
+              <button
+                onClick={() => {
+                  const lang = window.prompt('Add a language (e.g. Spanish, French):')
+                  if (lang?.trim()) {
+                    const current = profile.languages || []
+                    if (!current.includes(lang.trim())) {
+                      onUpdateProfile({ languages: [...current, lang.trim()] })
+                    }
+                  }
+                }}
+                className="btn btn-ghost btn-xs gap-1"
+              >
+                <Plus size={12} /> Add
+              </button>
+            </div>
+            {profile.languages && profile.languages.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {profile.languages.map((lang, i) => (
-                  <span key={i} className="badge badge-sm badge-ghost py-2.5">{lang}</span>
+                  <span key={i} className="badge badge-sm badge-ghost py-2.5 gap-1">
+                    {lang}
+                    <button
+                      onClick={() => onUpdateProfile({ languages: profile.languages.filter((_: string, idx: number) => idx !== i) })}
+                      className="ml-0.5 opacity-50 hover:opacity-100"
+                    >
+                      <X size={9} />
+                    </button>
+                  </span>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <button
+                onClick={() => {
+                  const lang = window.prompt('Add a language (e.g. Spanish, French):')
+                  if (lang?.trim()) onUpdateProfile({ languages: [lang.trim()] })
+                }}
+                className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg"
+              >
+                + Add languages you speak (boosts match rate)
+              </button>
+            )}
+          </div>
 
           {/* Settings & Logout */}
           <div className="bg-base-200 rounded-2xl overflow-hidden">
@@ -401,7 +451,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
       {/* ---- DOCUMENTS SECTION ---- */}
       {section === 'documents' && (
-        <div className="px-4 space-y-4">
+        <div id="section-documents" className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
             Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
           </p>

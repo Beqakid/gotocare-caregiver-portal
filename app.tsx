@@ -2,19 +2,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType, CaregiverDocument } from './types'
-import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth, validateMarketplaceToken, saveCaregiverSetup } from './utils/api'
+import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
 import { getDocuments, refreshDocumentStatuses } from './utils/storage'
-import { saveMarketplaceAuth, getMarketplaceToken, getMarketplaceAccount, getAuthType, clearMarketplaceAuth, updateMarketplaceAccount } from './utils/auth'
 import { LoginScreen } from './components/LoginScreen'
-import { OnboardingScreen } from './components/OnboardingScreen'
 import { HomeTab } from './components/HomeTab'
 import { ScheduleTab } from './components/ScheduleTab'
 import { RequestsTab } from './components/RequestsTab'
 import { EarningsTab } from './components/EarningsTab'
 import { ProfileTab } from './components/ProfileTab'
 import { BottomNav } from './components/BottomNav'
-
-type AppState = 'checking' | 'guest' | 'marketplace_setup' | 'logged_in'
 
 // Demo care requests — shown when no real bookings exist yet
 const DEMO_REQUESTS: CareRequest[] = [
@@ -41,6 +37,7 @@ const DEMO_REQUESTS: CareRequest[] = [
   },
 ]
 
+// Map a D1 booking record to CareRequest shape
 function mapBookingToRequest(b: any): CareRequest {
   const scheduleStr = b.preferredDate && b.preferredTime
     ? `${b.preferredDate} at ${b.preferredTime}`
@@ -73,35 +70,21 @@ function mapBookingToRequest(b: any): CareRequest {
   }
 }
 
-function marketplaceAccountToProfile(account: any): CaregiverProfile {
-  const nameParts = (account.name || '').split(' ')
-  return {
-    id: account.id,
-    firstName: nameParts[0] || account.email?.split('@')[0] || 'Caregiver',
-    lastName: nameParts.slice(1).join(' ') || '',
-    email: account.email || '',
-    phone: account.phone || '',
-    status: 'active',
-    hourlyRate: 25,
-    skills: account.careTypes || [],
-    languages: ['English'],
-    rating: 4.8,
-    totalJobs: 0,
-    totalReviews: 0,
-    bio: account.bio || '',
-    location: account.zipCode ? `Zip: ${account.zipCode}` : undefined,
-    profilePhoto: account.photoUrl || undefined,
-  }
-}
-
 const App: React.FC<{}> = () => {
-  const [appState, setAppState] = useState<AppState>('checking')
+  const [loggedIn, setLoggedIn] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
-  const [onboardingLoading, setOnboardingLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('home')
+  const [profileDeepLink, setProfileDeepLink] = useState<string | undefined>(undefined)
+  const [profileInitialSection, setProfileInitialSection] = useState<'profile' | 'documents' | 'badges' | undefined>(undefined)
+
+  const handleNavigateToSection = (section: 'profile' | 'documents', scrollTo: string) => {
+    setProfileInitialSection(section)
+    setProfileDeepLink(scrollTo)
+    setActiveTab('profile')
+    setTimeout(() => { setProfileDeepLink(undefined); setProfileInitialSection(undefined) }, 1200)
+  }
   const [profile, setProfile] = useState<CaregiverProfile | null>(null)
-  const [marketplaceAccount, setMarketplaceAccount] = useState<any>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
   const [timesheets, setTimesheets] = useState<Timesheet[]>([])
   const [requests, setRequests] = useState<CareRequest[]>(DEMO_REQUESTS)
@@ -109,62 +92,8 @@ const App: React.FC<{}> = () => {
   const [loading, setLoading] = useState(false)
   const [documents, setDocuments] = useState<CaregiverDocument[]>(getDocuments())
 
+  // Refresh local documents
   const refreshDocs = () => setDocuments(refreshDocumentStatuses())
-
-  // On mount: check for saved auth
-  useEffect(() => {
-    const checkAuth = async () => {
-      const authType = getAuthType()
-
-      if (authType === 'marketplace') {
-        const token = getMarketplaceToken()
-        const savedAccount = getMarketplaceAccount()
-        if (token && savedAccount) {
-          // Validate token with backend
-          try {
-            const res = await validateMarketplaceToken(token)
-            if (res.success && res.account) {
-              const account = res.account
-              saveMarketplaceAuth(token, account)
-              setMarketplaceAccount(account)
-              setProfile(marketplaceAccountToProfile(account))
-              setAppState(account.setupComplete ? 'logged_in' : 'marketplace_setup')
-            } else {
-              // Token invalid
-              clearMarketplaceAuth()
-              setAppState('guest')
-            }
-          } catch {
-            // Network error — use cached data
-            if (savedAccount.setupComplete) {
-              setMarketplaceAccount(savedAccount)
-              setProfile(marketplaceAccountToProfile(savedAccount))
-              setAppState('logged_in')
-            } else {
-              setAppState('marketplace_setup')
-            }
-          }
-        } else {
-          setAppState('guest')
-        }
-      } else {
-        // No auth type — check for legacy Payload token in localStorage
-        const legacyToken = localStorage.getItem('payload-token')
-        if (legacyToken) {
-          // Trust it (Payload verifies on each request)
-          // But we don't have the user data without re-fetching
-          // Just show guest for now — agency caregivers will log in normally
-          setAppState('guest')
-        } else {
-          setAppState('guest')
-        }
-      }
-
-      refreshDocs()
-    }
-
-    checkAuth()
-  }, [])
 
   const loadData = useCallback(async (caregiverId: number) => {
     setLoading(true)
@@ -189,7 +118,7 @@ const App: React.FC<{}> = () => {
 
   // Handle Stripe return URLs
   useEffect(() => {
-    if (appState !== 'logged_in' || !profile) return
+    if (!loggedIn || !profile) return
     const params = new URLSearchParams(window.location.search)
     const unlockedBookingId = params.get('booking_unlocked')
     const subscriptionSuccess = params.get('subscription')
@@ -197,45 +126,12 @@ const App: React.FC<{}> = () => {
       loadData(profile.id)
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [appState, profile, loadData])
+  }, [loggedIn, profile, loadData])
 
-  // ── Marketplace auth handler (called from LoginScreen after Google/email auth) ──
-  const handleMarketplaceAuth = (token: string, account: any) => {
-    saveMarketplaceAuth(token, account)
-    setMarketplaceAccount(account)
-    setProfile(marketplaceAccountToProfile(account))
-    if (account.setupComplete) {
-      setAppState('logged_in')
-      loadData(account.id)
-    } else {
-      setAppState('marketplace_setup')
-    }
-  }
+  // Refresh document statuses on mount
+  useEffect(() => { refreshDocs() }, [])
 
-  // ── Onboarding complete ──
-  const handleOnboardingComplete = async (zipCode: string, careTypes: string[]) => {
-    const token = getMarketplaceToken()
-    if (!token) return
-    setOnboardingLoading(true)
-    try {
-      const res = await saveCaregiverSetup(token, zipCode, careTypes)
-      if (res.success) {
-        const updatedAccount = { ...marketplaceAccount, zipCode, careTypes, setupComplete: true }
-        updateMarketplaceAccount({ zipCode, careTypes, setupComplete: true })
-        setMarketplaceAccount(updatedAccount)
-        setProfile(prev => prev ? { ...prev, skills: careTypes, location: `Zip: ${zipCode}` } : prev)
-        setAppState('logged_in')
-        loadData(marketplaceAccount.id)
-      }
-    } catch (e) {
-      console.error('Setup failed:', e)
-    } finally {
-      setOnboardingLoading(false)
-    }
-  }
-
-  // ── Agency login handler (legacy Payload auth) ──
-  const handleAgencyLogin = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string) => {
     setLoginError('')
     setLoginLoading(true)
     try {
@@ -260,9 +156,11 @@ const App: React.FC<{}> = () => {
           profilePhoto: user.profilePhoto || undefined,
         }
         setProfile(cgProfile)
-        setAppState('logged_in')
+        setLoggedIn(true)
         refreshDocs()
-        await loadData(cgProfile.id)
+        if (!window.tasklet?.runCommand) {
+          await loadData(cgProfile.id)
+        }
       } else {
         setLoginError(result.errors?.[0]?.message || 'Invalid email or password')
       }
@@ -275,10 +173,8 @@ const App: React.FC<{}> = () => {
 
   const handleLogout = () => {
     clearAuth()
-    clearMarketplaceAuth()
-    setAppState('guest')
+    setLoggedIn(false)
     setProfile(null)
-    setMarketplaceAccount(null)
     setShifts([])
     setTimesheets([])
     setRequests(DEMO_REQUESTS)
@@ -321,54 +217,52 @@ const App: React.FC<{}> = () => {
   const handleUpdateProfile = async (data: any) => {
     if (!profile) return
     try {
-      // For marketplace accounts, update locally and persist to backend
-      if (getAuthType() === 'marketplace') {
-        updateMarketplaceAccount(data)
-        setMarketplaceAccount(prev => prev ? { ...prev, ...data } : prev)
-      } else {
-        await updateProfile(profile.id, data)
-      }
+      await updateProfile(profile.id, data)
       setProfile(prev => prev ? { ...prev, ...data } : prev)
     } catch (e) {
       console.error('Profile update failed:', e)
     }
   }
 
-  // ── Render states ──
-
-  if (appState === 'checking') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-base-100">
-        <div className="flex flex-col items-center gap-3">
-          <span className="loading loading-spinner loading-lg text-primary" />
-          <p className="text-sm text-base-content/40">Loading your workspace…</p>
-        </div>
-      </div>
-    )
+  const handleMarketplaceAuth = (token: string, account: any) => {
+    // Store session token from marketplace registration/login
+    try {
+      localStorage.setItem('cgp_token', token)
+      localStorage.setItem('cgp_account', JSON.stringify(account))
+      localStorage.setItem('cgp_auth_type', 'marketplace')
+    } catch {}
+    const cgProfile: CaregiverProfile = {
+      id: account.id || account.email,
+      firstName: account.name?.split(' ')[0] || account.email?.split('@')[0] || 'Caregiver',
+      lastName: account.name?.split(' ').slice(1).join(' ') || '',
+      email: account.email || '',
+      phone: account.phone || '',
+      status: 'active',
+      hourlyRate: 25,
+      skills: account.care_types ? account.care_types.split(',').map((s: string) => s.trim()) : ['Elder Care', 'Companionship'],
+      languages: ['English'],
+      rating: 4.8,
+      totalJobs: 0,
+      totalReviews: 0,
+      bio: account.bio || '',
+      location: account.zip ? { city: account.zip, state: '' } : undefined,
+      profilePhoto: account.profilePhoto || undefined,
+    }
+    setProfile(cgProfile)
+    setLoggedIn(true)
   }
 
-  if (appState === 'guest') {
+  if (!loggedIn) {
     return (
       <LoginScreen
         onMarketplaceAuth={handleMarketplaceAuth}
-        onAgencyLogin={handleAgencyLogin}
+        onAgencyLogin={handleLogin}
         agencyError={loginError}
         agencyLoading={loginLoading}
       />
     )
   }
 
-  if (appState === 'marketplace_setup') {
-    return (
-      <OnboardingScreen
-        name={marketplaceAccount?.name || ''}
-        onComplete={handleOnboardingComplete}
-        loading={onboardingLoading}
-      />
-    )
-  }
-
-  // logged_in
   const pendingRequestCount = requests.filter(r => r.status === 'pending').length
 
   return (
@@ -387,6 +281,7 @@ const App: React.FC<{}> = () => {
               onNavigateToSchedule={() => setActiveTab('schedule')}
               onNavigateToEarnings={() => setActiveTab('earnings')}
               onNavigateToProfile={() => setActiveTab('profile')}
+              onNavigateToSection={handleNavigateToSection}
               onClockIn={handleClockIn}
               onTimerUpdate={refreshDocs}
             />
@@ -412,6 +307,8 @@ const App: React.FC<{}> = () => {
               onLogout={handleLogout}
               onUpdateProfile={handleUpdateProfile}
               onDocumentsChange={refreshDocs}
+              deepLink={profileDeepLink}
+              initialSection={profileInitialSection}
             />
           )}
         </div>

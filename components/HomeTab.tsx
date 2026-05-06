@@ -15,6 +15,7 @@ interface HomeTabProps {
   onNavigateToSchedule: () => void
   onNavigateToEarnings: () => void
   onNavigateToProfile: () => void
+  onNavigateToSection: (section: 'profile' | 'documents', scrollTo: string) => void
   onClockIn: (shiftId: number) => void
   onTimerUpdate: () => void
 }
@@ -23,7 +24,7 @@ interface HomeTabProps {
 const ProgressRing = ({ score }: { score: number }) => {
   const r = 38, c = 2 * Math.PI * r
   const offset = c - (score / 100) * c
-  const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#7c3aed'
+  const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#7C5CFF'
   return (
     <svg width="96" height="96" className="transform -rotate-90">
       <circle cx="48" cy="48" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-base-300" />
@@ -35,7 +36,7 @@ const ProgressRing = ({ score }: { score: number }) => {
 
 export const HomeTab: React.FC<HomeTabProps> = ({
   profile, shifts, timesheets, requests, loading, documents,
-  onNavigateToRequests, onNavigateToSchedule, onNavigateToEarnings, onNavigateToProfile, onClockIn, onTimerUpdate
+  onNavigateToRequests, onNavigateToSchedule, onNavigateToEarnings, onNavigateToProfile, onNavigateToSection, onClockIn, onTimerUpdate
 }) => {
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(getActiveTimer())
   const [elapsed, setElapsed] = useState(0)
@@ -142,7 +143,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-2 h-2 rounded-full bg-success pulse-dot" />
-            <span className="text-xs text-base-content/75">Available for work</span>
+            <span className="text-xs text-base-content/60">Available for work</span>
           </div>
         </div>
         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -154,32 +155,56 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
       {/* Profile Completeness Card */}
       {completeness < 100 && (
-        <div className="bg-base-200 rounded-2xl p-4 press-card" onClick={onNavigateToProfile}>
-          <div className="flex items-center gap-4">
+        <div className="bg-base-200 rounded-2xl p-4">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-3">
             <div className="relative flex-shrink-0">
               <ProgressRing score={completeness} />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-lg font-bold text-base-content">{completeness}%</span>
+                <span className="text-base font-bold text-base-content">{completeness}%</span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-base-content">Complete your profile</p>
-              <p className="text-xs text-base-content/75 mt-0.5">
-                {completeness < 50 ? 'Get found by more clients' : completeness < 80 ? 'Almost there!' : 'Just a few more items'}
+              <p className="font-semibold text-sm text-base-content">Profile Strength</p>
+              <p className="text-xs text-base-content/60">
+                {completenessItems.filter(i => !i.done).length} items left to unlock more bookings
               </p>
-              <div className="mt-2 space-y-1">
-                {completenessItems.filter(i => !i.done).slice(0, 3).map((item, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <div className="w-3.5 h-3.5 rounded-full border border-base-400 flex items-center justify-center">
-                      <Plus size={8} className="opacity-40" />
-                    </div>
-                    <span className="text-[11px] text-base-content/70">{item.label}</span>
-                  </div>
-                ))}
+              {/* Mini progress bar */}
+              <div className="w-full bg-base-300 rounded-full h-1.5 mt-1.5">
+                <div
+                  className={`h-1.5 rounded-full transition-all ${completeness >= 80 ? 'bg-success' : completeness >= 50 ? 'bg-warning' : 'bg-primary'}`}
+                  style={{ width: `${completeness}%` }}
+                />
               </div>
             </div>
-            <ChevronRight size={18} className="opacity-30 flex-shrink-0" />
           </div>
+          {/* Incomplete items — each is a deep-link row */}
+          <div className="space-y-1.5">
+            {completenessItems.filter(i => !i.done).map((item, i) => (
+              <button
+                key={i}
+                className="w-full flex items-center gap-3 bg-base-100 hover:bg-primary/5 active:scale-[0.98] rounded-xl px-3 py-2.5 text-left transition-all"
+                onClick={() => onNavigateToSection(item.action.section, item.action.scrollTo)}
+              >
+                <span className="text-base flex-shrink-0">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-base-content truncate">{item.label}</p>
+                  <p className="text-[10px] text-base-content/50 truncate">{item.hint}</p>
+                </div>
+                <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">Fix →</span>
+              </button>
+            ))}
+          </div>
+          {/* Completed items (collapsed) */}
+          {completenessItems.filter(i => i.done).length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {completenessItems.filter(i => i.done).map((item, i) => (
+                <span key={i} className="text-[10px] text-success/70 bg-success/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <CheckCircle2 size={9} /> {item.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -193,7 +218,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               </div>
               <div>
                 <p className="text-2xl font-mono font-bold text-base-content">{formatElapsed(elapsed)}</p>
-                <p className="text-xs text-base-content/75">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
+                <p className="text-xs text-base-content/60">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
               </div>
             </div>
             <button onClick={stopTimer} className="btn btn-error btn-sm gap-1">
@@ -222,7 +247,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color}`}>
                 <item.icon size={20} />
               </div>
-              <span className="text-[11px] font-medium text-base-content/70">{item.label}</span>
+              <span className="text-[10px] font-medium text-base-content/70">{item.label}</span>
             </button>
           ))}
         </div>
@@ -260,7 +285,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
       {/* Document Alerts */}
       {expiringDocs.length > 0 && (
-        <div className="bg-red-500/10 border border-red-400/30 rounded-2xl p-4 press-card" onClick={onNavigateToProfile}>
+        <div className="bg-error/5 border border-error/20 rounded-2xl p-4 press-card" onClick={onNavigateToProfile}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
               <AlertTriangle size={20} className="text-error" />
@@ -269,7 +294,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               <p className="font-semibold text-sm text-base-content">
                 {expiringDocs.filter(d => d.status === 'expired').length > 0 ? 'Documents expired!' : 'Documents expiring soon'}
               </p>
-              <p className="text-xs text-base-content/75 mt-0.5">
+              <p className="text-xs text-base-content/60 mt-0.5">
                 {expiringDocs.map(d => d.name).join(', ')}
               </p>
             </div>
@@ -305,7 +330,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
           <div className="flex-1">
             <p className="font-semibold text-sm text-base-content">Shift in Progress</p>
-            <p className="text-xs text-base-content/75">{activeTimesheets.length} active — tap to view</p>
+            <p className="text-xs text-base-content/60">{activeTimesheets.length} active — tap to view</p>
           </div>
           <ChevronRight size={18} className="opacity-40" />
         </div>
@@ -321,7 +346,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className="bg-base-200 rounded-2xl p-6 text-center">
             <Calendar size={32} className="mx-auto opacity-30 mb-2" />
             <p className="text-sm text-base-content/60">No shifts scheduled today</p>
-            <p className="text-xs text-base-content/65 mt-1">Use the timer to track private client hours</p>
+            <p className="text-xs text-base-content/40 mt-1">Use the timer to track private client hours</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -336,11 +361,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                       <p className="font-semibold text-sm text-base-content">
                         {typeof shift.client === 'object' ? `${shift.client.firstName || ''} ${shift.client.lastName || ''}`.trim() : `Client #${shift.client}`}
                       </p>
-                      <p className="text-xs text-base-content/75 mt-0.5">
+                      <p className="text-xs text-base-content/60 mt-0.5">
                         {shift.startTime} — {shift.endTime}
                       </p>
                       {shift.careType && (
-                        <span className="inline-block mt-1.5 text-[10px] font-medium bg-violet-500/25 text-violet-300 px-2 py-0.5 rounded-full font-medium">
+                        <span className="inline-block mt-1.5 text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                           {shift.careType}
                         </span>
                       )}
@@ -378,7 +403,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                 <p className="font-semibold text-sm text-base-content">
                   {pendingRequests.length} care request{pendingRequests.length > 1 ? 's' : ''} waiting
                 </p>
-                <p className="text-xs text-base-content/75 mt-0.5">
+                <p className="text-xs text-base-content/60 mt-0.5">
                   Up to ${Math.max(...pendingRequests.map(r => r.hourlyRate || 0))}/hr · Tap to respond
                 </p>
               </div>
@@ -391,7 +416,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       {/* Your Caregiving Office Promo */}
       <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/10">
         <h3 className="font-bold text-sm text-base-content mb-1">Your Caregiving Office</h3>
-        <p className="text-xs text-base-content/75 mb-3">Free tools to manage your entire caregiving business</p>
+        <p className="text-xs text-base-content/60 mb-3">Free tools to manage your entire caregiving business</p>
         <div className="grid grid-cols-2 gap-2">
           {[
             { icon: Timer, label: 'Time Tracker', desc: 'Clock hours for any client' },
@@ -403,7 +428,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               <item.icon size={14} className="text-primary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-[11px] font-semibold text-base-content">{item.label}</p>
-                <p className="text-[10px] text-base-content/70">{item.desc}</p>
+                <p className="text-[10px] text-base-content/50">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -417,17 +442,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className="bg-base-200 rounded-2xl p-3 text-center">
             <Star size={18} className="mx-auto text-warning mb-1" />
             <p className="text-lg font-bold text-base-content">{profile?.rating || '4.9'}</p>
-            <p className="text-[10px] text-base-content/70">Rating</p>
+            <p className="text-[10px] text-base-content/50">Rating</p>
           </div>
           <div className="bg-base-200 rounded-2xl p-3 text-center">
             <Briefcase size={18} className="mx-auto text-primary mb-1" />
             <p className="text-lg font-bold text-base-content">{profile?.totalJobs || shifts.length}</p>
-            <p className="text-[10px] text-base-content/70">Jobs Done</p>
+            <p className="text-[10px] text-base-content/50">Jobs Done</p>
           </div>
           <div className="bg-base-200 rounded-2xl p-3 text-center">
             <TrendingUp size={18} className="mx-auto text-success mb-1" />
             <p className="text-lg font-bold text-base-content">96%</p>
-            <p className="text-[10px] text-base-content/70">Response</p>
+            <p className="text-[10px] text-base-content/50">Response</p>
           </div>
         </div>
       </div>

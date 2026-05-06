@@ -152,18 +152,78 @@ export function deleteMileageEntry(id: string): void {
 }
 
 // ---- PROFILE COMPLETENESS ----
-export function calculateCompleteness(profile: any, docs: CaregiverDocument[]): { score: number; items: { label: string; done: boolean }[] } {
+export function calculateCompleteness(profile: any, docs: CaregiverDocument[]): { score: number; items: { label: string; done: boolean; hint: string; icon: string; action: { section: 'profile' | 'documents'; scrollTo: string } }[] } {
   const items = [
-    { label: 'Basic info', done: !!(profile?.firstName && profile?.lastName) },
-    { label: 'Profile photo', done: !!profile?.profilePhoto },
-    { label: 'Bio written', done: !!(profile?.bio && profile.bio.length > 20) },
-    { label: 'Hourly rate set', done: !!(profile?.hourlyRate && profile.hourlyRate > 0) },
-    { label: 'Skills selected (3+)', done: (profile?.skills?.length || 0) >= 3 },
-    { label: 'Phone number', done: !!profile?.phone },
-    { label: 'Location added', done: !!(profile?.location?.city) },
-    { label: 'Languages added', done: (profile?.languages?.length || 0) > 0 },
-    { label: '1+ certification uploaded', done: docs.filter(d => d.type === 'certification' || d.type === 'license').length > 0 },
-    { label: 'Background check', done: docs.some(d => d.type === 'background_check') },
+    {
+      label: 'Basic info',
+      done: !!(profile?.firstName && profile?.lastName),
+      hint: 'Add your full name',
+      icon: '👤',
+      action: { section: 'profile' as const, scrollTo: 'section-bio' },
+    },
+    {
+      label: 'Profile photo',
+      done: !!profile?.profilePhoto,
+      hint: 'Upload a professional photo',
+      icon: '📸',
+      action: { section: 'profile' as const, scrollTo: 'section-photo' },
+    },
+    {
+      label: 'Bio written',
+      done: !!(profile?.bio && profile.bio.length > 20),
+      hint: 'Tell clients about yourself',
+      icon: '✍️',
+      action: { section: 'profile' as const, scrollTo: 'section-bio' },
+    },
+    {
+      label: 'Hourly rate set',
+      done: !!(profile?.hourlyRate && profile.hourlyRate > 0),
+      hint: 'Set your hourly rate',
+      icon: '💰',
+      action: { section: 'profile' as const, scrollTo: 'section-bio' },
+    },
+    {
+      label: 'Skills selected (3+)',
+      done: (profile?.skills?.length || 0) >= 3,
+      hint: 'Add the care services you offer',
+      icon: '🩺',
+      action: { section: 'profile' as const, scrollTo: 'section-skills' },
+    },
+    {
+      label: 'Phone number',
+      done: !!profile?.phone,
+      hint: 'Add your phone number',
+      icon: '📞',
+      action: { section: 'profile' as const, scrollTo: 'section-contact' },
+    },
+    {
+      label: 'Location added',
+      done: !!(profile?.location?.city),
+      hint: 'Add your city / service area',
+      icon: '📍',
+      action: { section: 'profile' as const, scrollTo: 'section-contact' },
+    },
+    {
+      label: 'Languages added',
+      done: (profile?.languages?.length || 0) > 0,
+      hint: 'Add languages you speak',
+      icon: '🌐',
+      action: { section: 'profile' as const, scrollTo: 'section-languages' },
+    },
+    {
+      label: '1+ certification uploaded',
+      done: docs.filter(d => d.type === 'certification' || d.type === 'license').length > 0,
+      hint: 'Upload CNA, HHA, or other cert',
+      icon: '🎓',
+      action: { section: 'documents' as const, scrollTo: 'section-certs' },
+    },
+    {
+      label: 'Background check',
+      done: docs.some(d => d.type === 'background_check'),
+      hint: 'Upload your background check',
+      icon: '🛡️',
+      action: { section: 'documents' as const, scrollTo: 'section-bgcheck' },
+    },
   ]
   const done = items.filter(i => i.done).length
   return { score: Math.round((done / items.length) * 100), items }

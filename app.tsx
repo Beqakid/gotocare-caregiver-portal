@@ -82,7 +82,6 @@ const App: React.FC<{}> = () => {
     setProfileInitialSection(section)
     setProfileDeepLink(scrollTo)
     setActiveTab('profile')
-    setTimeout(() => { setProfileDeepLink(undefined); setProfileInitialSection(undefined) }, 1200)
   }
   const [profile, setProfile] = useState<CaregiverProfile | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])

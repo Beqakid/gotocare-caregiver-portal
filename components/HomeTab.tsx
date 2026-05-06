@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { MapPin, Clock, ChevronRight, Star, Briefcase, TrendingUp, Zap, Bell, Calendar, Timer, FileText, FolderOpen, Users, Play, Square, Plus, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TimeEntry, CaregiverDocument } from '../types'
-import { getActiveTimer, setActiveTimer, addTimeEntry, updateTimeEntry, getDocuments, calculateCompleteness } from '../utils/storage'
+import { getActiveTimer, setActiveTimer, addTimeEntry, updateTimeEntry, getDocuments, calculateCompleteness, getTimeEntries } from '../utils/storage'
 
 interface HomeTabProps {
   profile: CaregiverProfile | null
@@ -52,13 +52,33 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   // Profile completeness
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents)
 
-  // This week's earnings
-  const weekEarnings = timesheets
-    .filter(t => t.status === 'approved' || t.status === 'paid')
-    .reduce((sum, t) => sum + (t.totalPay || 0), 0)
-  const weekHours = timesheets
-    .filter(t => t.hoursWorked)
-    .reduce((sum, t) => sum + (t.hoursWorked || 0), 0)
+  // This week's hours + earnings — from Time Tracker entries (not agency timesheets)
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(() => getTimeEntries())
+
+  // Refresh time entries whenever tab is focused (in case ScheduleTab just saved one)
+  useEffect(() => {
+    setTimeEntries(getTimeEntries())
+  }, [])
+
+  const getWeekStart = () => {
+    const now = new Date()
+    const day = now.getDay() // 0=Sun
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Mon
+    const monday = new Date(now.setDate(diff))
+    return monday.toISOString().split('T')[0]
+  }
+  const weekStart = getWeekStart()
+
+  const weekEntries = timeEntries.filter(e =>
+    e.status === 'completed' && e.date >= weekStart
+  )
+  const weekHours = weekEntries.reduce((sum, e) => {
+    if (e.regularHours !== undefined || e.overtimeHours !== undefined) {
+      return sum + (e.regularHours || 0) + (e.overtimeHours || 0)
+    }
+    return sum + (e.duration ? e.duration / 60 : 0)
+  }, 0)
+  const weekEarnings = weekEntries.reduce((sum, e) => sum + (e.totalPay || 0), 0)
 
   // Expiring docs
   const expiringDocs = documents.filter(d => d.status === 'expiring_soon' || d.status === 'expired')

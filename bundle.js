@@ -22897,8 +22897,28 @@
     const activeTimesheets = timesheets.filter((t) => t.status === "clocked_in");
     const pendingRequests = requests.filter((r) => r.status === "pending");
     const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents);
-    const weekEarnings = timesheets.filter((t) => t.status === "approved" || t.status === "paid").reduce((sum, t) => sum + (t.totalPay || 0), 0);
-    const weekHours = timesheets.filter((t) => t.hoursWorked).reduce((sum, t) => sum + (t.hoursWorked || 0), 0);
+    const [timeEntries, setTimeEntries] = (0, import_react4.useState)(() => getTimeEntries());
+    (0, import_react4.useEffect)(() => {
+      setTimeEntries(getTimeEntries());
+    }, []);
+    const getWeekStart = () => {
+      const now = /* @__PURE__ */ new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      return monday.toISOString().split("T")[0];
+    };
+    const weekStart = getWeekStart();
+    const weekEntries = timeEntries.filter(
+      (e) => e.status === "completed" && e.date >= weekStart
+    );
+    const weekHours = weekEntries.reduce((sum, e) => {
+      if (e.regularHours !== void 0 || e.overtimeHours !== void 0) {
+        return sum + (e.regularHours || 0) + (e.overtimeHours || 0);
+      }
+      return sum + (e.duration ? e.duration / 60 : 0);
+    }, 0);
+    const weekEarnings = weekEntries.reduce((sum, e) => sum + (e.totalPay || 0), 0);
     const expiringDocs = documents.filter((d) => d.status === "expiring_soon" || d.status === "expired");
     (0, import_react4.useEffect)(() => {
       if (!activeTimer) return;

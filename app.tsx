@@ -215,37 +215,72 @@ const App: React.FC<{}> = () => {
 
   const handleUpdateProfile = async (data: any) => {
     if (!profile) return
+    // Always update local React state immediately for responsive UI
+    setProfile(prev => prev ? { ...prev, ...data } : prev)
     try {
-      await updateProfile(profile.id, data)
-      setProfile(prev => prev ? { ...prev, ...data } : prev)
+      const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
+      if (cgToken) {
+        // D1-backed: self-registered caregiver
+        const payload: any = { token: cgToken }
+        if (data.firstName !== undefined || data.lastName !== undefined) {
+          const p = profile as any
+          payload.name = `${data.firstName ?? p.firstName ?? ''} ${data.lastName ?? p.lastName ?? ''}`.trim()
+        }
+        if (data.bio !== undefined)           payload.bio = data.bio
+        if (data.hourlyRate !== undefined)    payload.hourlyRate = data.hourlyRate
+        if (data.phone !== undefined)         payload.phone = data.phone
+        if (data.location !== undefined)      { payload.city = data.location?.city || ''; payload.state = data.location?.state || '' }
+        if (data.languages !== undefined)     payload.languages = data.languages
+        if (data.skills !== undefined)        payload.skills = data.skills
+        if (data.certifications !== undefined) payload.certifications = data.certifications
+        if (data.profilePhoto !== undefined)  payload.photoUrl = data.profilePhoto
+        const res = await fetch('https://gotocare-original.jjioji.workers.dev/api/caregiver-profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const result = await res.json()
+        if (!result.success) console.error('D1 profile save failed:', result.error)
+      } else {
+        // Payload CMS: agency-registered caregiver
+        await updateProfile(profile.id, data)
+      }
     } catch (e) {
       console.error('Profile update failed:', e)
     }
   }
 
-  const handleMarketplaceAuth = (token: string, account: any) => {
+  const handleMarketplaceAuth = async (token: string, account: any) => {
     // Store session token from marketplace registration/login
     try {
       localStorage.setItem('cgp_token', token)
       localStorage.setItem('cgp_account', JSON.stringify(account))
       localStorage.setItem('cgp_auth_type', 'marketplace')
     } catch {}
+    // Fetch fresh full profile from D1 (includes all new columns)
+    let fullAccount = account
+    try {
+      const res = await fetch(`https://gotocare-original.jjioji.workers.dev/api/caregiver-account?token=${encodeURIComponent(token)}`)
+      const data = await res.json()
+      if (data.success && data.account) fullAccount = { ...account, ...data.account }
+    } catch (e) { /* use passed account as fallback */ }
     const cgProfile: CaregiverProfile = {
-      id: account.id || account.email,
-      firstName: account.name?.split(' ')[0] || account.email?.split('@')[0] || 'Caregiver',
-      lastName: account.name?.split(' ').slice(1).join(' ') || '',
-      email: account.email || '',
-      phone: account.phone || '',
+      id: fullAccount.id || fullAccount.email,
+      firstName: fullAccount.name?.split(' ')[0] || fullAccount.email?.split('@')[0] || 'Caregiver',
+      lastName: fullAccount.name?.split(' ').slice(1).join(' ') || '',
+      email: fullAccount.email || '',
+      phone: fullAccount.phone || '',
       status: 'active',
-      hourlyRate: account.hourlyRate || 0,
-      skills: account.care_types ? account.care_types.split(',').map((s: string) => s.trim()) : [],
-      languages: account.languages || [],
+      hourlyRate: fullAccount.hourlyRate || 0,
+      skills: fullAccount.skills?.length ? fullAccount.skills : (fullAccount.careTypes?.length ? fullAccount.careTypes : (fullAccount.care_types ? fullAccount.care_types.split(',').map((s: string) => s.trim()) : [])),
+      languages: Array.isArray(fullAccount.languages) ? fullAccount.languages : [],
       rating: 4.8,
       totalJobs: 0,
       totalReviews: 0,
-      bio: account.bio || '',
-      location: account.zip ? { city: account.zip, state: '' } : undefined,
-      profilePhoto: account.profilePhoto || undefined,
+      bio: fullAccount.bio || '',
+      location: (fullAccount.city) ? { city: fullAccount.city, state: fullAccount.state || '' } : (fullAccount.zipCode ? { city: fullAccount.zipCode, state: '' } : undefined),
+      profilePhoto: fullAccount.photoUrl || fullAccount.profilePhoto || undefined,
+      certifications: Array.isArray(fullAccount.certifications) ? fullAccount.certifications : [],
     }
     setProfile(cgProfile)
     setLoggedIn(true)

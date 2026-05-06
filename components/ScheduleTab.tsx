@@ -1116,7 +1116,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       {viewMode === 'clients' && (
         <div className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
-            Manage your private clients — track hours and create invoices for anyone you work with, even outside GoToCare.
+            Manage your private clients — track hours and create invoices for anyone you work with, even outside Carehia.
           </p>
 
           <button onClick={() => setShowAddClient(true)} className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">

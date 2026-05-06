@@ -223,7 +223,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     onDocumentsChange()
   }
 
-  const profileUrl = `gotocare.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
+  const profileUrl = `carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
 
   const copyProfileLink = () => {
     navigator.clipboard?.writeText(`https://${profileUrl}`)
@@ -766,7 +766,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-base-content">{client.name || 'Client'}</p>
-                  <p className="text-xs text-base-content/50">{hiredDate ? `Added ${hiredDate}` : 'Hired via GoToCare'}</p>
+                  <p className="text-xs text-base-content/50">{hiredDate ? `Added ${hiredDate}` : 'Hired via Carehia'}</p>
                 </div>
                 <div className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">
                   Active

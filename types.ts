@@ -176,4 +176,4 @@ export interface MileageEntry {
   notes?: string
 }
 
-export type TabType = 'home' | 'schedule' | 'requests' | 'earnings' | 'profile'
+export type TabType = 'home' | 'schedule' | 'requests' | 'earnings' | 'profile' | 'marketing'

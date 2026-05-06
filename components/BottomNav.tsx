@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react'
-import { Home, Calendar, Bell, DollarSign, User } from 'lucide-react'
+import { Home, Calendar, Bell, DollarSign, User, Megaphone } from 'lucide-react'
 import { TabType } from '../types'
 
 interface BottomNavProps {
@@ -15,6 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'requests', label: 'Requests', icon: Bell },
     { id: 'earnings', label: 'Earnings', icon: DollarSign },
+    { id: 'marketing', label: 'Market', icon: Megaphone },
     { id: 'profile', label: 'Profile', icon: User },
   ]
 
@@ -28,10 +29,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 w-14 h-14 rounded-xl relative ${isActive ? 'active' : 'text-base-content/40'}`}
+              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 w-12 h-14 rounded-xl relative ${isActive ? 'active' : 'text-base-content/40'}`}
             >
               <div className="relative">
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
                 {tab.id === 'requests' && requestCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 bg-error text-error-content text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {requestCount > 9 ? '9+' : requestCount}

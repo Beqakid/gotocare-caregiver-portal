@@ -6,8 +6,6 @@
     <meta name="theme-color" content="#7c3aed" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <!-- Google OAuth Client ID -->
-    <meta name="google-client-id" content="888877756290-t1chv8b5d5hg0kiosd4qcr34g6rpd33b.apps.googleusercontent.com" />
     <title>GoToCare — Caregiver Portal</title>
 
     <!-- Google Fonts: Inter -->
@@ -87,16 +85,14 @@
   --color-error: #f87171;
   --color-error-content: #0d0d1a;
 }
-    </style>
+    @keyframes spin{to{transform:rotate(360deg)}}
+</style>
 
     <!-- Custom styles -->
     <link rel="stylesheet" href="styles.css" />
 
     <!-- Tailwind v4 browser -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
-    <!-- Google Identity Services (for Google Sign-In) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Auto dark/light theme detection -->
     <script>
@@ -111,6 +107,11 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <script src="bundle.js"></script>
+    <!-- React + ReactDOM from jsDelivr -->
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- Lucide React Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="dist/app.js"></script>
   </body>
 </html>

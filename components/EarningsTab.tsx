@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DollarSign, TrendingUp, Clock, CreditCard, FileText, Plus, Send, Download, Trash2, X, Calculator, Car } from 'lucide-react'
 import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
@@ -67,6 +67,35 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const paidAmount = relevantTimesheets.filter(t => t.status === 'paid').reduce((sum, t) => sum + (t.totalPay || 0), 0)
   const invoicePaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
   const pendingAmount = totalEarnings - paidAmount
+
+  // Avg hourly rate
+  const avgHourlyRate = totalHours > 0 ? totalEarnings / totalHours : 0
+
+  // Projected this month
+  const weekHoursForProjection = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60), 0) + apiHours
+  const projectedMonth = totalEarnings > 0 ? (totalEarnings / 7) * 30 : 0
+
+  // Animated count-up for hero earnings
+  const [displayAmount, setDisplayAmount] = useState(0)
+  useEffect(() => {
+    if (totalEarnings === 0) {
+      setDisplayAmount(0)
+      return
+    }
+    let start = 0
+    const duration = 800
+    const increment = totalEarnings / (duration / 16)
+    const timer = setInterval(() => {
+      start += increment
+      if (start >= totalEarnings) {
+        setDisplayAmount(totalEarnings)
+        clearInterval(timer)
+      } else {
+        setDisplayAmount(start)
+      }
+    }, 16)
+    return () => clearInterval(timer)
+  }, [totalEarnings])
 
   // Bar chart
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -209,10 +238,15 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             ))}
           </div>
 
-          {/* Earnings summary */}
+          {/* Earnings summary — with animated count-up */}
           <div className="earnings-card rounded-2xl p-5 text-white">
             <p className="text-white/90 text-xs font-medium uppercase tracking-wide">Total Earnings</p>
-            <p className="text-4xl font-bold mt-1">${totalEarnings.toFixed(2)}</p>
+            <p className="text-4xl font-bold mt-1 earnings-number">${displayAmount.toFixed(2)}</p>
+            {projectedMonth > 0 && (
+              <p className="text-white/70 text-xs mt-1">
+                Projected this month: ${projectedMonth.toFixed(0)}
+              </p>
+            )}
             <div className="flex gap-4 mt-3">
               <div className="flex items-center gap-1.5">
                 <Clock size={12} className="text-white/85" />
@@ -228,38 +262,56 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             )}
           </div>
 
-          {/* Paid vs Pending */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-base-200 rounded-2xl p-4">
-              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
-                <CreditCard size={16} className="text-success" />
+          {/* 3-column stats: Avg hourly | Collected | Pending */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-base-200 rounded-2xl p-3">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <TrendingUp size={14} className="text-primary" />
               </div>
-              <p className="text-lg font-bold text-base-content">${(paidAmount + invoicePaid).toFixed(0)}</p>
+              <p className="text-base font-bold text-base-content">${avgHourlyRate.toFixed(0)}/hr</p>
+              <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Avg Rate</p>
+            </div>
+            <div className="bg-base-200 rounded-2xl p-3">
+              <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+                <CreditCard size={14} className="text-success" />
+              </div>
+              <p className="text-base font-bold text-base-content">${(paidAmount + invoicePaid).toFixed(0)}</p>
               <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Collected</p>
             </div>
-            <div className="bg-base-200 rounded-2xl p-4">
-              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
-                <Clock size={16} className="text-warning" />
+            <div className="bg-base-200 rounded-2xl p-3">
+              <div className="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
+                <Clock size={14} className="text-warning" />
               </div>
-              <p className="text-lg font-bold text-base-content">${pendingAmount.toFixed(0)}</p>
+              <p className="text-base font-bold text-base-content">${pendingAmount.toFixed(0)}</p>
               <p className="text-[10px] text-base-content/70 uppercase tracking-wide">Pending</p>
             </div>
           </div>
 
-          {/* Bar chart */}
+          {/* Bar chart — pill-shaped bars with glow on tallest */}
           <div className="bg-base-200 rounded-2xl p-4">
             <p className="text-sm font-semibold text-base-content mb-4">Last 7 Days</p>
             <div className="flex items-end gap-2 h-28">
-              {dailyEarnings.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[9px] text-base-content/70 font-medium">
-                    {d.amount > 0 ? `$${d.amount.toFixed(0)}` : ''}
-                  </span>
-                  <div className="w-full rounded-t-lg bg-primary/85 min-h-[4px] transition-all"
-                    style={{ height: `${(d.amount / maxDaily) * 80}px` }} />
-                  <span className="text-[10px] text-base-content/60">{d.day}</span>
-                </div>
-              ))}
+              {dailyEarnings.map((d, i) => {
+                const isMax = d.amount === maxDaily && d.amount > 0
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[9px] text-base-content/70 font-medium">
+                      {d.amount > 0 ? `$${d.amount.toFixed(0)}` : ''}
+                    </span>
+                    <div
+                      className="w-full rounded-full min-h-[4px] transition-all"
+                      style={{
+                        height: `${(d.amount / maxDaily) * 80}px`,
+                        background: isMax
+                          ? 'linear-gradient(180deg, #7C5CFF 0%, #4A90E2 100%)'
+                          : 'rgba(124,92,255,0.4)',
+                        boxShadow: isMax ? '0 4px 12px rgba(124,92,255,0.4)' : 'none',
+                      }}
+                    />
+                    <span className="text-[10px] text-base-content/60">{d.day}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 

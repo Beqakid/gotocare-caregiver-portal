@@ -38,6 +38,12 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
     return { text: '🟢 Flexible', cls: 'bg-success/15 text-success border border-success/30' }
   }
 
+  const urgencyBorderClass = (urgency?: string) => {
+    if (urgency === 'today') return 'border-l-4 border-l-error'
+    if (urgency === 'this_week') return 'border-l-4 border-l-warning'
+    return 'border-l-4 border-l-success'
+  }
+
   const handleUnlock = async (req: CareRequest, planType: 'single' | 'unlimited') => {
     setUnlockLoading(req.id)
     try {
@@ -79,10 +85,16 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
   if (pendingRequests.length === 0 && acceptedRequests.length === 0) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 text-center">
-        <Heart size={56} className="mx-auto opacity-20 mb-4" />
-        <h2 className="text-lg font-bold text-base-content">No Interview Requests Yet</h2>
-        <p className="text-sm text-base-content/60 mt-2">Clients will send interview requests when they shortlist you.</p>
-        <p className="text-xs text-base-content/40 mt-1">Make sure your profile is complete to get discovered!</p>
+        <div className="relative w-24 h-24 mx-auto mb-6">
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
+          <div className="absolute inset-3 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+          <div className="absolute inset-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <Heart size={24} className="text-primary/60" />
+          </div>
+        </div>
+        <h2 className="text-lg font-bold text-base-content">Searching for requests...</h2>
+        <p className="text-sm text-base-content/60 mt-2 max-w-xs">Complete your profile to get discovered by families in your area.</p>
+        <p className="text-xs text-primary/70 mt-3 font-medium">→ Add your skills and availability</p>
       </div>
     )
   }
@@ -119,11 +131,14 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
               const unlocked = unlockedIds.has(req.id)
               const expanded = expandedId === req.id
               const ub = urgencyBadge(req.urgency)
+              const borderCls = urgencyBorderClass(req.urgency)
+              // New/pending unlocked cards get the pulse animation
+              const isNew = !unlocked
 
               return (
                 <div
                   key={req.id}
-                  className="bg-base-200 rounded-2xl overflow-hidden shadow-sm border border-base-300/50"
+                  className={`bg-base-200 rounded-2xl overflow-hidden shadow-sm ${borderCls} ${isNew ? 'request-new' : ''}`}
                 >
                   {/* Match score bar */}
                   {req.matchScore && (
@@ -134,27 +149,35 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                   )}
 
                   <div className="p-4">
-                    {/* Top row: care type + urgency */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-bold text-base text-base-content">{req.careType}</p>
-                        {/* Client name — blurred unless unlocked */}
-                        <div className="flex items-center gap-2 mt-1">
-                          {unlocked ? (
-                            <p className="text-sm text-base-content/70">{req.clientName}</p>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              <Lock size={12} className="text-base-content/40" />
-                              <p className="text-sm text-base-content/40 blur-sm select-none">
-                                {req.clientName || 'Client Name'}
-                              </p>
-                            </div>
-                          )}
+                    {/* Top: care type + urgency badge */}
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-bold text-lg text-base-content leading-tight">{req.careType}</p>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${ub.cls}`}>{ub.text}</span>
+                    </div>
+
+                    {/* PAY RATE — HERO SIZE */}
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className="text-3xl font-bold text-success">${req.hourlyRate}</span>
+                      <span className="text-sm text-base-content/50">/hr</span>
+                      {req.weeklyHours && (
+                        <span className="text-xs text-base-content/40 ml-2">
+                          ~${req.weeklyEarnings}/wk
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Client name — blurred unless unlocked */}
+                    <div className="flex items-center gap-2 mb-3">
+                      {unlocked ? (
+                        <p className="text-sm text-base-content/70">{req.clientName}</p>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Lock size={12} className="text-base-content/40" />
+                          <p className="text-sm text-base-content/40 blur-sm select-none">
+                            {req.clientName || 'Client Name'}
+                          </p>
                         </div>
-                      </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ub.cls}`}>
-                        {ub.text}
-                      </span>
+                      )}
                     </div>
 
                     {/* Details grid */}
@@ -166,15 +189,8 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ requests, loading, onA
                           <p className="text-sm font-medium">{req.location}</p>
                         </div>
                       </div>
-                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2">
-                        <DollarSign size={14} className="text-success shrink-0" />
-                        <div>
-                          <p className="text-xs text-base-content/50">Rate</p>
-                          <p className="text-sm font-bold text-success">${req.hourlyRate}/hr</p>
-                        </div>
-                      </div>
                       {/* Schedule — blurred unless unlocked */}
-                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2 col-span-2">
+                      <div className="bg-base-300/40 rounded-xl p-2.5 flex items-center gap-2">
                         <Clock size={14} className="text-primary shrink-0" />
                         <div className="flex-1">
                           <p className="text-xs text-base-content/50">Interview Time</p>

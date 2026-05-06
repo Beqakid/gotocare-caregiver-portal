@@ -10,12 +10,12 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, requestCount = 0 }) => {
+  // Marketing tab is kept in TabType (app.tsx routes to it) but removed from display
   const tabs: { id: TabType; label: string; icon: any }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'requests', label: 'Requests', icon: Bell },
     { id: 'earnings', label: 'Earnings', icon: DollarSign },
-    { id: 'marketing', label: 'Market', icon: Megaphone },
     { id: 'profile', label: 'Profile', icon: User },
   ]
 
@@ -29,9 +29,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 w-12 h-14 rounded-xl relative ${isActive ? 'active' : 'text-base-content/40'}`}
+              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 relative transition-all ${isActive ? 'active' : 'text-base-content/40'}`}
+              style={{ minWidth: 56, padding: '8px 4px' }}
             >
-              <div className="relative">
+              {/* Active background pill */}
+              {isActive && (
+                <div className="absolute inset-0 rounded-2xl bg-primary/10" style={{ margin: '4px 2px' }} />
+              )}
+              <div className="relative z-10">
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
                 {tab.id === 'requests' && requestCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 bg-error text-error-content text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -39,12 +44,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-medium ${isActive ? '' : 'text-base-content/40'}`}>
+              <span className={`text-[10px] font-medium relative z-10 ${isActive ? 'text-primary' : ''}`}>
                 {tab.label}
               </span>
-              {isActive && (
-                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
-              )}
             </button>
           )
         })}

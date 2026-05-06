@@ -407,3 +407,54 @@ body {
   backdrop-filter: blur(4px);
 }
 .lock-icon-primary { color: var(--color-primary); }
+
+/* ════════════════════════════
+   Caregiver Redesign v2 — May 2026
+════════════════════════════ */
+
+/* Request card pulse glow for new requests */
+@keyframes requestGlow {
+  0%, 100% { box-shadow: var(--shadow-sm), 0 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: var(--shadow-md), 0 0 0 6px rgba(245, 158, 11, 0.12); }
+}
+.request-new {
+  animation: requestGlow 2.5s ease-in-out infinite;
+}
+
+/* Online status glow pulse */
+@keyframes onlinePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+.online-dot {
+  animation: onlinePulse 2s ease-in-out infinite;
+}
+
+/* Radar ping for empty state */
+@keyframes radarPing {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.radar-ring {
+  animation: radarPing 2s ease-out infinite;
+}
+.radar-ring-delayed {
+  animation: radarPing 2s ease-out 0.7s infinite;
+}
+
+/* Earnings number transition */
+.earnings-number {
+  font-variant-numeric: tabular-nums;
+  transition: all 0.1s ease;
+}
+
+/* Urgency left borders */
+.urgency-today    { border-left: 4px solid #EF4444; }
+.urgency-week     { border-left: 4px solid #F59E0B; }
+.urgency-flexible { border-left: 4px solid #22C55E; }
+
+/* Active nav pill */
+.nav-pill-active {
+  background: rgba(124, 92, 255, 0.10);
+  border-radius: 14px;
+}

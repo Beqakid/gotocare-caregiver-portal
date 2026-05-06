@@ -44,6 +44,16 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const [quickClient, setQuickClient] = useState('')
   const [quickRate, setQuickRate] = useState(String(profile?.hourlyRate || 25))
 
+  // Online/Offline toggle
+  const [isOnline, setIsOnline] = useState(() =>
+    localStorage.getItem('cgp_online_status') !== 'offline'
+  )
+  const toggleOnline = () => {
+    const next = !isOnline
+    setIsOnline(next)
+    localStorage.setItem('cgp_online_status', next ? 'online' : 'offline')
+  }
+
   const today = new Date().toISOString().split('T')[0]
   const todayShifts = shifts.filter(s => s.date === today || s.date?.startsWith(today))
   const activeTimesheets = timesheets.filter(t => t.status === 'clocked_in')
@@ -155,16 +165,15 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   return (
     <div className="p-4 space-y-5 pb-4">
-      {/* Greeting */}
+      {/* 1. Greeting header (no "Available for work" dot) */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-base-content">
             {greeting()}, {profile?.firstName || 'Caregiver'} 👋
           </h1>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-2 h-2 rounded-full bg-success pulse-dot" />
-            <span className="text-xs text-base-content/60">Available for work</span>
-          </div>
+          <p className="text-xs text-base-content/50 mt-0.5">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
         </div>
         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
           <span className="text-sm font-bold text-primary">
@@ -173,7 +182,99 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
-      {/* Profile Completeness Card */}
+      {/* 2. Online/Offline toggle card — HERO ELEMENT */}
+      <div
+        onClick={toggleOnline}
+        className={`rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all press-card ${isOnline ? 'bg-success/8 border-l-4 border-success' : 'bg-base-200 border-l-4 border-base-300'}`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isOnline ? 'bg-success/15' : 'bg-base-300/60'}`}>
+            <span
+              className={`w-3 h-3 rounded-full ${isOnline ? 'bg-success online-dot' : 'bg-base-content/30'}`}
+              style={isOnline ? { boxShadow: '0 0 8px #22C55E' } : {}}
+            />
+          </div>
+          <div>
+            <p className={`font-bold text-sm ${isOnline ? 'text-success' : 'text-base-content/50'}`}>
+              {isOnline ? "You're Online" : "You're Offline"}
+            </p>
+            <p className="text-xs text-base-content/50">
+              {isOnline ? 'Accepting care requests' : 'Tap to start accepting requests'}
+            </p>
+          </div>
+        </div>
+        {/* Toggle switch */}
+        <div className={`w-12 h-6 rounded-full transition-all relative flex-shrink-0 ${isOnline ? 'bg-success' : 'bg-base-300'}`}>
+          <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${isOnline ? 'left-6' : 'left-0.5'}`} />
+        </div>
+      </div>
+
+      {/* 3. New requests banner — hot orange, only when pending */}
+      {pendingRequests.length > 0 && (
+        <div
+          onClick={onNavigateToRequests}
+          className="bg-warning/10 border border-warning/30 border-l-4 border-l-warning rounded-2xl p-4 flex items-center gap-3 press-card"
+        >
+          <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center flex-shrink-0">
+            <span className="text-lg">🔥</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-sm text-base-content">
+              {pendingRequests.length} New Care Request{pendingRequests.length > 1 ? 's' : ''}
+            </p>
+            <p className="text-xs text-base-content/60">
+              Up to ${Math.max(...pendingRequests.map(r => r.hourlyRate || 0))}/hr · Tap to respond
+            </p>
+          </div>
+          <ChevronRight size={18} className="text-warning" />
+        </div>
+      )}
+
+      {/* 4. Active Timer Banner */}
+      {activeTimer && (
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Timer size={24} className="text-primary animate-pulse" />
+              </div>
+              <div>
+                <p className="text-2xl font-mono font-bold text-base-content">{formatElapsed(elapsed)}</p>
+                <p className="text-xs text-base-content/60">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
+              </div>
+            </div>
+            <button onClick={stopTimer} className="btn btn-error btn-sm gap-1">
+              <Square size={14} fill="currentColor" /> Stop
+            </button>
+          </div>
+          <div className="mt-2 text-right">
+            <span className="text-xs font-medium text-success">
+              Est: ${((elapsed / 3600) * activeTimer.hourlyRate).toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Earnings Card (this week) */}
+      <div className="earnings-card rounded-2xl p-5 text-white" onClick={onNavigateToEarnings}>
+        <p className="text-white/90 text-xs font-medium uppercase tracking-wide">This Week</p>
+        <div className="flex items-end justify-between mt-1">
+          <div>
+            <p className="text-3xl font-bold">${weekEarnings.toFixed(0)}</p>
+            <p className="text-white/85 text-sm mt-0.5">{weekHours.toFixed(1)} hours worked</p>
+          </div>
+          <div className="flex items-center gap-1 bg-white/25 rounded-full px-2.5 py-1">
+            <TrendingUp size={14} />
+            <span className="text-xs font-medium">+12%</span>
+          </div>
+        </div>
+        <div className="mt-3 bg-white/25 rounded-full h-1.5">
+          <div className="bg-white rounded-full h-1.5" style={{ width: `${Math.min((weekHours / 40) * 100, 100)}%` }} />
+        </div>
+        <p className="text-white/85 text-[10px] mt-1">{weekHours.toFixed(0)}/40 hours goal</p>
+      </div>
+
+      {/* 6. Profile Completeness Card (only if < 100%) */}
       {completeness < 100 && (
         <div className="bg-base-200 rounded-2xl p-4">
           {/* Header */}
@@ -228,32 +329,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* Active Timer Banner */}
-      {activeTimer && (
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <Timer size={24} className="text-primary animate-pulse" />
-              </div>
-              <div>
-                <p className="text-2xl font-mono font-bold text-base-content">{formatElapsed(elapsed)}</p>
-                <p className="text-xs text-base-content/60">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
-              </div>
-            </div>
-            <button onClick={stopTimer} className="btn btn-error btn-sm gap-1">
-              <Square size={14} fill="currentColor" /> Stop
-            </button>
-          </div>
-          <div className="mt-2 text-right">
-            <span className="text-xs font-medium text-success">
-              Est: ${((elapsed / 3600) * activeTimer.hourlyRate).toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions — "Your Caregiving Office" */}
+      {/* 7. Quick Actions grid (4 buttons) */}
       <div>
         <h2 className="font-bold text-base text-base-content mb-3">Quick Actions</h2>
         <div className="grid grid-cols-4 gap-2">
@@ -303,7 +379,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* Document Alerts */}
+      {/* 8. Document Alerts */}
       {expiringDocs.length > 0 && (
         <div className="bg-error/5 border border-error/20 rounded-2xl p-4 press-card" onClick={onNavigateToProfile}>
           <div className="flex items-center gap-3">
@@ -323,25 +399,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* Earnings Card */}
-      <div className="earnings-card rounded-2xl p-5 text-white" onClick={onNavigateToEarnings}>
-        <p className="text-white/90 text-xs font-medium uppercase tracking-wide">This Week</p>
-        <div className="flex items-end justify-between mt-1">
-          <div>
-            <p className="text-3xl font-bold">${weekEarnings.toFixed(0)}</p>
-            <p className="text-white/85 text-sm mt-0.5">{weekHours.toFixed(1)} hours worked</p>
-          </div>
-          <div className="flex items-center gap-1 bg-white/25 rounded-full px-2.5 py-1">
-            <TrendingUp size={14} />
-            <span className="text-xs font-medium">+12%</span>
-          </div>
-        </div>
-        <div className="mt-3 bg-white/25 rounded-full h-1.5">
-          <div className="bg-white rounded-full h-1.5" style={{ width: `${Math.min((weekHours / 40) * 100, 100)}%` }} />
-        </div>
-        <p className="text-white/85 text-[10px] mt-1">{weekHours.toFixed(0)}/40 hours goal</p>
-      </div>
-
       {/* Active Shift Banner */}
       {activeTimesheets.length > 0 && (
         <div className="bg-success/10 border border-success/20 rounded-2xl p-4 flex items-center gap-3" onClick={onNavigateToSchedule}>
@@ -356,7 +413,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* Today's Schedule */}
+      {/* 9. Today's Schedule */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-base text-base-content">Today's Schedule</h2>
@@ -404,36 +461,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )}
       </div>
 
-      {/* New Requests */}
-      {pendingRequests.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-base text-base-content">
-              New Requests
-              <span className="ml-2 badge badge-primary badge-sm">{pendingRequests.length}</span>
-            </h2>
-            <button onClick={onNavigateToRequests} className="text-xs text-primary font-medium">View All</button>
-          </div>
-          <div className="bg-base-200 rounded-2xl p-4 press-card" onClick={onNavigateToRequests}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Bell size={18} className="text-warning" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm text-base-content">
-                  {pendingRequests.length} care request{pendingRequests.length > 1 ? 's' : ''} waiting
-                </p>
-                <p className="text-xs text-base-content/60 mt-0.5">
-                  Up to ${Math.max(...pendingRequests.map(r => r.hourlyRate || 0))}/hr · Tap to respond
-                </p>
-              </div>
-              <ChevronRight size={18} className="opacity-40" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Your Caregiving Office Promo */}
+      {/* 10. Your Caregiving Office Promo */}
       <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/10">
         <h3 className="font-bold text-sm text-base-content mb-1">Your Caregiving Office</h3>
         <p className="text-xs text-base-content/60 mb-3">Free tools to manage your entire caregiving business</p>
@@ -455,7 +483,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* 11. Quick Stats */}
       <div>
         <h2 className="font-bold text-base text-base-content mb-3">Your Stats</h2>
         <div className="grid grid-cols-3 gap-2.5">

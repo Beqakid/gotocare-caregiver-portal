@@ -53,6 +53,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [editRate, setEditRate] = useState(String(profile?.hourlyRate || ''))
   const [editingSkills, setEditingSkills] = useState(false)
   const [selectedSkills, setSelectedSkills] = useState<string[]>(profile?.skills || [])
+  const [editingContact, setEditingContact] = useState(false)
+  const [editPhone, setEditPhone] = useState(profile?.phone || '')
+  const [editCity, setEditCity] = useState(profile?.location?.city || '')
+  const [editState, setEditState] = useState(profile?.location?.state || '')
+  const [langInput, setLangInput] = useState('')
+  const [showLangInput, setShowLangInput] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<'profile' | 'documents' | 'badges'>(initialSection || 'profile')
 
   // Deep-link: jump to correct section + scroll to target
@@ -65,6 +72,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         // Open editing if applicable
         if (deepLink === 'section-bio') setEditing(true)
         if (deepLink === 'section-skills') setEditingSkills(true)
+        if (deepLink === 'section-contact') setEditingContact(true)
+        if (deepLink === 'section-languages') setShowLangInput(true)
       }, 150)
     }
   }, [deepLink, initialSection])
@@ -109,6 +118,25 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       hourlyRate: parseFloat(editRate) || profile?.hourlyRate,
     })
     setEditing(false)
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string
+      onUpdateProfile({ profilePhoto: base64 })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveContact = () => {
+    onUpdateProfile({
+      phone: editPhone.trim(),
+      location: (editCity.trim() || editState.trim()) ? { city: editCity.trim(), state: editState.trim() } : profile?.location,
+    })
+    setEditingContact(false)
   }
 
   const handleToggleSkill = (skill: string) => {
@@ -208,14 +236,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* Profile header */}
       <div id="section-photo" className="earnings-card px-4 pt-6 pb-8 text-center">
         <div className="relative inline-block mb-3">
-          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center avatar-ring">
-            <span className="text-2xl font-bold text-white">
-              {profile.firstName?.[0]}{profile.lastName?.[0]}
-            </span>
+          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center avatar-ring overflow-hidden">
+            {profile.profilePhoto ? (
+              <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-white">
+                {profile.firstName?.[0]}{profile.lastName?.[0]}
+              </span>
+            )}
           </div>
-          <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-md">
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-md"
+          >
             <Camera size={14} className="text-primary" />
           </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoChange}
+          />
         </div>
         <h2 className="text-xl font-bold text-white">{profile.firstName} {profile.lastName}</h2>
         <p className="text-white/90 text-sm mt-0.5">Professional Caregiver</p>
@@ -346,22 +388,84 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           {/* Contact */}
-          <div id="section-contact" className="bg-base-200 rounded-2xl p-4 space-y-3">
-            <p className="font-semibold text-sm text-base-content">Contact</p>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Mail size={14} className="text-primary" /></div>
-              <span className="text-sm text-base-content/70">{profile.email}</span>
+          <div id="section-contact" className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-sm text-base-content">Contact</p>
+              <button onClick={() => { setEditPhone(profile.phone || ''); setEditCity(profile.location?.city || ''); setEditState(profile.location?.state || ''); setEditingContact(!editingContact) }} className="btn btn-ghost btn-xs gap-1"><Edit3 size={12} /> Edit</button>
             </div>
-            {profile.phone && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Phone size={14} className="text-primary" /></div>
-                <span className="text-sm text-base-content/70">{profile.phone}</span>
+            {editingContact ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2">
+                  <Mail size={14} className="text-primary flex-shrink-0" />
+                  <span className="text-sm text-base-content/60">{profile.email}</span>
+                </div>
+                <div>
+                  <label className="text-xs text-base-content/60 mb-1 block">Phone number</label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="(555) 000-0000"
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-base-content/60 mb-1 block">City</label>
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm w-full"
+                      placeholder="Atlanta"
+                      value={editCity}
+                      onChange={e => setEditCity(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-base-content/60 mb-1 block">State</label>
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm w-full"
+                      placeholder="GA"
+                      maxLength={2}
+                      value={editState}
+                      onChange={e => setEditState(e.target.value.toUpperCase())}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setEditingContact(false)} className="btn btn-ghost btn-sm flex-1">Cancel</button>
+                  <button onClick={handleSaveContact} className="btn btn-primary btn-sm flex-1">Save</button>
+                </div>
               </div>
-            )}
-            {profile.location && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin size={14} className="text-primary" /></div>
-                <span className="text-sm text-base-content/70">{profile.location.city}, {profile.location.state}</span>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Mail size={14} className="text-primary" /></div>
+                  <span className="text-sm text-base-content/70">{profile.email}</span>
+                </div>
+                {profile.phone ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Phone size={14} className="text-primary" /></div>
+                    <span className="text-sm text-base-content/70">{profile.phone}</span>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left opacity-50 hover:opacity-80">
+                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><Phone size={14} className="text-base-content/40" /></div>
+                    <span className="text-sm text-base-content/40">+ Add phone number</span>
+                  </button>
+                )}
+                {profile.location?.city ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin size={14} className="text-primary" /></div>
+                    <span className="text-sm text-base-content/70">{profile.location.city}{profile.location.state ? `, ${profile.location.state}` : ''}</span>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left opacity-50 hover:opacity-80">
+                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><MapPin size={14} className="text-base-content/40" /></div>
+                    <span className="text-sm text-base-content/40">+ Add city / service area</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -415,21 +519,41 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 <Globe size={14} className="text-primary" />
                 <p className="font-semibold text-sm text-base-content">Languages</p>
               </div>
-              <button
-                onClick={() => {
-                  const lang = window.prompt('Add a language (e.g. Spanish, French):')
-                  if (lang?.trim()) {
-                    const current = profile.languages || []
-                    if (!current.includes(lang.trim())) {
-                      onUpdateProfile({ languages: [...current, lang.trim()] })
-                    }
-                  }
-                }}
-                className="btn btn-ghost btn-xs gap-1"
-              >
+              <button onClick={() => setShowLangInput(true)} className="btn btn-ghost btn-xs gap-1">
                 <Plus size={12} /> Add
               </button>
             </div>
+            {showLangInput && (
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  className="input input-bordered input-sm flex-1"
+                  placeholder="e.g. Spanish, French…"
+                  value={langInput}
+                  onChange={e => setLangInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && langInput.trim()) {
+                      const current = profile.languages || []
+                      if (!current.includes(langInput.trim())) onUpdateProfile({ languages: [...current, langInput.trim()] })
+                      setLangInput('')
+                      setShowLangInput(false)
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    if (langInput.trim()) {
+                      const current = profile.languages || []
+                      if (!current.includes(langInput.trim())) onUpdateProfile({ languages: [...current, langInput.trim()] })
+                      setLangInput('')
+                    }
+                    setShowLangInput(false)
+                  }}
+                  className="btn btn-primary btn-sm"
+                >Add</button>
+              </div>
+            )}
             {profile.languages && profile.languages.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {profile.languages.map((lang, i) => (
@@ -445,15 +569,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 ))}
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  const lang = window.prompt('Add a language (e.g. Spanish, French):')
-                  if (lang?.trim()) onUpdateProfile({ languages: [lang.trim()] })
-                }}
-                className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg"
-              >
-                + Add languages you speak (boosts match rate)
-              </button>
+              !showLangInput && (
+                <button
+                  onClick={() => setShowLangInput(true)}
+                  className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg"
+                >
+                  + Add languages you speak (boosts match rate)
+                </button>
+              )
             )}
           </div>
 

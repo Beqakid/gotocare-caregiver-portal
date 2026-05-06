@@ -68,6 +68,8 @@ export interface CareRequest {
   urgency?: 'today' | 'this_week' | 'flexible'
   caregiverId?: string | number
   isUnlocked?: boolean
+  clientPhone?: string
+  clientEmail?: string
 }
 
 export interface Earning {

@@ -5,12 +5,20 @@ import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType, CaregiverDocu
 import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
 import { getDocuments, refreshDocumentStatuses } from './utils/storage'
 import { LoginScreen } from './components/LoginScreen'
-import { HomeTab } from './components/HomeTab'
-import { ScheduleTab } from './components/ScheduleTab'
-import { RequestsTab } from './components/RequestsTab'
-import { EarningsTab } from './components/EarningsTab'
-import { ProfileTab } from './components/ProfileTab'
 import { BottomNav } from './components/BottomNav'
+
+// Lazy-load tabs — each becomes a separate JS chunk (~150-250KB each)
+const HomeTab = React.lazy(() => import('./components/HomeTab').then(m => ({ default: m.HomeTab })))
+const ScheduleTab = React.lazy(() => import('./components/ScheduleTab').then(m => ({ default: m.ScheduleTab })))
+const RequestsTab = React.lazy(() => import('./components/RequestsTab').then(m => ({ default: m.RequestsTab })))
+const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m => ({ default: m.EarningsTab })))
+const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))
+
+const TabSpinner = () => (
+  <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
+    <div style={{width:40,height:40,border:'3px solid rgba(124,92,255,0.2)',borderTopColor:'#7C5CFF',borderRadius:'50%',animation:'spin 0.7s linear infinite'}}/>
+  </div>
+)
 
 // Demo care requests — shown when no real bookings exist yet
 const DEMO_REQUESTS: CareRequest[] = [
@@ -52,7 +60,9 @@ function mapBookingToRequest(b: any): CareRequest {
 
   return {
     id: b.id,
-    clientName: b.clientEmail || 'Client',
+    clientName: b.clientName || (b.isUnlocked ? b.clientEmail : '') || 'Client',
+    clientPhone: b.clientPhone || undefined,
+    clientEmail: b.clientEmail || undefined,
     careType: b.careNeeds || 'Care Request',
     description: b.notes || '',
     location: b.isUnlocked ? 'See details below' : 'Unlock to view',
@@ -290,7 +300,7 @@ const App: React.FC<{}> = () => {
       const cgId = fullAccount.id
       if (cgId) {
         const bookingsRes = await fetch(
-          `https://gotocare-original.jjioji.workers.dev/api/caregiver-bookings?caregiverId=${cgId}`
+          `https://gotocare-original.jjioji.workers.dev/api/caregiver-bookings?token=${encodeURIComponent(token)}`
         )
         const bookingsData = await bookingsRes.json()
         if (bookingsData?.bookings && bookingsData.bookings.length > 0) {
@@ -318,6 +328,7 @@ const App: React.FC<{}> = () => {
     <div className="min-h-screen bg-base-100 flex flex-col">
       <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
         <div className="tab-content max-w-lg mx-auto">
+          <React.Suspense fallback={<TabSpinner />}>
           {activeTab === 'home' && (
             <HomeTab
               profile={profile}
@@ -361,6 +372,7 @@ const App: React.FC<{}> = () => {
               onNavigateHome={() => { setActiveTab('home'); setProfileDeepLink(undefined); setProfileInitialSection(undefined); }}
             />
           )}
+          </React.Suspense>
         </div>
       </div>
 

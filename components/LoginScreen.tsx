@@ -67,7 +67,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     if (!response.credential) return
     setLoading(true); setError('')
     try {
-      const res = await fetch(`${API_BASE}/api/caregiver-google-auth`, {
+      const res = await fetch(`${API_BASE}/api/caregiver-auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),

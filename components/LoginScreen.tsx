@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react'
-import { Clock, FileText, Shield, Star, ArrowRight } from 'lucide-react'
+import { Clock, FileText, Shield, Heart, ArrowRight, Star } from 'lucide-react'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 const GOOGLE_CLIENT_ID = typeof document !== 'undefined'
@@ -120,34 +120,36 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     await onAgencyLogin(email, password)
   }
 
+  // Softer, warmer gradient — deep indigo-to-navy, less harsh than pure black
   const bgStyle: React.CSSProperties = {
     minHeight: '100vh',
-    background: 'linear-gradient(160deg, #1a1a2e 0%, #2d1b69 45%, #1e3a5f 100%)',
+    background: 'linear-gradient(160deg, #1e1b4b 0%, #2d1b69 40%, #0f2a5e 100%)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '24px 20px', position: 'relative', overflow: 'hidden',
   }
 
-  const orb = (top: string, right?: string, left?: string, color: string = 'rgba(124,58,237,0.25)'): React.CSSProperties => ({
+  // Softer, lighter orbs
+  const orb = (top: string, right?: string, left?: string, color: string = 'rgba(124,92,255,0.18)'): React.CSSProperties => ({
     position: 'absolute', top, right, left,
-    width: '280px', height: '280px', borderRadius: '50%',
+    width: '300px', height: '300px', borderRadius: '50%',
     background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
     pointerEvents: 'none',
   })
 
   const glassCard: React.CSSProperties = {
     width: '100%', maxWidth: '400px',
-    background: 'rgba(255,255,255,0.07)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '24px',
+    background: 'rgba(255,255,255,0.09)',
+    backdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: '28px',
     padding: '28px 24px',
-    boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
   }
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '13px 16px', borderRadius: '14px',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(255,255,255,0.09)',
+    border: '1px solid rgba(255,255,255,0.16)',
     color: '#ffffff', fontSize: '15px', outline: 'none',
     marginBottom: '12px',
   }
@@ -158,14 +160,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
     fontSize: '15px', fontWeight: 600, color: '#ffffff',
-    marginBottom: '12px', boxShadow: '0 4px 20px rgba(124,58,237,0.4)',
+    marginBottom: '12px', boxShadow: '0 4px 16px rgba(124,92,255,0.35)',
     opacity: loading ? 0.7 : 1,
   }
 
   const btnOutline: React.CSSProperties = {
     width: '100%', padding: '13px', borderRadius: '50px',
-    background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
-    cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.8)',
+    background: 'transparent', border: '1px solid rgba(255,255,255,0.18)',
+    cursor: 'pointer', fontSize: '15px', fontWeight: 500, color: 'rgba(255,255,255,0.75)',
     marginBottom: '12px',
   }
 
@@ -181,45 +183,47 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   // ── CHOOSE SCREEN ──────────────────────────────────────────
   if (screen === 'choose') return (
     <div style={bgStyle}>
-      <div style={orb('-80px', '-80px', undefined, 'rgba(124,58,237,0.25)')} />
-      <div style={orb(undefined, undefined, '-60px', 'rgba(59,130,246,0.2)')} />
+      {/* Softer orbs */}
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
+      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.15)')} />
+      <div style={{ position: 'absolute', top: '40%', right: '10%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Logo */}
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{
-          width: '72px', height: '72px', borderRadius: '20px',
+          width: '68px', height: '68px', borderRadius: '20px',
           background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 16px',
-          boxShadow: '0 0 40px rgba(124,58,237,0.5), 0 8px 32px rgba(0,0,0,0.3)',
+          margin: '0 auto 14px',
+          boxShadow: '0 0 32px rgba(124,92,255,0.4), 0 8px 24px rgba(0,0,0,0.25)',
         }}>
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
             <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="white"/>
           </svg>
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '4px' }}>Carehia</h1>
-        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>Your free caregiving office</p>
+        <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '4px' }}>Carehia</h1>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>Your free professional caregiving office</p>
       </div>
 
       {/* Social proof */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50px',
-        padding: '6px 16px', marginBottom: '28px',
+        background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.14)', borderRadius: '50px',
+        padding: '6px 16px', marginBottom: '24px',
       }}>
         <div style={{ display: 'flex' }}>
-          {['#f472b6','rgba(124, 92, 255, 0.5)','#4A90E2'].map((c, i) => (
-            <div key={i} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: '2px solid rgba(255,255,255,0.3)', marginLeft: i > 0 ? '-6px' : '0' }} />
+          {['rgba(124,92,255,0.7)','rgba(74,144,226,0.7)','rgba(34,197,94,0.7)'].map((c, i) => (
+            <div key={i} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: '2px solid rgba(255,255,255,0.25)', marginLeft: i > 0 ? '-6px' : '0' }} />
           ))}
         </div>
-        <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>Join 2,000+ caregivers earning more</span>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.80)', fontWeight: 500 }}>Join trusted caregivers in your area</span>
       </div>
 
       {/* Glass card */}
       <div style={glassCard}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', textAlign: 'center', marginBottom: '6px' }}>Create your free account</h2>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: '24px' }}>No credit card. No agency fees. Cancel anytime.</p>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', textAlign: 'center', marginBottom: '5px' }}>Create your free account</h2>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency fees. Your data stays private.</p>
 
         {/* Google button */}
         {GOOGLE_ENABLED ? (
@@ -227,23 +231,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <div ref={googleBtnRef} style={{ width: '100%' }} />
           </div>
         ) : (
-          <button style={{ width: '100%', padding: '13px', borderRadius: '50px', background: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: '#1a1a2e', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <button style={{ width: '100%', padding: '13px', borderRadius: '50px', background: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: '#1a1a2e', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
             <GoogleSVG /> Continue with Google
           </button>
         )}
 
         {/* Apple (disabled) */}
-        <button disabled style={{ width: '100%', padding: '13px', borderRadius: '50px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginBottom: '20px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        <button disabled style={{ width: '100%', padding: '13px', borderRadius: '50px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.25)', marginBottom: '20px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.25)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           Continue with Apple
-          <span style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '50px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>Soon</span>
+          <span style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '50px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.30)' }}>Soon</span>
         </button>
 
         {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-          <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>or</span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.09)' }} />
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.30)', fontWeight: 500 }}>or</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.09)' }} />
         </div>
 
         {/* Email buttons */}
@@ -255,21 +259,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </button>
       </div>
 
-      {/* Feature pills */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '24px', maxWidth: '360px' }}>
+      {/* Feature pills — warmer, friendlier copy */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '22px', maxWidth: '360px' }}>
         {[
-          { icon: <Clock size={12} />, label: 'Time Tracker' },
-          { icon: <FileText size={12} />, label: 'Invoicing' },
-          { icon: <Shield size={12} />, label: 'Doc Vault' },
-          { icon: <Star size={12} />, label: 'Get Matched' },
+          { icon: <Clock size={11} />, label: 'Track hours & invoices' },
+          { icon: <Shield size={11} />, label: 'Secure doc vault' },
+          { icon: <Heart size={11} />, label: 'Find care opportunities' },
+          { icon: <Star size={11} />, label: 'Build your reputation' },
         ].map(({ icon, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: '50px', padding: '5px 12px', fontSize: '12px', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
-            <span style={{ color: 'rgba(124,58,237,0.9)' }}>{icon}</span>{label}
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: '50px', padding: '5px 12px', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+            <span style={{ color: 'rgba(124,92,255,0.9)' }}>{icon}</span>{label}
           </div>
         ))}
       </div>
 
-      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
         Agency caregiver? Use agency login
       </button>
     </div>
@@ -284,8 +288,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '6px' }}>Create account</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '24px' }}>Free forever. No credit card needed.</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Create your account</h2>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Free forever. No credit card needed.</p>
 
           {GOOGLE_ENABLED && (
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
@@ -297,7 +301,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <input style={inputStyle} placeholder="Full name" value={name} onChange={e => setName(e.target.value)} />
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password (6+ characters)" value={password} onChange={e => setPassword(e.target.value)} />
-            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+            {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Creating account…' : 'Create free account'}</button>
           </form>
           <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Sign in instead</button>
@@ -315,8 +319,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '6px' }}>Welcome back</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '24px' }}>Sign in to your caregiver account</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Welcome back</h2>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Sign in to your caregiver account</p>
 
           {GOOGLE_ENABLED && (
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
@@ -327,7 +331,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <form onSubmit={handleSignIn}>
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-            {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+            {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Signing in…' : 'Sign in'}</button>
           </form>
           <button onClick={() => setScreen('register')} style={{ ...btnOutline, marginBottom: 0 }}>Create an account instead</button>
@@ -345,12 +349,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '6px' }}>Agency Login</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '24px' }}>Sign in with your agency credentials</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Agency Login</h2>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Sign in with your agency credentials</p>
           <form onSubmit={handleAgencySubmit}>
             <input style={inputStyle} type="email" placeholder="Agency email" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-            {(agencyError || error) && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{agencyError || error}</div>}
+            {(agencyError || error) && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{agencyError || error}</div>}
             <button type="submit" disabled={agencyLoading} style={btnPrimary}>{agencyLoading ? 'Signing in…' : 'Sign in'}</button>
           </form>
         </div>

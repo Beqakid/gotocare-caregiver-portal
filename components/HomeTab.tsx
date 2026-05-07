@@ -255,7 +255,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               {isOnline ? "You're Online" : "You're Offline"}
             </p>
             <p className="text-xs text-base-content/50">
-              {isOnline ? 'Accepting care requests' : 'Tap to start accepting requests'}
+              {isOnline ? 'Families can discover and request you' : 'Go online so families can find you'}
             </p>
           </div>
         </div>
@@ -344,7 +344,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm text-base-content">Profile Strength</p>
               <p className="text-xs text-base-content/60">
-                {completenessItems.filter(i => !i.done).length} items left to unlock more bookings
+                {completenessItems.filter(i => !i.done).length} items left · Complete profiles get 3× more requests
               </p>
               {/* Mini progress bar */}
               <div className="w-full bg-base-300 rounded-full h-1.5 mt-1.5">
@@ -539,25 +539,44 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
-      {/* 11. Quick Stats */}
+      {/* 11. Care Impact + Stats */}
       <div>
-        <h2 className="font-bold text-base text-base-content mb-3">Your Stats</h2>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-base text-base-content">Your Impact</h2>
+          <span className="text-[10px] text-base-content/40 font-medium bg-base-200 px-2 py-1 rounded-full">All time</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 mb-2.5">
           <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <Star size={18} className="mx-auto text-warning mb-1" />
-            <p className="text-lg font-bold text-base-content">{profile?.rating || '4.9'}</p>
-            <p className="text-[10px] text-base-content/50">Rating</p>
+            <Clock size={16} className="mx-auto text-blue-500 mb-1.5" />
+            <p className="text-lg font-bold text-base-content">{weekHours > 0 ? weekHours.toFixed(0) : (profile?.totalJobs || 0)}</p>
+            <p className="text-[10px] text-base-content/50">Hours helped</p>
           </div>
           <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <Briefcase size={18} className="mx-auto text-primary mb-1" />
+            <Users size={16} className="mx-auto text-primary mb-1.5" />
             <p className="text-lg font-bold text-base-content">{profile?.totalJobs || shifts.length}</p>
-            <p className="text-[10px] text-base-content/50">Jobs Done</p>
+            <p className="text-[10px] text-base-content/50">Clients served</p>
           </div>
           <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <TrendingUp size={18} className="mx-auto text-success mb-1" />
-            <p className="text-lg font-bold text-base-content">96%</p>
-            <p className="text-[10px] text-base-content/50">Response</p>
+            <Star size={16} className="mx-auto text-warning mb-1.5" />
+            <p className="text-lg font-bold text-base-content">{profile?.rating || '—'}</p>
+            <p className="text-[10px] text-base-content/50">Avg rating</p>
           </div>
+        </div>
+        {/* Trust badges strip */}
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { label: 'Profile Created', color: 'bg-blue-500/10 text-blue-600 border-blue-200/50' },
+            documents.some(d => d.type === 'background_check') && { label: '✓ Background Checked', color: 'bg-success/10 text-success border-success/25' },
+            documents.length > 0 && { label: '✓ Certified', color: 'bg-success/10 text-success border-success/25' },
+            (profile?.totalJobs || 0) >= 5 && { label: '⚡ Fast Responder', color: 'bg-warning/10 text-warning border-warning/25' },
+          ].filter(Boolean).map((badge: any, i) => (
+            <span key={i} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${badge.color}`}>
+              {badge.label}
+            </span>
+          ))}
+          <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full border bg-primary/10 text-primary border-primary/20">
+            ⭐ Early Adopter
+          </span>
         </div>
       </div>
     </div>

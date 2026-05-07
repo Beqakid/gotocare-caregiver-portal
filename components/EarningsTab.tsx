@@ -5,15 +5,18 @@ import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
 import { cloudGetInvoices, cloudAddInvoice, cloudUpdateInvoiceStatus, cloudDeleteInvoice, cloudGetMileage, cloudGetPrivateClients } from '../utils/cloud-api'
 
-// ── Invoiced-entry tracking (localStorage) ────────────────────────────────
-const getInvoicedEntryIds = (): string[] => {
-  try { return JSON.parse(localStorage.getItem('carehia_invoiced_entry_ids') || '[]') }
-  catch { return [] }
-}
-const markEntriesAsInvoiced = (ids: string[]) => {
-  const existing = getInvoicedEntryIds()
-  localStorage.setItem('carehia_invoiced_entry_ids',
-    JSON.stringify([...new Set([...existing, ...ids])]))
+// ── Invoiced-entry tracking (D1 backend) ─────────────────────────────────
+const cloudMarkEntriesInvoiced = async (cloudIds: string[]) => {
+  if (!cloudIds.length) return
+  const token = localStorage.getItem('cgp_token') || ''
+  if (!token) return
+  try {
+    await fetch('https://gotocare-original.jjioji.workers.dev/api/caregiver-time-entries', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, cloudIds }),
+    })
+  } catch {}
 }
 
 interface EarningsTabProps {
@@ -55,6 +58,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [invNotes, setInvNotes] = useState('')
   const [invDueDays, setInvDueDays] = useState('30')
   const [usedEntryIds, setUsedEntryIds] = useState<string[]>([])
+  const [usedCloudIds, setUsedCloudIds] = useState<string[]>([])
   const [autoFilledNote, setAutoFilledNote] = useState('')
 
   // Earnings calculations
@@ -172,10 +176,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setInvClientEmail(c.email || '')
 
     // Find uninvoiced time entries for this client
-    const invoicedIds = getInvoicedEntryIds()
-    const entryKey = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
     const uninvoiced = localEntries.filter(
-      e => e.clientName === c.name && !invoicedIds.includes(entryKey(e))
+      e => e.clientName === c.name && !e.isInvoiced
     )
     if (uninvoiced.length === 0) {
       setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
@@ -199,9 +201,10 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     const groups: Record<string, { hours: number; rate: number; ids: string[] }> = {}
     entriesToUse.forEach(e => {
       const key = e.date
-      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [] }
+      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [], cloudIds: [] as string[] }
       groups[key].hours += (e.duration || 0) / 60
-      groups[key].ids.push(entryKey(e))
+      groups[key].ids.push(e.id || '')
+      if (e.cloudId) groups[key].cloudIds.push(e.cloudId)
     })
     const items = Object.entries(groups)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -213,7 +216,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       }))
     setInvItems(items)
     const allIds = Object.values(groups).flatMap(g => g.ids)
+    const allCloudIds = Object.values(groups).flatMap(g => g.cloudIds)
     setUsedEntryIds(allIds)
+    setUsedCloudIds(allCloudIds)
     const totalH = entriesToUse.reduce((s, e) => s + (e.duration || 0) / 60, 0)
     setAutoFilledNote(`✨ Pre-filled from ${entriesToUse.length} uninvoiced session${entriesToUse.length > 1 ? 's' : ''} (${label}) · ${totalH.toFixed(1)}h total`)
     setInvNotes(`Week of ${wkStr} — ${entriesToUse.length} sessions`)
@@ -228,10 +233,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     weekStart.setHours(0, 0, 0, 0)
     const weekStartStr = weekStart.toISOString().split('T')[0]
 
-    const invoicedIds = getInvoicedEntryIds()
-    const entryKey = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
     const thisWeek = localEntries.filter(
-      e => e.date >= weekStartStr && !invoicedIds.includes(entryKey(e))
+      e => e.date >= weekStartStr && !e.isInvoiced
     )
     if (thisWeek.length === 0) {
       alert('No uninvoiced time entries for this week. All sessions have already been invoiced, or start the timer on the Schedule tab first.')
@@ -239,12 +242,13 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     }
 
     // Group by clientName
-    const groups: Record<string, { hours: number; rate: number; ids: string[] }> = {}
+    const groups: Record<string, { hours: number; rate: number; ids: string[], cloudIds: string[] }> = {}
     thisWeek.forEach(e => {
       const key = e.clientName || 'General'
-      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [] }
+      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [], cloudIds: [] }
       groups[key].hours += (e.duration || 0) / 60
-      groups[key].ids.push(entryKey(e))
+      groups[key].ids.push(e.id || '')
+      if (e.cloudId) groups[key].cloudIds.push(e.cloudId)
     })
 
     const items = Object.entries(groups).map(([name, data]) => ({
@@ -255,7 +259,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     }))
     setInvItems(items)
     const allIds = Object.values(groups).flatMap(g => g.ids)
+    const allCloudIds2 = Object.values(groups).flatMap(g => g.cloudIds)
     setUsedEntryIds(allIds)
+    setUsedCloudIds(allCloudIds2)
 
     // Auto-select client
     const firstName = Object.keys(groups)[0]
@@ -291,12 +297,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       notes: invNotes || undefined,
     })
     cloudAddInvoice(inv)
-    if (usedEntryIds.length > 0) markEntriesAsInvoiced(usedEntryIds)
+    if (usedCloudIds.length > 0) cloudMarkEntriesInvoiced(usedCloudIds)
     setInvoices(getInvoices())
     setShowCreate(false)
     setInvClient(''); setInvClientEmail(''); setInvNotes(''); setInvClientId('')
     setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
-    setUsedEntryIds([]); setAutoFilledNote('')
+    setUsedEntryIds([]); setUsedCloudIds([]); setAutoFilledNote('')
   }
 
   const handleMarkPaid = (id: string) => {
@@ -515,10 +521,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                     >
                       <option value="">— Select client —</option>
                       {privateClients.map((c, i) => {
-                        const invoicedIds2 = getInvoicedEntryIds()
-                        const entryKey2 = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
                         const uninvH = localEntries
-                          .filter(e => e.clientName === c.name && !invoicedIds2.includes(entryKey2(e)))
+                          .filter(e => e.clientName === c.name && !e.isInvoiced)
                           .reduce((s, e) => s + (e.duration || 0) / 60, 0)
                         const badge = uninvH > 0 ? ` · ${uninvH.toFixed(1)}h to invoice` : ''
                         return (

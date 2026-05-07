@@ -5,6 +5,17 @@ import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
 import { cloudGetInvoices, cloudAddInvoice, cloudUpdateInvoiceStatus, cloudDeleteInvoice, cloudGetMileage, cloudGetPrivateClients } from '../utils/cloud-api'
 
+// ── Invoiced-entry tracking (localStorage) ────────────────────────────────
+const getInvoicedEntryIds = (): string[] => {
+  try { return JSON.parse(localStorage.getItem('carehia_invoiced_entry_ids') || '[]') }
+  catch { return [] }
+}
+const markEntriesAsInvoiced = (ids: string[]) => {
+  const existing = getInvoicedEntryIds()
+  localStorage.setItem('carehia_invoiced_entry_ids',
+    JSON.stringify([...new Set([...existing, ...ids])]))
+}
+
 interface EarningsTabProps {
   timesheets: Timesheet[]
   loading: boolean
@@ -43,6 +54,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [invItems, setInvItems] = useState<InvoiceItem[]>([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
   const [invNotes, setInvNotes] = useState('')
   const [invDueDays, setInvDueDays] = useState('30')
+  const [usedEntryIds, setUsedEntryIds] = useState<string[]>([])
+  const [autoFilledNote, setAutoFilledNote] = useState('')
 
   // Earnings calculations
   const now = new Date()
@@ -142,42 +155,96 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const removeItem = (idx: number) => setInvItems(prev => prev.filter((_, i) => i !== idx))
 
 
-  // Client dropdown handler
+  // Client dropdown handler — auto-populates uninvoiced entries
   const handleClientSelect = (id: string) => {
     setInvClientId(id)
-    if (id === '__new__') {
+    if (id === '' || id === '__new__') {
       setInvClient('')
       setInvClientEmail('')
-    } else {
-      const c = privateClients.find((_, i) => String(i) === id)
-      if (c) {
-        setInvClient(c.name)
-        setInvClientEmail(c.email || '')
-      }
+      setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+      setUsedEntryIds([])
+      setAutoFilledNote('')
+      return
     }
+    const c = privateClients.find((_, i) => String(i) === id)
+    if (!c) return
+    setInvClient(c.name)
+    setInvClientEmail(c.email || '')
+
+    // Find uninvoiced time entries for this client
+    const invoicedIds = getInvoicedEntryIds()
+    const entryKey = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
+    const uninvoiced = localEntries.filter(
+      e => e.clientName === c.name && !invoicedIds.includes(entryKey(e))
+    )
+    if (uninvoiced.length === 0) {
+      setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+      setUsedEntryIds([])
+      setAutoFilledNote('No uninvoiced sessions found for this client.')
+      return
+    }
+
+    // Prefer this week's entries; fall back to all uninvoiced
+    const now2 = new Date()
+    const day2 = now2.getDay()
+    const wkStart = new Date(now2)
+    wkStart.setDate(now2.getDate() - (day2 === 0 ? 6 : day2 - 1))
+    wkStart.setHours(0, 0, 0, 0)
+    const wkStr = wkStart.toISOString().split('T')[0]
+    const thisWeekEntries = uninvoiced.filter(e => e.date >= wkStr)
+    const entriesToUse = thisWeekEntries.length > 0 ? thisWeekEntries : uninvoiced
+    const label = thisWeekEntries.length > 0 ? 'this week' : 'all uninvoiced'
+
+    // Group by date → one line item per day
+    const groups: Record<string, { hours: number; rate: number; ids: string[] }> = {}
+    entriesToUse.forEach(e => {
+      const key = e.date
+      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [] }
+      groups[key].hours += (e.duration || 0) / 60
+      groups[key].ids.push(entryKey(e))
+    })
+    const items = Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, data]) => ({
+        description: `Care services — ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`,
+        hours: Math.round(data.hours * 100) / 100,
+        rate: data.rate,
+        amount: Math.round(data.hours * data.rate * 100) / 100,
+      }))
+    setInvItems(items)
+    const allIds = Object.values(groups).flatMap(g => g.ids)
+    setUsedEntryIds(allIds)
+    const totalH = entriesToUse.reduce((s, e) => s + (e.duration || 0) / 60, 0)
+    setAutoFilledNote(`✨ Pre-filled from ${entriesToUse.length} uninvoiced session${entriesToUse.length > 1 ? 's' : ''} (${label}) · ${totalH.toFixed(1)}h total`)
+    setInvNotes(`Week of ${wkStr} — ${entriesToUse.length} sessions`)
   }
 
-  // ⚡ Generate invoice from this week's time tracker entries
+  // ⚡ Generate invoice from this week's UNINVOICED time tracker entries
   const generateFromThisWeek = () => {
     const now = new Date()
-    const day = now.getDay() // 0=Sun
+    const day = now.getDay()
     const weekStart = new Date(now)
     weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
     weekStart.setHours(0, 0, 0, 0)
     const weekStartStr = weekStart.toISOString().split('T')[0]
 
-    const thisWeek = localEntries.filter(e => e.date >= weekStartStr)
+    const invoicedIds = getInvoicedEntryIds()
+    const entryKey = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
+    const thisWeek = localEntries.filter(
+      e => e.date >= weekStartStr && !invoicedIds.includes(entryKey(e))
+    )
     if (thisWeek.length === 0) {
-      alert('No time entries found for this week. Start the timer on the Schedule tab first.')
+      alert('No uninvoiced time entries for this week. All sessions have already been invoiced, or start the timer on the Schedule tab first.')
       return
     }
 
     // Group by clientName
-    const groups: Record<string, { hours: number; rate: number }> = {}
+    const groups: Record<string, { hours: number; rate: number; ids: string[] }> = {}
     thisWeek.forEach(e => {
       const key = e.clientName || 'General'
-      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25 }
+      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25, ids: [] }
       groups[key].hours += (e.duration || 0) / 60
+      groups[key].ids.push(entryKey(e))
     })
 
     const items = Object.entries(groups).map(([name, data]) => ({
@@ -186,10 +253,11 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       rate: data.rate,
       amount: Math.round(data.hours * data.rate * 100) / 100,
     }))
-
     setInvItems(items)
+    const allIds = Object.values(groups).flatMap(g => g.ids)
+    setUsedEntryIds(allIds)
 
-    // Auto-select client: if only one client and they're in private clients list
+    // Auto-select client
     const firstName = Object.keys(groups)[0]
     const matchedIdx = privateClients.findIndex(c => c.name === firstName)
     if (matchedIdx >= 0) {
@@ -200,7 +268,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       setInvClientId('__new__')
       setInvClient(firstName === 'General' ? '' : firstName)
     }
-
+    setAutoFilledNote(`✨ Pre-filled from ${thisWeek.length} uninvoiced session${thisWeek.length > 1 ? 's' : ''} (this week)`)
     setInvNotes(`Week of ${weekStartStr} — ${thisWeek.length} sessions`)
     setShowCreate(true)
   }
@@ -223,10 +291,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       notes: invNotes || undefined,
     })
     cloudAddInvoice(inv)
+    if (usedEntryIds.length > 0) markEntriesAsInvoiced(usedEntryIds)
     setInvoices(getInvoices())
     setShowCreate(false)
     setInvClient(''); setInvClientEmail(''); setInvNotes(''); setInvClientId('')
     setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+    setUsedEntryIds([]); setAutoFilledNote('')
   }
 
   const handleMarkPaid = (id: string) => {
@@ -444,11 +514,25 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                       onChange={e => handleClientSelect(e.target.value)}
                     >
                       <option value="">— Select client —</option>
-                      {privateClients.map((c, i) => (
-                        <option key={i} value={String(i)}>{c.name}{c.email ? ` (${c.email})` : ''}</option>
-                      ))}
+                      {privateClients.map((c, i) => {
+                        const invoicedIds2 = getInvoicedEntryIds()
+                        const entryKey2 = (e: any) => e.id || `${e.date}_${e.clientName}_${e.duration}`
+                        const uninvH = localEntries
+                          .filter(e => e.clientName === c.name && !invoicedIds2.includes(entryKey2(e)))
+                          .reduce((s, e) => s + (e.duration || 0) / 60, 0)
+                        const badge = uninvH > 0 ? ` · ${uninvH.toFixed(1)}h to invoice` : ''
+                        return (
+                          <option key={i} value={String(i)}>{c.name}{c.email ? ` (${c.email})` : ''}{badge}</option>
+                        )
+                      })}
                       <option value="__new__">＋ New client (not in list)</option>
                     </select>
+                    {autoFilledNote && invClientId !== '' && invClientId !== '__new__' && (
+                      <p className="text-xs text-primary/80 mt-1 px-1">{autoFilledNote}</p>
+                    )}
+                    {invClientId !== '' && invClientId !== '__new__' && usedEntryIds.length === 0 && (
+                      <p className="text-xs text-base-content/50 mt-1 px-1">No uninvoiced sessions found — fill in hours manually.</p>
+                    )}
                     {invClientId === '__new__' && (
                       <>
                         <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"

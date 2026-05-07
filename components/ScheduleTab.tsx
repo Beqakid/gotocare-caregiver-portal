@@ -151,6 +151,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   // Add client form state
   const [newClientName, setNewClientName] = useState('')
+  const [newClientEmail, setNewClientEmail] = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
   const [newClientRate, setNewClientRate] = useState('25')
   const [newClientCare, setNewClientCare] = useState('')
@@ -543,9 +544,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       overtimeMultiplier: newClientBilling === 'split_rate' ? parseFloat(newClientOTMult) || 1.5 : undefined,
     }
     addPrivateClient(newClientData)
-    cloudAddPrivateClient({ name: newClientData.name, phone: newClientData.phone || '', hourlyRate: newClientData.hourlyRate, careType: newClientData.careType || '', billingType: newClientData.billingType, otAfterHrs: newClientData.overtimeAfterHours || 8, otMultiplier: newClientData.overtimeMultiplier || 1.5 })
+    cloudAddPrivateClient({ name: newClientData.name, email: newClientEmail.trim() || '', phone: newClientData.phone || '', hourlyRate: newClientData.hourlyRate, careType: newClientData.careType || '', billingType: newClientData.billingType, otAfterHrs: newClientData.overtimeAfterHours || 8, otMultiplier: newClientData.overtimeMultiplier || 1.5 })
     setShowAddClient(false)
     setNewClientName('')
+    setNewClientEmail('')
     setNewClientPhone('')
     setNewClientRate('25')
     setNewClientCare('')
@@ -1290,6 +1292,8 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <div className="space-y-2">
                 <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
                   value={newClientName} onChange={e => setNewClientName(e.target.value)} autoFocus />
+                <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                  value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} />
                 <input type="tel" className="input input-bordered input-sm w-full" placeholder="Phone number"
                   value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
                 <div className="flex gap-2">

@@ -77,7 +77,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   const localFiltered = period === 'all' ? localEntries :
     localEntries.filter(e => new Date(e.date) >= (period === 'week' ? weekAgo : monthAgo))
-  const localEarnings = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60) * e.hourlyRate, 0)
+  const localEarnings = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60) * (e.hourlyRate || 0), 0)
   const localHours = localFiltered.reduce((sum, e) => sum + ((e.duration || 0) / 60), 0)
 
   const totalEarnings = apiEarnings + localEarnings

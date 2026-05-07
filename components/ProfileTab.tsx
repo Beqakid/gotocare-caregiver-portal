@@ -36,7 +36,6 @@ const DOC_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
-// Badge definitions
 const BADGES = [
   { id: 'verified', icon: Shield, label: 'Verified', desc: 'Background check + ID verified', color: 'text-success', earn: (p: any, d: CaregiverDocument[]) => d.some(x => x.type === 'background_check') },
   { id: 'quick_responder', icon: Zap, label: 'Quick Responder', desc: 'Responds within 1 hour', color: 'text-warning', earn: (p: any) => (p?.totalJobs || 0) >= 5 },
@@ -65,14 +64,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [myClients, setMyClients] = useState<any[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
 
-  // Deep-link: jump to correct section + scroll to target
   useEffect(() => {
     if (initialSection) setSection(initialSection)
     if (deepLink) {
       setTimeout(() => {
         const el = document.getElementById(deepLink)
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        // Open editing if applicable
         if (deepLink === 'section-bio') setEditing(true)
         if (deepLink === 'section-skills') setEditingSkills(true)
         if (deepLink === 'section-contact') setEditingContact(true)
@@ -92,6 +89,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .catch(() => {})
       .finally(() => setClientsLoading(false))
   }, [section])
+
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
   const [docType, setDocType] = useState('certification')
@@ -182,7 +180,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const handleAddDocument = async () => {
     if (!docName.trim()) return
     if (cgToken) {
-      // API upload
       try {
         const fd = new FormData()
         fd.append('token', cgToken)
@@ -201,7 +198,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         }
       } catch (e) {}
     }
-    // Fallback: localStorage
     addDocument({ name: docName.trim(), type: docType as CaregiverDocument['type'], expiryDate: docExpiry || undefined, notes: undefined })
     setShowAddDoc(false)
     setDocName(''); setDocType('certification'); setDocExpiry(''); setDocFile(null)
@@ -220,7 +216,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         }
       } catch (e) {}
     }
-    // Fallback: localStorage
     deleteDocument(id)
     onDocumentsChange()
   }
@@ -239,9 +234,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   if (!profile) return null
 
   return (
-    <>
     <div className="pb-4">
-      {/* Deep-link back banner — only shows when navigated from profile strength widget */}
+      {/* Deep-link back banner */}
       {deepLink && onNavigateHome && (
         <div
           onClick={onNavigateHome}
@@ -263,6 +257,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginLeft: 'auto' }}>Keep going →</span>
         </div>
       )}
+
       {/* Profile header */}
       <div id="section-photo" className="earnings-card px-4 pt-6 pb-8 text-center">
         <div className="relative inline-block mb-3">
@@ -281,13 +276,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           >
             <Camera size={14} className="text-primary" />
           </button>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoChange}
-          />
+          <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
         </div>
         <h2 className="text-xl font-bold text-white">{profile.firstName} {profile.lastName}</h2>
         <p className="text-white/90 text-sm mt-0.5">Professional Caregiver</p>
@@ -348,7 +337,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ---- PROFILE SECTION ---- */}
       {section === 'profile' && (
         <div className="px-4 space-y-3">
-          {/* Profile completeness */}
           {completeness < 100 && (
             <div className="bg-base-200 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -372,7 +360,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           )}
 
-          {/* Quick stats */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-base-200 rounded-xl p-3 text-center">
               <DollarSign size={16} className="mx-auto text-primary mb-1" />
@@ -432,36 +419,19 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </div>
                 <div>
                   <label className="text-xs text-base-content/60 mb-1 block">Phone number</label>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    className="input input-bordered input-sm w-full"
-                    placeholder="(555) 000-0000"
-                    value={editPhone}
-                    onChange={e => setEditPhone(e.target.value)}
-                  />
+                  <input type="tel" inputMode="tel" className="input input-bordered input-sm w-full"
+                    placeholder="(555) 000-0000" value={editPhone} onChange={e => setEditPhone(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-base-content/60 mb-1 block">City</label>
-                    <input
-                      type="text"
-                      className="input input-bordered input-sm w-full"
-                      placeholder="Atlanta"
-                      value={editCity}
-                      onChange={e => setEditCity(e.target.value)}
-                    />
+                    <input type="text" className="input input-bordered input-sm w-full" placeholder="Atlanta"
+                      value={editCity} onChange={e => setEditCity(e.target.value)} />
                   </div>
                   <div>
                     <label className="text-xs text-base-content/60 mb-1 block">State</label>
-                    <input
-                      type="text"
-                      className="input input-bordered input-sm w-full"
-                      placeholder="GA"
-                      maxLength={2}
-                      value={editState}
-                      onChange={e => setEditState(e.target.value.toUpperCase())}
-                    />
+                    <input type="text" className="input input-bordered input-sm w-full" placeholder="GA"
+                      maxLength={2} value={editState} onChange={e => setEditState(e.target.value.toUpperCase())} />
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -501,81 +471,70 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Share Your Profile card */}
-                <div id="section-share" className="bg-gradient-to-br from-primary/8 to-primary/4 border border-primary/15 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Link2 size={15} className="text-primary" />
-                    <p className="font-bold text-sm text-base-content">Share Your Profile</p>
-                  </div>
-                  <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
-                  <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
-                    <span className="text-xs text-base-content/60 truncate flex-1">
-                      carehia.com/caregiver?id={profile?.id}
-                    </span>
-                    <button
-                      onClick={async () => {
-                        const url = `https://carehia.com/caregiver?id=${profile?.id}`
-                        try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
-                      }}
-                      className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
-                    >
-                      {linkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
-                    </button>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      const url = `https://carehia.com/caregiver?id=${profile?.id}`
-                      try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
-                        try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
-                      }
-                    }}
-                    className="btn btn-primary btn-sm w-full gap-1.5 rounded-xl"
-                  >
-                    <Share2 size={14} /> Share Profile
-                  </button>
-                </div>
+          {/* Share Your Profile */}
+          <div id="section-share" className="bg-base-200 rounded-2xl p-4 border border-primary/15">
+            <div className="flex items-center gap-2 mb-2">
+              <Link2 size={15} className="text-primary" />
+              <p className="font-bold text-sm text-base-content">Share Your Profile</p>
+            </div>
+            <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
+            <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
+              <span className="text-xs text-base-content/60 truncate flex-1">carehia.com/caregiver?id={profile?.id}</span>
+              <button
+                onClick={async () => {
+                  const url = `https://carehia.com/caregiver?id=${profile?.id}`
+                  try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
+                }}
+                className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
+              >
+                {linkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+              </button>
+            </div>
+            <button
+              onClick={async () => {
+                const url = `https://carehia.com/caregiver?id=${profile?.id}`
+                try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
+                  try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
+                }
+              }}
+              className="btn btn-primary btn-sm w-full gap-1.5 rounded-xl"
+            >
+              <Share2 size={14} /> Share Profile
+            </button>
+          </div>
 
           {/* QR Code card */}
-                <div className="bg-base-200 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base">📲</span>
-                    <p className="font-bold text-sm text-base-content">Your QR Code</p>
-                  </div>
-                  <p className="text-xs text-base-content/60 mb-3">Show this to anyone — they scan it and instantly see your profile.</p>
-                  {profile?.id ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <button
-                        onClick={() => setShowQR(true)}
-                        className="bg-white rounded-2xl p-3 shadow-sm border border-base-300 active:scale-95 transition-transform"
-                      >
-                        <img
-                          src={'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=1'}
-                          alt="Profile QR Code"
-                          width={180}
-                          height={180}
-                          className="rounded-xl"
-                        />
-                      </button>
-                      <button
-                        onClick={() => setShowQR(true)}
-                        className="btn btn-outline btn-sm w-full rounded-xl gap-1.5 border-primary/30 text-primary"
-                      >
-                        🔍 Enlarge to Show
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center text-xs text-base-content/40 py-4">Complete your profile to get your QR code</div>
-                  )}
-                </div>
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">📲</span>
+              <p className="font-bold text-sm text-base-content">Your QR Code</p>
+            </div>
+            <p className="text-xs text-base-content/60 mb-3">Show this to anyone — they scan it and instantly see your profile.</p>
+            {profile?.id ? (
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  onClick={() => setShowQR(true)}
+                  className="bg-white rounded-2xl p-3 shadow-sm border border-base-300 active:scale-95 transition-transform"
+                >
+                  <img
+                    src={'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=1'}
+                    alt="Profile QR Code" width={180} height={180} className="rounded-xl"
+                  />
+                </button>
+                <button onClick={() => setShowQR(true)} className="btn btn-outline btn-sm w-full rounded-xl gap-1.5 border-primary/30 text-primary">
+                  🔍 Enlarge to Show
+                </button>
+              </div>
+            ) : (
+              <div className="text-center text-xs text-base-content/40 py-4">Complete your profile to get your QR code</div>
+            )}
+          </div>
 
           {/* Skills */}
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-sm text-base-content">Skills & Specializations</p>
-              <button
-                onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }}
-                className="btn btn-ghost btn-xs gap-1"
-              >
+              <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-ghost btn-xs gap-1">
                 <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
               </button>
             </div>
@@ -624,17 +583,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             {showLangInput && (
               <div className="flex gap-2 mb-3">
                 <input
-                  type="text"
-                  className="input input-bordered input-sm flex-1"
-                  placeholder="e.g. Spanish, French…"
-                  value={langInput}
+                  type="text" className="input input-bordered input-sm flex-1"
+                  placeholder="e.g. Spanish, French…" value={langInput}
                   onChange={e => setLangInput(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && langInput.trim()) {
                       const current = profile.languages || []
                       if (!current.includes(langInput.trim())) onUpdateProfile({ languages: [...current, langInput.trim()] })
-                      setLangInput('')
-                      setShowLangInput(false)
+                      setLangInput(''); setShowLangInput(false)
                     }
                   }}
                   autoFocus
@@ -668,17 +624,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             ) : (
               !showLangInput && (
-                <button
-                  onClick={() => setShowLangInput(true)}
-                  className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg"
-                >
+                <button onClick={() => setShowLangInput(true)}
+                  className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg">
                   + Add languages you speak (boosts match rate)
                 </button>
               )
             )}
           </div>
 
-          {/* Settings & Logout */}
+          {/* Settings row */}
           <div className="bg-base-200 rounded-2xl overflow-hidden">
             <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors border-b border-base-300">
               <Settings size={18} className="text-base-content/60" />
@@ -736,7 +690,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           )}
 
-          {/* Expiry summary */}
           {docs.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-success/10 rounded-xl p-3 text-center">
@@ -754,7 +707,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           )}
 
-          {/* Document list */}
           {docs.length === 0 && !showAddDoc ? (
             <div className="text-center py-10">
               <FolderOpen size={36} className="mx-auto opacity-20 mb-2" />
@@ -809,8 +761,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ---- BADGES SECTION ---- */}
-
+      {/* ---- CLIENTS SECTION ---- */}
       {section === 'clients' && (
         <div className="px-4 space-y-3 pb-4">
           <p className="text-xs text-base-content/60">
@@ -847,6 +798,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+      {/* ---- BADGES SECTION ---- */}
       {section === 'badges' && (
         <div className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
@@ -894,9 +846,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           )}
         </div>
       )}
-    </div>
 
-      {/* ─── SETTINGS PANEL ─── */}
+      {/* ─── SETTINGS PANEL — inside main div so no Fragment needed ─── */}
       {showSettings && (
         <div
           style={{
@@ -922,7 +873,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Settings</span>
               <button onClick={() => setShowSettings(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-
             <div style={{ padding: '0 16px 8px' }}>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>ACCOUNT</p>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
@@ -942,7 +892,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </div>
               </div>
             </div>
-
             <div style={{ padding: '12px 16px 8px' }}>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>SUPPORT</p>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
@@ -956,7 +905,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </a>
               </div>
             </div>
-
             <div style={{ padding: '12px 16px 24px' }}>
               <button
                 onClick={() => { setShowSettings(false); onLogout() }}
@@ -969,6 +917,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+      {/* ─── QR FULLSCREEN MODAL — inside main div ─── */}
       {showQR && profile?.id && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center"
@@ -983,10 +932,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <div className="bg-white rounded-3xl p-5 shadow-2xl">
               <img
                 src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
-                alt="Profile QR Code"
-                width={280}
-                height={280}
-                className="rounded-2xl"
+                alt="Profile QR Code" width={280} height={280} className="rounded-2xl"
               />
             </div>
             <div className="text-center">
@@ -999,8 +945,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
         </div>
       )}
-
-    </>
+    </div>
   )
 }
 

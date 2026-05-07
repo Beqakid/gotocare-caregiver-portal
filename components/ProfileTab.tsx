@@ -97,6 +97,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [docType, setDocType] = useState('certification')
   const [docExpiry, setDocExpiry] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const [apiDocs, setApiDocs] = useState<any[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [docFile, setDocFile] = useState<File | null>(null)
@@ -533,6 +534,39 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   </button>
                 </div>
 
+          {/* QR Code card */}
+                <div className="bg-base-200 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base">📲</span>
+                    <p className="font-bold text-sm text-base-content">Your QR Code</p>
+                  </div>
+                  <p className="text-xs text-base-content/60 mb-3">Show this to anyone — they scan it and instantly see your profile.</p>
+                  {profile?.id ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <button
+                        onClick={() => setShowQR(true)}
+                        className="bg-white rounded-2xl p-3 shadow-sm border border-base-300 active:scale-95 transition-transform"
+                      >
+                        <img
+                          src={'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=1'}
+                          alt="Profile QR Code"
+                          width={180}
+                          height={180}
+                          className="rounded-xl"
+                        />
+                      </button>
+                      <button
+                        onClick={() => setShowQR(true)}
+                        className="btn btn-outline btn-sm w-full rounded-xl gap-1.5 border-primary/30 text-primary"
+                      >
+                        🔍 Enlarge to Show
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center text-xs text-base-content/40 py-4">Complete your profile to get your QR code</div>
+                  )}
+                </div>
+
           {/* Skills */}
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -934,5 +968,38 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+      {showQR && profile?.id && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+          style={{background: 'rgba(0,0,0,0.92)'}}
+          onClick={() => setShowQR(false)}
+        >
+          <div className="flex flex-col items-center gap-6 p-8" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <p className="text-white font-bold text-xl mb-1">📲 Scan to see my profile</p>
+              <p className="text-white/60 text-sm">Point your camera at this QR code</p>
+            </div>
+            <div className="bg-white rounded-3xl p-5 shadow-2xl">
+              <img
+                src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
+                alt="Profile QR Code"
+                width={280}
+                height={280}
+                className="rounded-2xl"
+              />
+            </div>
+            <div className="text-center">
+              <p className="text-white/80 text-sm font-semibold">{profile.firstName} {profile.lastName}</p>
+              <p className="text-white/50 text-xs mt-0.5">carehia.com/caregiver?id={profile.id}</p>
+            </div>
+            <button onClick={() => setShowQR(false)} className="btn btn-ghost text-white/60 btn-sm rounded-xl">
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
+
   )
 }
+
+export default ProfileTab

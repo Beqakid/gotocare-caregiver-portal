@@ -4,6 +4,42 @@ import { MapPin, Clock, ChevronRight, Star, Briefcase, TrendingUp, Zap, Bell, Ca
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TimeEntry, CaregiverDocument } from '../types'
 import { getActiveTimer, setActiveTimer, addTimeEntry, updateTimeEntry, getDocuments, calculateCompleteness, getTimeEntries } from '../utils/storage'
 
+const API = 'https://gotocare-original.jjioji.workers.dev/api'
+const VAPID_PUBLIC_KEY = 'BOtlZWOtOu_PS_Bdkvvyw_ctpyeQvW2OlMrhidaXqbNcYbpXONe-3PaJdlj3X0CB2zU-S46PWHvnyuUI9k0jFDA'
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)))
+}
+
+async function subscribeToPush(token: string): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    })
+    const subJson = sub.toJSON()
+    await fetch(`${API}/push-subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        endpoint: sub.endpoint,
+        p256dh: subJson.keys?.p256dh,
+        auth: subJson.keys?.auth,
+        user_agent: navigator.userAgent,
+      }),
+    })
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 interface HomeTabProps {
   profile: CaregiverProfile | null
   shifts: Shift[]
@@ -48,10 +84,45 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const [isOnline, setIsOnline] = useState(() =>
     localStorage.getItem('cgp_online_status') !== 'offline'
   )
-  const toggleOnline = () => {
+  const [notifPermission, setNotifPermission] = useState<string>(() => {
+    if (typeof Notification !== 'undefined') return Notification.permission
+    return 'unsupported'
+  })
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+  const [notifSubscribing, setNotifSubscribing] = useState(false)
+
+  const toggleOnline = async () => {
     const next = !isOnline
     setIsOnline(next)
     localStorage.setItem('cgp_online_status', next ? 'online' : 'offline')
+    const token = localStorage.getItem('cgp_token')
+    if (token) {
+      fetch(`${API}/caregiver-online-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, is_online: next }),
+      }).catch(() => {})
+    }
+    if (next && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      setShowNotifPrompt(true)
+    }
+  }
+
+  const handleEnableNotifications = async () => {
+    setNotifSubscribing(true)
+    try {
+      const permission = await Notification.requestPermission()
+      setNotifPermission(permission)
+      if (permission === 'granted') {
+        const token = localStorage.getItem('cgp_token')
+        if (token) await subscribeToPush(token)
+        setShowNotifPrompt(false)
+      } else {
+        setShowNotifPrompt(false)
+      }
+    } finally {
+      setNotifSubscribing(false)
+    }
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -264,6 +335,45 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${isOnline ? 'left-6' : 'left-0.5'}`} />
         </div>
       </div>
+
+
+      {/* Notification Permission Prompt */}
+      {showNotifPrompt && notifPermission === 'default' && (
+        <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">🔔</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm text-base-content">Don't miss care requests</p>
+              <p className="text-xs text-base-content/60 mt-0.5">Enable notifications so you hear about new requests immediately — even when the app is closed.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEnableNotifications}
+              disabled={notifSubscribing}
+              className="flex-1 btn btn-primary btn-sm text-white font-bold"
+            >
+              {notifSubscribing ? <span className="loading loading-spinner loading-xs" /> : '🔔 Enable Notifications'}
+            </button>
+            <button
+              onClick={() => setShowNotifPrompt(false)}
+              className="btn btn-ghost btn-sm text-base-content/40"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications enabled confirmation */}
+      {notifPermission === 'granted' && (
+        <div className="rounded-xl bg-success/10 border border-success/20 px-4 py-2 flex items-center gap-2">
+          <span className="text-success text-sm">🔔</span>
+          <p className="text-xs text-success font-medium">Notifications enabled — you won't miss a request</p>
+        </div>
+      )}
 
       {/* 3. New requests banner — hot orange, only when pending */}
       {pendingRequests.length > 0 && (

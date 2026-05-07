@@ -1,0 +1,37 @@
+{
+  "name": "Carehia — Caregiver Portal",
+  "short_name": "Carehia",
+  "description": "Your free caregiving office — find clients, track time, manage documents.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Live Requests",
+      "url": "/?tab=requests",
+      "description": "View live care requests near you"
+    },
+    {
+      "name": "My Schedule",
+      "url": "/?tab=schedule",
+      "description": "View your schedule and time tracker"
+    }
+  ]
+}

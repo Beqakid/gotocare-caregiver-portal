@@ -224,7 +224,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     onDocumentsChange()
   }
 
-  const profileUrl = `carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
+  const profileUrl = `carehia.com/caregiver?id=${profile?.id}`
 
   const copyProfileLink = () => {
     navigator.clipboard?.writeText(`https://${profileUrl}`)
@@ -508,11 +508,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
                   <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
                     <span className="text-xs text-base-content/60 truncate flex-1">
-                      carehia.com/caregiver/{profile?.firstName?.toLowerCase()}-{profile?.lastName?.toLowerCase()}-{profile?.id}
+                      carehia.com/caregiver?id={profile?.id}
                     </span>
                     <button
                       onClick={async () => {
-                        const url = `https://carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
+                        const url = `https://carehia.com/caregiver?id=${profile?.id}`
                         try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                       }}
                       className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
@@ -522,7 +522,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   </div>
                   <button
                     onClick={async () => {
-                      const url = `https://carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
+                      const url = `https://carehia.com/caregiver?id=${profile?.id}`
                       try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
                         try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                       }

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { DollarSign, TrendingUp, Clock, CreditCard, FileText, Plus, Send, Download, Trash2, X, Calculator, Car } from 'lucide-react'
 import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
 import { getInvoices, addInvoice, updateInvoice, deleteInvoice, getNextInvoiceNumber, getTimeEntries, getMileageEntries } from '../utils/storage'
-import { cloudGetInvoices, cloudAddInvoice, cloudUpdateInvoiceStatus, cloudDeleteInvoice, cloudGetMileage } from '../utils/cloud-api'
+import { cloudGetInvoices, cloudAddInvoice, cloudUpdateInvoiceStatus, cloudDeleteInvoice, cloudGetMileage, cloudGetPrivateClients } from '../utils/cloud-api'
 
 interface EarningsTabProps {
   timesheets: Timesheet[]
@@ -15,14 +15,19 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
   const [invoices, setInvoices] = useState<Invoice[]>(getInvoices())
   const [showCreate, setShowCreate] = useState(false)
+  const [privateClients, setPrivateClients] = useState<any[]>([])
+  const [invClientId, setInvClientId] = useState<string>('') // '' = none, '__new__' = type new name
+
 
   React.useEffect(() => {
     const loadCloud = async () => {
       const token = localStorage.getItem('cgp_token')
       if (!token) return
-      const [cloudInvoices] = await Promise.all([
+      const [cloudInvoices, clients] = await Promise.all([
         cloudGetInvoices(),
+        cloudGetPrivateClients(),
       ])
+      if (clients.length > 0) setPrivateClients(clients)
       if (cloudInvoices.length > 0) {
         const localOnly = getInvoices().filter(i => !i.id.startsWith('cloud_'))
         const merged = [...cloudInvoices, ...localOnly]
@@ -136,6 +141,70 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const addItem = () => setInvItems(prev => [...prev, { description: '', hours: 0, rate: 25, amount: 0 }])
   const removeItem = (idx: number) => setInvItems(prev => prev.filter((_, i) => i !== idx))
 
+
+  // Client dropdown handler
+  const handleClientSelect = (id: string) => {
+    setInvClientId(id)
+    if (id === '__new__') {
+      setInvClient('')
+      setInvClientEmail('')
+    } else {
+      const c = privateClients.find((_, i) => String(i) === id)
+      if (c) {
+        setInvClient(c.name)
+        setInvClientEmail(c.email || '')
+      }
+    }
+  }
+
+  // ⚡ Generate invoice from this week's time tracker entries
+  const generateFromThisWeek = () => {
+    const now = new Date()
+    const day = now.getDay() // 0=Sun
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
+    weekStart.setHours(0, 0, 0, 0)
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+
+    const thisWeek = localEntries.filter(e => e.date >= weekStartStr)
+    if (thisWeek.length === 0) {
+      alert('No time entries found for this week. Start the timer on the Schedule tab first.')
+      return
+    }
+
+    // Group by clientName
+    const groups: Record<string, { hours: number; rate: number }> = {}
+    thisWeek.forEach(e => {
+      const key = e.clientName || 'General'
+      if (!groups[key]) groups[key] = { hours: 0, rate: e.hourlyRate || 25 }
+      groups[key].hours += (e.duration || 0) / 60
+    })
+
+    const items = Object.entries(groups).map(([name, data]) => ({
+      description: `Care services — ${name}`,
+      hours: Math.round(data.hours * 100) / 100,
+      rate: data.rate,
+      amount: Math.round(data.hours * data.rate * 100) / 100,
+    }))
+
+    setInvItems(items)
+
+    // Auto-select client: if only one client and they're in private clients list
+    const firstName = Object.keys(groups)[0]
+    const matchedIdx = privateClients.findIndex(c => c.name === firstName)
+    if (matchedIdx >= 0) {
+      setInvClientId(String(matchedIdx))
+      setInvClient(privateClients[matchedIdx].name)
+      setInvClientEmail(privateClients[matchedIdx].email || '')
+    } else {
+      setInvClientId('__new__')
+      setInvClient(firstName === 'General' ? '' : firstName)
+    }
+
+    setInvNotes(`Week of ${weekStartStr} — ${thisWeek.length} sessions`)
+    setShowCreate(true)
+  }
+
   const handleCreateInvoice = () => {
     if (!invClient.trim() || invItems.every(i => i.amount === 0)) return
     const subtotal = invItems.reduce((s, i) => s + i.amount, 0)
@@ -156,7 +225,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     cloudAddInvoice(inv)
     setInvoices(getInvoices())
     setShowCreate(false)
-    setInvClient(''); setInvClientEmail(''); setInvNotes('')
+    setInvClient(''); setInvClientEmail(''); setInvNotes(''); setInvClientId('')
     setInvItems([{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
   }
 
@@ -338,10 +407,16 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
           </div>
 
           {/* Quick invoice CTA */}
-          <button onClick={() => { setView('invoices'); setShowCreate(true) }}
-            className="btn btn-outline btn-primary w-full gap-2 rounded-2xl">
-            <FileText size={18} /> Create Invoice
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={generateFromThisWeek}
+              className="btn btn-primary w-full gap-2 rounded-2xl">
+              ⚡ This Week
+            </button>
+            <button onClick={() => { setView('invoices'); setShowCreate(true) }}
+              className="btn btn-outline btn-primary w-full gap-2 rounded-2xl">
+              <FileText size={16} /> Blank
+            </button>
+          </div>
         </div>
       )}
 
@@ -360,15 +435,47 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               </div>
 
               <div className="space-y-3">
-                <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
-                  value={invClient} onChange={e => setInvClient(e.target.value)} />
-                <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
-                  value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                {/* Client dropdown */}
+                {privateClients.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      className="select select-bordered select-sm w-full"
+                      value={invClientId}
+                      onChange={e => handleClientSelect(e.target.value)}
+                    >
+                      <option value="">— Select client —</option>
+                      {privateClients.map((c, i) => (
+                        <option key={i} value={String(i)}>{c.name}{c.email ? ` (${c.email})` : ''}</option>
+                      ))}
+                      <option value="__new__">＋ New client (not in list)</option>
+                    </select>
+                    {invClientId === '__new__' && (
+                      <>
+                        <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                          value={invClient} onChange={e => setInvClient(e.target.value)} />
+                        <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                          value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                      value={invClient} onChange={e => setInvClient(e.target.value)} />
+                    <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                      value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                  </>
+                )}
 
                 {localEntries.length > 0 && (
-                  <button onClick={autoFillFromEntries} className="btn btn-ghost btn-xs gap-1 text-primary">
-                    <Clock size={12} /> Auto-fill from time tracker
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={generateFromThisWeek} className="btn btn-primary btn-xs gap-1">
+                      ⚡ Generate from this week
+                    </button>
+                    <button onClick={autoFillFromEntries} className="btn btn-ghost btn-xs gap-1 text-primary">
+                      <Clock size={12} /> Auto-fill recent
+                    </button>
+                  </div>
                 )}
 
                 {/* Line items */}

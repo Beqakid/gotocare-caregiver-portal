@@ -239,6 +239,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   if (!profile) return null
 
   return (
+    <>
     <div className="pb-4">
       {/* Deep-link back banner — only shows when navigated from profile strength widget */}
       {deepLink && onNavigateHome && (
@@ -999,6 +1000,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+    </>
   )
 }
 

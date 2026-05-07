@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2 } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
+import { TrustCenter } from './TrustCenter'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 
@@ -13,7 +14,7 @@ interface ProfileTabProps {
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
   deepLink?: string
-  initialSection?: 'profile' | 'documents' | 'badges' | 'clients'
+  initialSection?: 'profile' | 'documents' | 'badges' | 'clients' | 'trust'
   onNavigateHome?: () => void
 }
 
@@ -60,7 +61,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [showLangInput, setShowLangInput] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients'>(initialSection || 'profile')
+  const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients' | 'trust'>(initialSection || 'profile')
   const [myClients, setMyClients] = useState<any[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
 
@@ -326,6 +327,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           { key: 'documents' as const, label: `Documents (${docs.length})` },
           { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
           { key: 'clients' as const, label: `My Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
+          { key: 'trust' as const, label: '🛡️ Trust' },
         ].map(t => (
           <button key={t.key}
             className={`btn btn-sm rounded-full ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
@@ -800,6 +802,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* ---- BADGES SECTION ---- */}
+      {section === 'trust' && (
+        <TrustCenter profile={profile} />
+      )}
+
       {section === 'badges' && (
         <div className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">

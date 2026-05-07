@@ -259,7 +259,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <h1 className="text-xl font-bold text-base-content">
             {greeting()}, {profile?.firstName || 'Caregiver'} 👋
           </h1>
-          <p className="text-xs text-base-content/50 mt-0.5">
+          <p className="text-xs text-base-content/65 mt-0.5">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -292,7 +292,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="font-bold text-sm text-base-content">3 Steps to Start Earning</p>
-                <p className="text-xs text-base-content/50">{doneCount}/3 complete</p>
+                <p className="text-xs text-base-content/65">{doneCount}/3 complete</p>
               </div>
               <div className="flex gap-1">
                 {steps.map((s, i) => (
@@ -342,7 +342,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             <p className={`font-bold text-sm ${isOnline ? 'text-success' : 'text-base-content/50'}`}>
               {isOnline ? "You're Online" : "You're Offline"}
             </p>
-            <p className="text-xs text-base-content/50">
+            <p className="text-xs text-base-content/65">
               {isOnline ? 'Families can discover and request you' : 'Go online so families can find you'}
             </p>
           </div>
@@ -376,7 +376,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </button>
             <button
               onClick={() => setShowNotifPrompt(false)}
-              className="btn btn-ghost btn-sm text-base-content/40"
+              className="btn btn-ghost btn-sm text-base-content/60"
             >
               Not now
             </button>
@@ -606,7 +606,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className="bg-base-200 rounded-2xl p-6 text-center">
             <Calendar size={32} className="mx-auto opacity-30 mb-2" />
             <p className="text-sm text-base-content/60">No shifts scheduled today</p>
-            <p className="text-xs text-base-content/40 mt-1">Use the timer to track private client hours</p>
+            <p className="text-xs text-base-content/60 mt-1">Use the timer to track private client hours</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -670,7 +670,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-base text-base-content">Your Impact</h2>
-          <span className="text-[10px] text-base-content/40 font-medium bg-base-200 px-2 py-1 rounded-full">All time</span>
+          <span className="text-[10px] text-base-content/60 font-medium bg-base-200 px-2 py-1 rounded-full">All time</span>
         </div>
         <div className="grid grid-cols-3 gap-2.5 mb-2.5">
           <div className="bg-base-200 rounded-2xl p-3 text-center">

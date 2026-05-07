@@ -75,7 +75,7 @@ function RoundBadge({ round }: { round: number }) {
 function CountdownRing({ countdown, expiresAt }: { countdown: CountdownInfo; expiresAt: string }) {
   if (countdown.expired) {
     return (
-      <div className="flex items-center gap-1 text-base-content/40">
+      <div className="flex items-center gap-1 text-base-content/60">
         <span className="text-xs">⏱ Expired</span>
       </div>
     )
@@ -121,7 +121,7 @@ function LiveRequestCard({
             <p className="text-sm text-base-content/60">{req.care_type} · {req.city} · ${req.pay_rate}/hr</p>
           </div>
         </div>
-        <p className="text-xs text-base-content/50">Check your Interview Requests tab for full details.</p>
+        <p className="text-xs text-base-content/65">Check your Interview Requests tab for full details.</p>
       </div>
     )
   }
@@ -133,7 +133,7 @@ function LiveRequestCard({
           <span className="text-lg">🔒</span>
           <div>
             <p className="font-semibold text-sm text-base-content/50">Accepted by Another Caregiver</p>
-            <p className="text-xs text-base-content/40">{req.care_type} · {req.city}</p>
+            <p className="text-xs text-base-content/60">{req.care_type} · {req.city}</p>
           </div>
         </div>
       </div>
@@ -160,7 +160,7 @@ function LiveRequestCard({
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-xl font-black text-success">${req.pay_rate}<span className="text-xs font-normal text-base-content/50">/hr</span></p>
-            {req.duration_hours && <p className="text-xs text-base-content/50">{req.duration_hours}h session</p>}
+            {req.duration_hours && <p className="text-xs text-base-content/65">{req.duration_hours}h session</p>}
           </div>
         </div>
 
@@ -210,7 +210,7 @@ function LiveRequestCard({
         </div>
       ) : (
         <div className="px-4 pb-4">
-          <p className="text-xs text-center text-base-content/40">⏱ This request has expired</p>
+          <p className="text-xs text-center text-base-content/60">⏱ This request has expired</p>
         </div>
       )}
     </div>
@@ -244,17 +244,17 @@ function InterviewRequestCard({
           <p className="text-sm text-base-content/60">{req.clientLocation || 'Location locked'}</p>
         </div>
         <div className="text-right">
-          <span className="text-xs text-base-content/50">{statusLabel[req.status] || req.status}</span>
+          <span className="text-xs text-base-content/65">{statusLabel[req.status] || req.status}</span>
           {req.payRate && <p className="text-sm font-bold text-success">${req.payRate}/hr</p>}
         </div>
       </div>
 
       {req.scheduledDate && (
-        <p className="text-xs text-base-content/50">📅 {req.scheduledDate} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
+        <p className="text-xs text-base-content/65">📅 {req.scheduledDate} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
       )}
 
       {/* Trust strip */}
-      <div className="text-xs text-base-content/40 flex items-center gap-2 pt-1 border-t border-base-300">
+      <div className="text-xs text-base-content/60 flex items-center gap-2 pt-1 border-t border-base-300">
         <span>🛡️ Client verified</span><span>·</span><span>🔒 Secure Contact Unlock</span>
       </div>
 
@@ -514,7 +514,7 @@ export default function RequestsTab({ profile }: { profile?: any }) {
             {isLoadingLive && liveRequests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <span className="loading loading-ring loading-lg text-primary" />
-                <p className="text-sm text-base-content/50">Scanning for care requests near you…</p>
+                <p className="text-sm text-base-content/65">Scanning for care requests near you…</p>
               </div>
             )}
 
@@ -528,8 +528,8 @@ export default function RequestsTab({ profile }: { profile?: any }) {
                 </div>
                 <div>
                   <p className="font-bold text-base-content/70 mb-1">Scanning your area…</p>
-                  <p className="text-sm text-base-content/40">No live requests right now.</p>
-                  <p className="text-sm text-base-content/40">Make sure you're online to get dispatched.</p>
+                  <p className="text-sm text-base-content/60">No live requests right now.</p>
+                  <p className="text-sm text-base-content/60">Make sure you're online to get dispatched.</p>
                 </div>
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2">
                   <p className="text-xs font-semibold text-base-content/60 mb-2">💡 Tips to get more requests</p>
@@ -542,7 +542,7 @@ export default function RequestsTab({ profile }: { profile?: any }) {
                       <span className="text-success text-sm mt-0.5">✓</span>
                       <div>
                         <p className="text-xs font-semibold text-base-content/70">{title}</p>
-                        <p className="text-xs text-base-content/40">{desc}</p>
+                        <p className="text-xs text-base-content/60">{desc}</p>
                       </div>
                     </div>
                   ))}
@@ -565,7 +565,7 @@ export default function RequestsTab({ profile }: { profile?: any }) {
             ))}
 
             {liveRequests.length > 0 && (
-              <p className="text-xs text-center text-base-content/30 pb-2">
+              <p className="text-xs text-center text-base-content/60 pb-2">
                 Refreshes every 30 seconds · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
@@ -585,7 +585,7 @@ export default function RequestsTab({ profile }: { profile?: any }) {
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                 <span className="text-4xl">📅</span>
                 <p className="font-bold text-base-content/60">No Interview Requests Yet</p>
-                <p className="text-sm text-base-content/40">When clients book an interview with you, it will appear here.</p>
+                <p className="text-sm text-base-content/60">When clients book an interview with you, it will appear here.</p>
               </div>
             )}
 

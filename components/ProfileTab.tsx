@@ -453,9 +453,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                     <span className="text-sm text-base-content/70">{profile.phone}</span>
                   </div>
                 ) : (
-                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left opacity-50 hover:opacity-80">
-                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><Phone size={14} className="text-base-content/40" /></div>
-                    <span className="text-sm text-base-content/40">+ Add phone number</span>
+                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left hover:opacity-90">
+                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><Phone size={14} className="text-base-content/60" /></div>
+                    <span className="text-sm text-base-content/60">+ Add phone number</span>
                   </button>
                 )}
                 {profile.location?.city ? (
@@ -464,9 +464,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                     <span className="text-sm text-base-content/70">{profile.location.city}{profile.location.state ? `, ${profile.location.state}` : ''}</span>
                   </div>
                 ) : (
-                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left opacity-50 hover:opacity-80">
-                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><MapPin size={14} className="text-base-content/40" /></div>
-                    <span className="text-sm text-base-content/40">+ Add city / service area</span>
+                  <button onClick={() => setEditingContact(true)} className="flex items-center gap-3 w-full text-left hover:opacity-90">
+                    <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center"><MapPin size={14} className="text-base-content/60" /></div>
+                    <span className="text-sm text-base-content/60">+ Add city / service area</span>
                   </button>
                 )}
               </div>
@@ -528,7 +528,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </button>
               </div>
             ) : (
-              <div className="text-center text-xs text-base-content/40 py-4">Complete your profile to get your QR code</div>
+              <div className="text-center text-xs text-base-content/60 py-4">Complete your profile to get your QR code</div>
             )}
           </div>
 
@@ -565,7 +565,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 {(profile.skills?.length || 0) > 0 ? profile.skills!.map((skill, i) => (
                   <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">{skill}</span>
                 )) : (
-                  <p className="text-xs text-base-content/50">No skills added yet. Tap Edit to select care services you offer.</p>
+                  <p className="text-xs text-base-content/65">No skills added yet. Tap Edit to select care services you offer.</p>
                 )}
               </div>
             )}
@@ -654,7 +654,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         <div id="section-documents" className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
             Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
-            <p className="text-xs text-base-content/40 mt-1">🔒 Documents are private unless you choose to share them.</p>
+            <p className="text-xs text-base-content/60 mt-1">🔒 Documents are private unless you choose to share them.</p>
           </p>
 
           <button onClick={() => setShowAddDoc(true)} className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">
@@ -714,7 +714,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <div className="text-center py-10">
               <FolderOpen size={36} className="mx-auto opacity-20 mb-2" />
               <p className="text-sm text-base-content/60">No documents yet</p>
-              <p className="text-xs text-base-content/40 mt-1">Add your certifications, licenses, and training records</p>
+              <p className="text-xs text-base-content/60 mt-1">Add your certifications, licenses, and training records</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -740,7 +740,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                             {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
                         )}
-                        {!doc.expiryDate && !doc.expiry_date && <p className="text-xs text-base-content/40 mt-0.5">No expiry</p>}
+                        {!doc.expiryDate && !doc.expiry_date && <p className="text-xs text-base-content/60 mt-0.5">No expiry</p>}
                         {doc.r2_key && cgToken && (
                           <a href={`${API_BASE}/api/caregiver-documents/file?key=${encodeURIComponent(doc.r2_key)}&token=${cgToken}`}
                             target="_blank" rel="noopener noreferrer"
@@ -749,11 +749,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                           </a>
                         )}
                         {doc.file_name && !doc.r2_key && (
-                          <p className="text-xs text-base-content/30 mt-0.5">{doc.file_name}</p>
+                          <p className="text-xs text-base-content/60 mt-0.5">{doc.file_name}</p>
                         )}
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
+                    <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
                       <Trash2 size={12} />
                     </button>
                   </div>
@@ -771,7 +771,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             Families who have added you to their care team. You can coordinate schedules and communicate through the platform.
           </p>
           {clientsLoading && (
-            <div className="text-center py-8 text-base-content/40 text-sm">Loading your clients…</div>
+            <div className="text-center py-8 text-base-content/60 text-sm">Loading your clients…</div>
           )}
           {!clientsLoading && myClients.length === 0 && (
             <div className="bg-base-200 rounded-2xl p-6 text-center">
@@ -790,7 +790,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-base-content">{client.name || 'Client'}</p>
-                  <p className="text-xs text-base-content/50">{hiredDate ? `Added ${hiredDate}` : 'Hired via Carehia'}</p>
+                  <p className="text-xs text-base-content/65">{hiredDate ? `Added ${hiredDate}` : 'Hired via Carehia'}</p>
                 </div>
                 <div className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">
                   Active
@@ -839,7 +839,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 {unearnedBadges.map(badge => (
                   <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 opacity-60">
                     <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-                      <badge.icon size={24} className="text-base-content/40" />
+                      <badge.icon size={24} className="text-base-content/60" />
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-sm text-base-content">{badge.label}</p>
@@ -881,26 +881,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <button onClick={() => setShowSettings(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ padding: '0 16px 8px' }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>ACCOUNT</p>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>ACCOUNT</p>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Signed in as</p>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.70)', marginBottom: 2 }}>Signed in as</p>
                   <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{profile?.email || 'your account'}</p>
                 </div>
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 18 }}>🔔</span>
                   <span style={{ fontSize: 14, color: '#fff', flex: 1 }}>Notifications</span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>On</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.70)' }}>On</span>
                 </div>
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 18 }}>🌐</span>
                   <span style={{ fontSize: 14, color: '#fff', flex: 1 }}>Language</span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>English</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.70)' }}>English</span>
                 </div>
               </div>
             </div>
             <div style={{ padding: '12px 16px 8px' }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>SUPPORT</p>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>SUPPORT</p>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
                 <a href="mailto:support@carehia.com" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}>
                   <span style={{ fontSize: 18 }}>💬</span>

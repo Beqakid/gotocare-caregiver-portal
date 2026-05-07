@@ -90,7 +90,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
       {/* Day labels */}
       <div className="grid grid-cols-7 mb-1">
         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-          <div key={d} className="text-center text-[9px] font-medium text-base-content/40 py-0.5">{d}</div>
+          <div key={d} className="text-center text-[9px] font-medium text-base-content/60 py-0.5">{d}</div>
         ))}
       </div>
       {/* Days grid */}
@@ -711,7 +711,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <div className="text-center py-12">
               <Calendar size={40} className="mx-auto opacity-20 mb-3" />
               <p className="text-base-content/60 text-sm">No upcoming shifts</p>
-              <p className="text-xs text-base-content/40 mt-1">Check Requests for new care opportunities</p>
+              <p className="text-xs text-base-content/60 mt-1">Check Requests for new care opportunities</p>
             </div>
           ) : (
             Object.entries(grouped).map(([date, dateShifts]) => (
@@ -727,7 +727,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                           <div className="flex flex-col items-center">
                             <span className="text-sm font-bold text-base-content">{shift.startTime || '9:00'}</span>
                             <div className="w-px h-4 bg-base-300 my-0.5" />
-                            <span className="text-xs text-base-content/50">{shift.endTime || '13:00'}</span>
+                            <span className="text-xs text-base-content/65">{shift.endTime || '13:00'}</span>
                           </div>
                           <div>
                             <p className="font-semibold text-sm text-base-content">
@@ -1040,7 +1040,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <div className="text-center py-8">
                 <Timer size={32} className="mx-auto opacity-20 mb-2" />
                 <p className="text-sm text-base-content/60">No time entries yet</p>
-                <p className="text-xs text-base-content/40">Start a timer or log hours to track your shifts</p>
+                <p className="text-xs text-base-content/60">Start a timer or log hours to track your shifts</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1079,7 +1079,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                               {isSplit && (
                                 <button
                                   onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
-                                  className="block ml-auto text-[10px] text-base-content/40 hover:text-base-content/70"
+                                  className="block ml-auto text-[10px] text-base-content/60 hover:text-base-content/70"
                                 >
                                   {isExpanded ? '▲ hide' : '▼ breakdown'}
                                 </button>
@@ -1087,12 +1087,12 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                             </div>
                             <button
                               onClick={() => openEditEntry(entry)}
-                              className="btn btn-ghost btn-xs btn-circle opacity-50 hover:opacity-100"
+                              className="btn btn-ghost btn-xs btn-circle opacity-65 hover:opacity-100"
                               title="Edit times"
                             >
                               <Edit2 size={12} />
                             </button>
-                            <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
+                            <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -1213,7 +1213,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                       >
                         <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${day.available ? 'left-6' : 'left-0.5'}`} />
                       </div>
-                      <span className={`text-sm font-semibold ${day.available ? 'text-base-content' : 'text-base-content/40'}`}>
+                      <span className={`text-sm font-semibold ${day.available ? 'text-base-content' : 'text-base-content/60'}`}>
                         {label}
                       </span>
                     </div>
@@ -1362,7 +1362,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <div className="text-center py-10">
               <Users size={36} className="mx-auto opacity-20 mb-2" />
               <p className="text-sm text-base-content/60">No clients yet</p>
-              <p className="text-xs text-base-content/40 mt-1">Add clients you work with privately to track hours and invoice them</p>
+              <p className="text-xs text-base-content/60 mt-1">Add clients you work with privately to track hours and invoice them</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1405,7 +1405,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                         >
                           <Play size={12} /> Track
                         </button>
-                        <button onClick={() => handleDeleteClient(client.id)} className="btn btn-ghost btn-xs btn-circle opacity-40">
+                        <button onClick={() => handleDeleteClient(client.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
                           <Trash2 size={12} />
                         </button>
                       </div>

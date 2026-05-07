@@ -540,7 +540,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             <div className="text-center py-10">
               <FileText size={36} className="mx-auto opacity-20 mb-2" />
               <p className="text-sm text-base-content/60">No invoices yet</p>
-              <p className="text-xs text-base-content/40 mt-1">Create professional invoices for your private clients</p>
+              <p className="text-xs text-base-content/60 mt-1">Create professional invoices for your private clients</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -555,7 +555,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                         }`}>{inv.status}</span>
                       </div>
                       <p className="text-xs text-base-content/60 mt-0.5">{inv.invoiceNumber} · Due {inv.dueDate}</p>
-                      <p className="text-xs text-base-content/50 mt-0.5">
+                      <p className="text-xs text-base-content/65 mt-0.5">
                         {inv.items.length} item{inv.items.length > 1 ? 's' : ''} · {inv.items.reduce((s, i) => s + i.hours, 0)}h
                       </p>
                     </div>
@@ -567,7 +567,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                             <DollarSign size={10} /> Paid
                           </button>
                         )}
-                        <button onClick={() => handleDeleteInvoice(inv.id)} className="btn btn-ghost btn-xs opacity-40">
+                        <button onClick={() => handleDeleteInvoice(inv.id)} className="btn btn-ghost btn-xs opacity-60">
                           <Trash2 size={12} />
                         </button>
                       </div>

@@ -136,9 +136,14 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   // This week's hours + earnings — from Time Tracker entries (not agency timesheets)
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(() => getTimeEntries())
 
-  // Refresh time entries whenever tab is focused (in case ScheduleTab just saved one)
+  // Refresh on mount AND whenever page becomes visible (catches ScheduleTab entries)
   useEffect(() => {
     setTimeEntries(getTimeEntries())
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setTimeEntries(getTimeEntries())
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   const getWeekStart = () => {
@@ -153,13 +158,23 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const weekEntries = timeEntries.filter(e =>
     e.status === 'completed' && e.date >= weekStart
   )
-  const weekHours = weekEntries.reduce((sum, e) => {
+  const completedWeekHours = weekEntries.reduce((sum, e) => {
     if (e.regularHours !== undefined || e.overtimeHours !== undefined) {
       return sum + (e.regularHours || 0) + (e.overtimeHours || 0)
     }
     return sum + (e.duration ? e.duration / 60 : 0)
   }, 0)
-  const weekEarnings = weekEntries.reduce((sum, e) => sum + (e.totalPay || 0), 0)
+  const completedWeekEarnings = weekEntries.reduce((sum, e) => sum + (e.totalPay || 0), 0)
+
+  // Include live timer so the card ticks in real-time while a shift is running
+  const activeTimerThisWeek = activeTimer
+    ? new Date(activeTimer.startTime).toISOString().split('T')[0] >= weekStart
+    : false
+  const liveHoursNow = activeTimerThisWeek ? elapsed / 3600 : 0
+  const liveEarningsNow = activeTimerThisWeek ? liveHoursNow * (activeTimer?.hourlyRate || 0) : 0
+
+  const weekHours = completedWeekHours + liveHoursNow
+  const weekEarnings = completedWeekEarnings + liveEarningsNow
 
   // Expiring docs
   const expiringDocs = documents.filter(d => d.status === 'expiring_soon' || d.status === 'expired')
@@ -214,6 +229,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     setActiveTimer(null)
     setActiveTimerState(null)
     setElapsed(0)
+    // Refresh so the completed entry appears in weekHours immediately
+    setTimeEntries(getTimeEntries())
     onTimerUpdate()
   }
 

@@ -279,7 +279,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               </div>
               <div>
                 <p className="text-base font-bold text-base-content">{invoices.filter(i => i.status === 'paid').length || '—'}</p>
-                <p className="text-[10px] text-base-content/50">Shifts completed</p>
+                <p className="text-[10px] text-base-content/50">Clients served</p>
               </div>
             </div>
           </div>

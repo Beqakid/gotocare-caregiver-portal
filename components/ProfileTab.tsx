@@ -652,6 +652,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         <div id="section-documents" className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
             Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
+            <p className="text-xs text-base-content/40 mt-1">🔒 Documents are private unless you choose to share them.</p>
           </p>
 
           <button onClick={() => setShowAddDoc(true)} className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">

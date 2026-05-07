@@ -59,6 +59,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [editState, setEditState] = useState(profile?.location?.state || '')
   const [langInput, setLangInput] = useState('')
   const [showLangInput, setShowLangInput] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients'>(initialSection || 'profile')
   const [myClients, setMyClients] = useState<any[]>([])
@@ -507,11 +508,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
                   <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
                     <span className="text-xs text-base-content/60 truncate flex-1">
-                      work.carehia.com?caregiver={profile?.id}
+                      carehia.com/caregiver/{profile?.firstName?.toLowerCase()}-{profile?.lastName?.toLowerCase()}-{profile?.id}
                     </span>
                     <button
                       onClick={async () => {
-                        const url = `https://work.carehia.com?caregiver=${profile?.id}`
+                        const url = `https://carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
                         try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                       }}
                       className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
@@ -521,7 +522,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   </div>
                   <button
                     onClick={async () => {
-                      const url = `https://work.carehia.com?caregiver=${profile?.id}`
+                      const url = `https://carehia.com/caregiver/${profile?.firstName?.toLowerCase()}-${profile?.lastName?.toLowerCase()}-${profile?.id}`
                       try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
                         try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                       }
@@ -644,7 +645,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
           {/* Settings & Logout */}
           <div className="bg-base-200 rounded-2xl overflow-hidden">
-            <button className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors border-b border-base-300">
+            <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors border-b border-base-300">
               <Settings size={18} className="text-base-content/60" />
               <span className="flex-1 text-left text-sm text-base-content">Settings</span>
               <ChevronRight size={16} className="opacity-30" />
@@ -859,5 +860,79 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
     </div>
+
+      {/* ─── SETTINGS PANEL ─── */}
+      {showSettings && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'flex-end',
+          }}
+          onClick={e => { if (e.target === e.currentTarget) setShowSettings(false) }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(180deg, #1a1035 0%, #0f172a 100%)',
+              borderRadius: '24px 24px 0 0',
+              width: '100%', maxWidth: 480, margin: '0 auto',
+              padding: '0 0 env(safe-area-inset-bottom, 16px)',
+              animation: 'slideUp 0.25s ease',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 4 }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 16px' }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Settings</span>
+              <button onClick={() => setShowSettings(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: '#fff', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '0 16px 8px' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>ACCOUNT</p>
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Signed in as</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{profile?.email || 'your account'}</p>
+                </div>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 18 }}>🔔</span>
+                  <span style={{ fontSize: 14, color: '#fff', flex: 1 }}>Notifications</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>On</span>
+                </div>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 18 }}>🌐</span>
+                  <span style={{ fontSize: 14, color: '#fff', flex: 1 }}>Language</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>English</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px 16px 8px' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>SUPPORT</p>
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
+                <a href="mailto:support@carehia.com" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}>
+                  <span style={{ fontSize: 18 }}>💬</span>
+                  <span style={{ fontSize: 14, flex: 1 }}>Contact Support</span>
+                </a>
+                <a href="https://carehia.com" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', color: '#fff' }}>
+                  <span style={{ fontSize: 18 }}>📖</span>
+                  <span style={{ fontSize: 14, flex: 1 }}>About Carehia</span>
+                </a>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px 16px 24px' }}>
+              <button
+                onClick={() => { setShowSettings(false); onLogout() }}
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 14, color: '#EF4444', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                <LogOut size={16} /> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
   )
 }

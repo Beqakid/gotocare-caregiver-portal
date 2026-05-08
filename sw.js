@@ -1,7 +1,7 @@
 // Carehia Caregiver Portal — Service Worker
 // Handles: PWA caching, push notifications, notification clicks
-const CACHE_NAME = 'carehia-cgp-v2';
-const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/dist/app.js'];
+const CACHE_NAME = 'carehia-cgp-v3';
+const STATIC_ASSETS = ['/', '/index.html', '/styles.css'];
 
 // ── Install ──────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -23,10 +23,29 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ── Fetch (cache-first for assets, network-first for API) ─────────────
+// ── Fetch Strategy ────────────────────────────────────────────────────
+// dist/ JS bundles: always network-first (chunks change hash every build)
+// Everything else: cache-first
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) return;
+
+  // Network-first for JS bundles so stale chunk filenames never cause blank screens
+  if (url.pathname.startsWith('/dist/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache a fresh copy for offline fallback
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for static shell (HTML, CSS, fonts)
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => caches.match('/index.html')))
   );
@@ -34,7 +53,6 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push Notification Handler ─────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  // Parse data if available, otherwise fetch from backend
   let notifData = {
     title: 'New Care Request Near You!',
     body: 'Tap to review — a family needs care in your area.',
@@ -62,8 +80,8 @@ self.addEventListener('push', (event) => {
     requireInteraction: true,
     vibrate: [200, 100, 200],
     actions: [
-      { action: 'view', title: '✅ View Request' },
-      { action: 'dismiss', title: '✕ Dismiss' },
+      { action: 'view', title: '\u2705 View Request' },
+      { action: 'dismiss', title: '\u2715 Dismiss' },
     ],
     data: notifData.data || { url: '/?tab=requests' },
   };

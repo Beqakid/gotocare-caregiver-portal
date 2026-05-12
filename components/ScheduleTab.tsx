@@ -632,19 +632,20 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     <div className="pb-4">
       <div className="px-4 pt-4 pb-3">
         <h1 className="text-xl font-bold text-base-content">Schedule & Time</h1>
-        <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+        <div className="grid grid-cols-4 gap-2 mt-3">
           {[
-            { key: 'schedule' as const, label: 'Schedule' },
-            { key: 'timesheet' as const, label: 'Time Tracker' },
-            { key: 'clients' as const, label: 'My Clients' },
-            { key: 'availability' as const, label: '🗓 Availability' },
+            { key: 'schedule' as const, icon: '📅', label: 'Schedule' },
+            { key: 'timesheet' as const, icon: '⏱', label: 'Tracker' },
+            { key: 'clients' as const, icon: '👥', label: 'Clients' },
+            { key: 'availability' as const, icon: '🗓', label: 'Availability' },
           ].map(t => (
             <button
               key={t.key}
-              className={`btn btn-sm rounded-full whitespace-nowrap ${viewMode === t.key ? 'btn-primary' : 'btn-ghost'}`}
+              className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-semibold transition-all ${viewMode === t.key ? 'bg-primary text-primary-content shadow-md' : 'bg-base-200/60 text-base-content/70 hover:bg-base-200'}`}
               onClick={() => setViewMode(t.key)}
             >
-              {t.label}
+              <span className="text-base leading-none">{t.icon}</span>
+              <span className="leading-tight">{t.label}</span>
             </button>
           ))}
         </div>

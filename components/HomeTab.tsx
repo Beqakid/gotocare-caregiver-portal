@@ -270,7 +270,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
-      {/* 1.5 — "3 Steps to Start Earning" onboarding checklist */}
+      {/* 1.5 — "Get Started" onboarding — compact single-row with next action */}
       {(() => {
         const hasPhoto = !!(profile?.profilePhoto)
         const hasAvailability = (() => {
@@ -282,47 +282,28 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         const hasDocs = documents.length > 0
         if (hasPhoto && hasAvailability && hasDocs) return null
         const steps = [
-          { done: hasPhoto, label: 'Add your photo', hint: 'Caregivers with photos get 3× more requests', action: () => onNavigateToSection('profile', 'section-photo') },
-          { done: hasAvailability, label: 'Set your availability', hint: 'Tell clients when you\'re free to work', action: onNavigateToSchedule },
-          { done: hasDocs, label: 'Upload a document', hint: 'ID, cert, or background check', action: () => onNavigateToSection('documents', 'section-docs') },
+          { done: hasPhoto, label: 'Add your photo', action: () => onNavigateToSection('profile', 'section-photo') },
+          { done: hasAvailability, label: 'Set availability', action: onNavigateToSchedule },
+          { done: hasDocs, label: 'Upload a document', action: () => onNavigateToSection('documents', 'section-docs') },
         ]
         const doneCount = steps.filter(s => s.done).length
+        const nextStep = steps.find(s => !s.done)
+        if (!nextStep) return null
         return (
-          <div className="bg-gradient-to-br from-primary/8 to-primary/4 border border-primary/15 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="font-bold text-sm text-base-content">3 Steps to Start Earning</p>
-                <p className="text-xs text-base-content/65">{doneCount}/3 complete</p>
-              </div>
-              <div className="flex gap-1">
+          <button onClick={nextStep.action} className="w-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/15 rounded-2xl p-3.5 flex items-center gap-3 press-card text-left">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <span className="text-primary font-bold text-sm">{doneCount}/3</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-xs text-base-content">Next: {nextStep.label}</p>
+              <div className="flex gap-1 mt-1.5">
                 {steps.map((s, i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full ${s.done ? 'bg-success' : 'bg-base-300'}`} />
+                  <div key={i} className={`h-1.5 flex-1 rounded-full ${s.done ? 'bg-success' : i === steps.indexOf(nextStep) ? 'bg-primary/40' : 'bg-base-300'}`} />
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              {steps.map((step, i) => (
-                <button
-                  key={i}
-                  onClick={step.action}
-                  disabled={step.done}
-                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${step.done ? 'bg-success/10 opacity-60' : 'bg-base-100 press-card'}`}
-                >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-success' : 'bg-primary/10 border-2 border-dashed border-primary/30'}`}>
-                    {step.done
-                      ? <span className="text-white text-xs">✓</span>
-                      : <span className="text-xs font-bold text-primary">{i + 1}</span>
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold ${step.done ? 'text-success line-through' : 'text-base-content'}`}>{step.label}</p>
-                    {!step.done && <p className="text-[10px] text-base-content/50 truncate">{step.hint}</p>}
-                  </div>
-                  {!step.done && <span className="text-[10px] text-primary font-semibold flex-shrink-0">→</span>}
-                </button>
-              ))}
-            </div>
-          </div>
+            <ChevronRight size={16} className="text-primary flex-shrink-0" />
+          </button>
         )
       })()}
 
@@ -438,6 +419,26 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
+      {/* 7. Quick Actions grid (4 buttons) */}
+      <div>
+        <h2 className="font-bold text-base text-base-content mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: Play, label: 'Clock In', color: 'bg-success/10 text-success', action: () => setShowQuickTimer(true) },
+            { icon: FileText, label: 'Invoice', color: 'bg-primary/10 text-primary', action: onNavigateToEarnings },
+            { icon: FolderOpen, label: 'Documents', color: 'bg-warning/10 text-warning', action: onNavigateToProfile },
+            { icon: Users, label: 'My Clients', color: 'bg-info/10 text-info', action: onNavigateToSchedule },
+          ].map((item, i) => (
+            <button key={i} onClick={item.action} className="flex flex-col items-center gap-1.5 p-3 bg-base-200 rounded-2xl press-card">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color}`}>
+                <item.icon size={20} />
+              </div>
+              <span className="text-[10px] font-medium text-base-content/70">{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+
       {/* 5. Earnings Card (this week) */}
       <div className="earnings-card rounded-2xl p-5 text-white" onClick={onNavigateToEarnings}>
         <p className="text-white/90 text-xs font-medium uppercase tracking-wide">This Week</p>
@@ -485,24 +486,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </button>
       )}
 
-      {/* 7. Quick Actions grid (4 buttons) */}
-      <div>
-        <h2 className="font-bold text-base text-base-content mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { icon: Play, label: 'Clock In', color: 'bg-success/10 text-success', action: () => setShowQuickTimer(true) },
-            { icon: FileText, label: 'Invoice', color: 'bg-primary/10 text-primary', action: onNavigateToEarnings },
-            { icon: FolderOpen, label: 'Documents', color: 'bg-warning/10 text-warning', action: onNavigateToProfile },
-            { icon: Users, label: 'My Clients', color: 'bg-info/10 text-info', action: onNavigateToSchedule },
-          ].map((item, i) => (
-            <button key={i} onClick={item.action} className="flex flex-col items-center gap-1.5 p-3 bg-base-200 rounded-2xl press-card">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color}`}>
-                <item.icon size={20} />
-              </div>
-              <span className="text-[10px] font-medium text-base-content/70">{item.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Quick Timer Modal */}

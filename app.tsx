@@ -10,7 +10,7 @@ import { BottomNav } from './components/BottomNav'
 // Lazy-load tabs — each becomes a separate JS chunk (~150-250KB each)
 const HomeTab = React.lazy(() => import('./components/HomeTab').then(m => ({ default: m.HomeTab })))
 const ScheduleTab = React.lazy(() => import('./components/ScheduleTab').then(m => ({ default: m.ScheduleTab })))
-const RequestsTab = React.lazy(() => import('./components/RequestsTab'))
+const RequestsTab = React.lazy(() => import('./components/RequestsTab').then(m => ({ default: m.RequestsTab })))
 const MarketingTab = React.lazy(() => import('./components/MarketingTab'))
 const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m => ({ default: m.EarningsTab })))
 const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))
@@ -98,7 +98,9 @@ const App: React.FC<{}> = () => {
       return new URLSearchParams(window.location.search).get('caregiver')
     } catch { return null }
   })
-  const [loggedIn, setLoggedIn] = useState(false)
+  // Restore session on refresh — check localStorage immediately (lazy initializer)
+  const sessionRestored = React.useRef(!!localStorage.getItem('cgp_token'))
+  const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('cgp_token'))
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
@@ -137,7 +139,12 @@ const App: React.FC<{}> = () => {
     setProfileDeepLink(scrollTo)
     navigateToTab('profile')
   }
-  const [profile, setProfile] = useState<CaregiverProfile | null>(null)
+  const [profile, setProfile] = useState<CaregiverProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('cgp_account')
+      return saved ? JSON.parse(saved) : null
+    } catch { return null }
+  })
   const [shifts, setShifts] = useState<Shift[]>([])
   const [timesheets, setTimesheets] = useState<Timesheet[]>([])
   const [requests, setRequests] = useState<CareRequest[]>(DEMO_REQUESTS)
@@ -184,10 +191,15 @@ const App: React.FC<{}> = () => {
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
 
-  // On login: stamp the current history entry with tab state so back-from-here
-  // goes to whatever the user was doing before opening the app (not to login screen)
+  // On login: go to home tab. But on session RESTORE (page refresh), stay on current tab.
   useEffect(() => {
     if (loggedIn) {
+      if (sessionRestored.current) {
+        // Restoring from localStorage on refresh — skip redirect, stay on current hash/tab
+        sessionRestored.current = false
+        return
+      }
+      // Fresh login — go to home tab
       try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
       setActiveTab('home')
     }

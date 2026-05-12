@@ -16,6 +16,8 @@ const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m =
 const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))
 const PublicProfileView = React.lazy(() => import('./components/PublicProfileView'))
 
+const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
+
 const TabSpinner = () => (
   <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
     <div style={{width:40,height:40,border:'3px solid rgba(124,92,255,0.2)',borderTopColor:'#7C5CFF',borderRadius:'50%',animation:'spin 0.7s linear infinite'}}/>
@@ -82,6 +84,14 @@ function mapBookingToRequest(b: any): CareRequest {
   }
 }
 
+// Helper: read tab from URL hash
+function getTabFromHash(): TabType {
+  try {
+    const hash = window.location.hash.replace('#', '') as TabType
+    return VALID_TABS.includes(hash) ? hash : 'home'
+  } catch { return 'home' }
+}
+
 const App: React.FC<{}> = () => {
   const [publicCaregiverId] = useState(() => {
     try {
@@ -91,14 +101,41 @@ const App: React.FC<{}> = () => {
   const [loggedIn, setLoggedIn] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabType>('home')
+
+  // Initialize tab from URL hash so deep links / refresh work
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash)
+
+  // navigateToTab — always use this instead of setActiveTab so browser back works
+  const navigateToTab = useCallback((tab: TabType) => {
+    setActiveTab(tab)
+    try { window.history.pushState({ tab }, '', '#' + tab) } catch {}
+  }, [])
+
+  // Listen for browser back/forward buttons
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      try {
+        const tab = e.state?.tab as TabType
+        if (tab && VALID_TABS.includes(tab)) {
+          setActiveTab(tab)
+        } else {
+          // Hash changed but no state — read from hash
+          const hashTab = getTabFromHash()
+          setActiveTab(hashTab)
+        }
+      } catch {}
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   const [profileDeepLink, setProfileDeepLink] = useState<string | undefined>(undefined)
   const [profileInitialSection, setProfileInitialSection] = useState<'profile' | 'documents' | 'badges' | undefined>(undefined)
 
   const handleNavigateToSection = (section: 'profile' | 'documents', scrollTo: string) => {
     setProfileInitialSection(section)
     setProfileDeepLink(scrollTo)
-    setActiveTab('profile')
+    navigateToTab('profile')
   }
   const [profile, setProfile] = useState<CaregiverProfile | null>(null)
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -140,12 +177,21 @@ const App: React.FC<{}> = () => {
     const subscriptionSuccess = params.get('subscription')
     if (unlockedBookingId || subscriptionSuccess === 'success') {
       loadData(profile.id)
-      window.history.replaceState({}, '', window.location.pathname)
+      window.history.replaceState({ tab: activeTab }, '', '#' + activeTab)
     }
   }, [loggedIn, profile, loadData])
 
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
+
+  // On login: stamp the current history entry with tab state so back-from-here
+  // goes to whatever the user was doing before opening the app (not to login screen)
+  useEffect(() => {
+    if (loggedIn) {
+      try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
+      setActiveTab('home')
+    }
+  }, [loggedIn])
 
   const handleLogin = async (email: string, password: string) => {
     setLoginError('')
@@ -196,6 +242,8 @@ const App: React.FC<{}> = () => {
     setRequests(DEMO_REQUESTS)
     setUsingDemoRequests(true)
     setActiveTab('home')
+    // Clear hash so next login starts fresh
+    try { window.history.replaceState({}, '', window.location.pathname) } catch {}
   }
 
   const handleClockIn = async (shiftId: number) => {
@@ -353,10 +401,10 @@ const App: React.FC<{}> = () => {
               requests={requests}
               loading={loading}
               documents={documents}
-              onNavigateToRequests={() => setActiveTab('requests')}
-              onNavigateToSchedule={() => setActiveTab('schedule')}
-              onNavigateToEarnings={() => setActiveTab('earnings')}
-              onNavigateToProfile={() => setActiveTab('profile')}
+              onNavigateToRequests={() => navigateToTab('requests')}
+              onNavigateToSchedule={() => navigateToTab('schedule')}
+              onNavigateToEarnings={() => navigateToTab('earnings')}
+              onNavigateToProfile={() => navigateToTab('profile')}
               onNavigateToSection={handleNavigateToSection}
               onClockIn={handleClockIn}
               onTimerUpdate={refreshDocs}
@@ -385,7 +433,7 @@ const App: React.FC<{}> = () => {
               onDocumentsChange={refreshDocs}
               deepLink={profileDeepLink}
               initialSection={profileInitialSection}
-              onNavigateHome={() => { setActiveTab('home'); setProfileDeepLink(undefined); setProfileInitialSection(undefined); }}
+              onNavigateHome={() => { navigateToTab('home'); setProfileDeepLink(undefined); setProfileInitialSection(undefined); }}
             />
           )}
           {activeTab === 'marketing' && (
@@ -399,7 +447,7 @@ const App: React.FC<{}> = () => {
 
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={navigateToTab}
         requestCount={pendingRequestCount}
       />
     </div>

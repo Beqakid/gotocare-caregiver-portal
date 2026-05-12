@@ -437,7 +437,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </button>
           ))}
         </div>
-
+      </div>
 
       {/* 5. Earnings Card (this week) */}
       <div className="earnings-card rounded-2xl p-5 text-white" onClick={onNavigateToEarnings}>
@@ -485,8 +485,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <ChevronRight size={18} className="text-primary opacity-60 flex-shrink-0" />
         </button>
       )}
-
-      </div>
 
       {/* Quick Timer Modal */}
       {showQuickTimer && !activeTimer && (

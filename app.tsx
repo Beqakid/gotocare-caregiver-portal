@@ -229,6 +229,12 @@ const App: React.FC<{}> = () => {
           location: user.location || undefined,
           profilePhoto: user.profilePhoto || undefined,
         }
+        // Persist agency session so refresh doesn't bounce to login
+        try {
+          localStorage.setItem('cgp_token', result.token)
+          localStorage.setItem('cgp_account', JSON.stringify(cgProfile))
+          localStorage.setItem('cgp_auth_type', 'agency')
+        } catch {}
         setProfile(cgProfile)
         setLoggedIn(true)
         refreshDocs()

@@ -1,7 +1,7 @@
 // Carehia Caregiver Portal — Service Worker
 // Handles: PWA caching, push notifications, notification clicks
-const CACHE_NAME = 'carehia-cgp-v3';
-const STATIC_ASSETS = ['/', '/index.html', '/styles.css'];
+const CACHE_NAME = 'carehia-cgp-v4';
+const STATIC_ASSETS = ['/styles.css'];
 
 // ── Install ──────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -24,14 +24,15 @@ self.addEventListener('activate', (event) => {
 });
 
 // ── Fetch Strategy ────────────────────────────────────────────────────
+// index.html: always network-first so new builds always load fresh HTML
 // dist/ JS bundles: always network-first (chunks change hash every build)
 // Everything else: cache-first
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) return;
 
-  // Network-first for JS bundles so stale chunk filenames never cause blank screens
-  if (url.pathname.startsWith('/dist/')) {
+  // Network-first for HTML entry point and JS bundles
+  if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname.startsWith('/dist/')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -45,7 +46,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static shell (HTML, CSS, fonts)
+  // Cache-first for static assets (CSS, fonts, icons)
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => caches.match('/index.html')))
   );

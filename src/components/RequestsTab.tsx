@@ -303,7 +303,7 @@ function InterviewRequestCard({
   )
 }
 
-export default function RequestsTab({ profile }: { profile?: any }) {
+function RequestsTab({ profile }: { profile?: any }) {
   const [activeSection, setActiveSection] = useState<'live' | 'interviews'>('live')
 
   // ── Live Dispatch State ────────────────────────────────
@@ -610,3 +610,6 @@ export default function RequestsTab({ profile }: { profile?: any }) {
     </div>
   )
 }
+
+export default RequestsTab;
+export { RequestsTab };

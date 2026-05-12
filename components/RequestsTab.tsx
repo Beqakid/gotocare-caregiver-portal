@@ -48,13 +48,13 @@ interface CountdownInfo {
 const CARE_QUOTES: Record<string, string> = {
   'Elder Care': '"My father needs someone calm and patient in the mornings."',
   'Dementia Care': '"She gets confused easily — we need someone gentle and experienced."',
-  'Alzheimer\'s Support': '"He needs structured routines and a kind presence."',
+  "Alzheimer's Support": '"He needs structured routines and a kind presence."',
   'Post-Surgery Recovery': '"Just home from hip surgery — needs help the first few weeks."',
   'Medication Management': '"Mom forgets her medications — needs daily reminders and tracking."',
   'Bathing & Grooming': '"Dad needs morning hygiene help but values his dignity."',
   'Meal Preparation': '"Needs healthy meals prepared — has dietary restrictions."',
   'Companionship': '"Lives alone and gets lonely — just needs company and conversation."',
-  'Transportation': '"Can\'t drive anymore — needs rides to appointments weekly."',
+  'Transportation': '"Can't drive anymore — needs rides to appointments weekly."',
   'Overnight Care': '"Needs someone present through the night for safety."',
   'Physical Therapy Aid': '"Just finished PT — needs home exercises supervised."',
   'Light Housekeeping': '"Needs help keeping the home safe and clean."',
@@ -303,7 +303,7 @@ function InterviewRequestCard({
   )
 }
 
-export default function RequestsTab({ profile }: { profile?: any }) {
+export function RequestsTab({ profile }: { profile?: any }) {
   const [activeSection, setActiveSection] = useState<'live' | 'interviews'>('live')
 
   // ── Live Dispatch State ────────────────────────────────
@@ -381,7 +381,6 @@ export default function RequestsTab({ profile }: { profile?: any }) {
       const data = await r.json()
       if (data.success) {
         setAcceptedIds((prev) => new Set([...prev, requestId]))
-        // Refresh after 2s
         setTimeout(fetchLiveRequests, 2000)
       } else if (data.taken) {
         setTakenIds((prev) => new Set([...prev, requestId]))
@@ -413,8 +412,7 @@ export default function RequestsTab({ profile }: { profile?: any }) {
   }
 
   // ── Fetch Interview Bookings ───────────────────────────
-  useEffect(() => {
-    if (activeSection !== 'interviews') return
+  const fetchBookings = useCallback(async () => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setIsLoadingBookings(true)
@@ -425,40 +423,68 @@ export default function RequestsTab({ profile }: { profile?: any }) {
         setBookings(raw.map((b: any) => ({
           id: b.id,
           status: b.status || 'pending',
-          careType: b.care_type || b.careType,
-          scheduledDate: b.scheduled_date || b.scheduledDate,
-          scheduledTime: b.scheduled_time || b.scheduledTime,
-          clientName: b.client_name,
-          clientPhone: b.client_phone,
-          clientEmail: b.client_email,
+          careType: b.care_type || b.careType || b.careNeeds,
+          scheduledDate: b.scheduled_date || b.scheduledDate || b.preferredDate,
+          scheduledTime: b.scheduled_time || b.scheduledTime || b.preferredTime,
+          clientName: b.client_name || b.clientName,
+          clientPhone: b.client_phone || b.clientPhone,
+          clientEmail: b.client_email || b.clientEmail,
           clientLocation: b.client_location || b.zip_code,
-          payRate: b.pay_rate,
+          payRate: b.pay_rate || b.payRate,
           notes: b.notes,
-          is_unlocked: b.is_unlocked,
+          is_unlocked: b.is_unlocked || b.isUnlocked,
         })))
       })
       .catch(() => {})
       .finally(() => setIsLoadingBookings(false))
-  }, [activeSection])
+  }, [])
+
+  useEffect(() => {
+    if (activeSection !== 'interviews') return
+    fetchBookings()
+    const interval = setInterval(fetchBookings, 30000)
+    return () => clearInterval(interval)
+  }, [activeSection, fetchBookings])
 
   // ── Unlock Handler ─────────────────────────────────────
+  // Fix: send camelCase bookingId (not booking_id), call right endpoint per plan,
+  // and check data.url (not data.checkout_url) for the Stripe redirect.
   const handleUnlock = async (req: CareRequest, plan: 'single' | 'unlimited') => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setUnlockLoading(req.id)
     try {
-      const r = await fetch(`${API}/unlock-booking`, {
+      let endpoint: string
+      let payload: Record<string, any>
+
+      if (plan === 'unlimited') {
+        // Subscription plan — separate endpoint
+        endpoint = `${API}/create-caregiver-subscription-checkout`
+        payload = { token, caregiverId: profile?.id }
+      } else {
+        // One-time $4.99 unlock
+        endpoint = `${API}/unlock-booking`
+        payload = { token, bookingId: req.id, caregiverId: profile?.id }
+      }
+
+      const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, booking_id: req.id, plan }),
+        body: JSON.stringify(payload),
       })
       const data = await r.json()
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url
+
+      // Backend returns { url } — redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url
       } else if (data.success) {
+        // Free override or already unlocked
         const newUnlocked = new Set([...unlockedIds, req.id])
         setUnlockedIds(newUnlocked)
         localStorage.setItem('cgp_unlocked', JSON.stringify([...newUnlocked]))
+      } else {
+        console.error('Unlock error:', data)
+        alert(data.error || 'Could not start checkout. Please try again.')
       }
     } catch (e: any) {
       alert('Error processing unlock. Please try again.')
@@ -520,7 +546,6 @@ export default function RequestsTab({ profile }: { profile?: any }) {
 
             {!isLoadingLive && liveRequests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-                {/* Radar animation */}
                 <div className="relative w-20 h-20">
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
                   <div className="absolute inset-2 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDuration: '2.5s' }} />
@@ -604,3 +629,5 @@ export default function RequestsTab({ profile }: { profile?: any }) {
     </div>
   )
 }
+
+export default RequestsTab

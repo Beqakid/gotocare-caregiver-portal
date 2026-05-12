@@ -10,7 +10,7 @@ import { BottomNav } from './components/BottomNav'
 // Lazy-load tabs — each becomes a separate JS chunk (~150-250KB each)
 const HomeTab = React.lazy(() => import('./components/HomeTab').then(m => ({ default: m.HomeTab })))
 const ScheduleTab = React.lazy(() => import('./components/ScheduleTab').then(m => ({ default: m.ScheduleTab })))
-const RequestsTab = React.lazy(() => import('./components/RequestsTab').then(m => ({ default: m.RequestsTab })))
+const RequestsTab = React.lazy(() => import('./components/RequestsTab'))
 const MarketingTab = React.lazy(() => import('./components/MarketingTab'))
 const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m => ({ default: m.EarningsTab })))
 const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))

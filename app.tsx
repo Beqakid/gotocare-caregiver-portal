@@ -183,8 +183,9 @@ const App: React.FC<{}> = () => {
     const unlockedBookingId = params.get('booking_unlocked')
     const subscriptionSuccess = params.get('subscription')
     if (unlockedBookingId || subscriptionSuccess === 'success') {
+      navigateToTab('requests')
       loadData(profile.id)
-      window.history.replaceState({ tab: activeTab }, '', '#' + activeTab)
+      window.history.replaceState({ tab: 'requests' }, '', '#requests')
     }
   }, [loggedIn, profile, loadData])
 

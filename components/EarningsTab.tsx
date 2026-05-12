@@ -503,125 +503,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             <Plus size={18} /> Create New Invoice
           </button>
 
-          {showCreate && (
-            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-bold text-sm">New Invoice</p>
-                <button onClick={() => setShowCreate(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
-              </div>
 
-              <div className="space-y-3">
-                {/* Client dropdown */}
-                {privateClients.length > 0 ? (
-                  <div className="space-y-2">
-                    <select
-                      className="select select-bordered select-sm w-full"
-                      value={invClientId}
-                      onChange={e => handleClientSelect(e.target.value)}
-                    >
-                      <option value="">— Select client —</option>
-                      {privateClients.map((c, i) => {
-                        const uninvH = localEntries
-                          .filter(e => e.clientName === c.name && !e.isInvoiced)
-                          .reduce((s, e) => s + (e.duration || 0) / 60, 0)
-                        const badge = uninvH > 0 ? ` · ${uninvH.toFixed(1)}h to invoice` : ''
-                        return (
-                          <option key={i} value={String(i)}>{c.name}{c.email ? ` (${c.email})` : ''}{badge}</option>
-                        )
-                      })}
-                      <option value="__new__">＋ New client (not in list)</option>
-                    </select>
-                    {autoFilledNote && invClientId !== '' && invClientId !== '__new__' && (
-                      <p className="text-xs text-primary/80 mt-1 px-1">{autoFilledNote}</p>
-                    )}
-                    {invClientId !== '' && invClientId !== '__new__' && usedEntryIds.length === 0 && (
-                      <p className="text-xs text-base-content/50 mt-1 px-1">No uninvoiced sessions found — fill in hours manually.</p>
-                    )}
-                    {invClientId === '__new__' && (
-                      <>
-                        <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
-                          value={invClient} onChange={e => setInvClient(e.target.value)} />
-                        <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
-                          value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
-                      value={invClient} onChange={e => setInvClient(e.target.value)} />
-                    <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
-                      value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
-                  </>
-                )}
-
-                {localEntries.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={generateFromThisWeek} className="btn btn-primary btn-xs gap-1">
-                      ⚡ Generate from this week
-                    </button>
-                    <button onClick={autoFillFromEntries} className="btn btn-ghost btn-xs gap-1 text-primary">
-                      <Clock size={12} /> Auto-fill recent
-                    </button>
-                  </div>
-                )}
-
-                {/* Line items */}
-                <div className="space-y-2">
-                  {invItems.map((item, i) => (
-                    <div key={i} className="bg-base-100 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <input type="text" className="input input-bordered input-xs flex-1 mr-2" placeholder="Description"
-                          value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} />
-                        {invItems.length > 1 && (
-                          <button onClick={() => removeItem(i)} className="btn btn-ghost btn-xs btn-circle"><X size={12} /></button>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <label className="text-[10px] text-base-content/60">Hours</label>
-                          <input type="number" step="0.25" className="input input-bordered input-xs w-full"
-                            value={item.hours || ''} onChange={e => updateItem(i, 'hours', parseFloat(e.target.value) || 0)} />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] text-base-content/60">Rate</label>
-                          <input type="number" className="input input-bordered input-xs w-full"
-                            value={item.rate || ''} onChange={e => updateItem(i, 'rate', parseFloat(e.target.value) || 0)} />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] text-base-content/60">Amount</label>
-                          <p className="text-sm font-bold text-base-content pt-1">${item.amount.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button onClick={addItem} className="btn btn-ghost btn-xs gap-1">
-                    <Plus size={12} /> Add Line Item
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between bg-base-100 rounded-xl p-3">
-                  <span className="font-semibold text-sm">Total</span>
-                  <span className="font-bold text-lg text-primary">${invItems.reduce((s, i) => s + i.amount, 0).toFixed(2)}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="text-[10px] text-base-content/60">Due in (days)</label>
-                    <input type="number" className="input input-bordered input-xs w-full"
-                      value={invDueDays} onChange={e => setInvDueDays(e.target.value)} />
-                  </div>
-                </div>
-
-                <textarea className="textarea textarea-bordered w-full text-sm" rows={2} placeholder="Notes (optional)"
-                  value={invNotes} onChange={e => setInvNotes(e.target.value)} />
-
-                <button onClick={handleCreateInvoice} className="btn btn-primary btn-sm w-full gap-1">
-                  <FileText size={14} /> Create Invoice
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Invoice list */}
           {invoices.length === 0 && !showCreate ? (
@@ -740,6 +622,126 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <li>🏥 Professional liability insurance</li>
               <li>💼 Professional association dues</li>
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* ── Invoice bottom sheet — last child so no Fragment needed ── */}
+      {showCreate && (
+        <div
+          style={{position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'flex-end'}}
+          onClick={e => { if (e.target === e.currentTarget) setShowCreate(false) }}
+        >
+          <div
+            style={{background: 'var(--fallback-b1,oklch(var(--b1)/1))', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, margin: '0 auto', maxHeight: '85vh', overflowY: 'auto', paddingBottom: 'env(safe-area-inset-bottom, 16px)'}}
+          >
+            <div style={{display: 'flex', justifyContent: 'center', padding: '12px 0 4px'}}>
+              <div style={{width: 40, height: 4, background: 'rgba(124,92,255,0.3)', borderRadius: 4}} />
+            </div>
+            <div className="px-4 pb-3 border-b border-base-200 flex items-center justify-between">
+              <p className="font-bold text-base text-base-content">New Invoice</p>
+              <button onClick={() => setShowCreate(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+            </div>
+            <div className="px-4 py-4 space-y-3">
+              {privateClients.length > 0 ? (
+                <div className="space-y-2">
+                  <select
+                    className="select select-bordered select-sm w-full"
+                    value={invClientId}
+                    onChange={e => handleClientSelect(e.target.value)}
+                  >
+                    <option value="">— Select client —</option>
+                    {privateClients.map((c, i) => {
+                      const uninvH = localEntries
+                        .filter(e => e.clientName === c.name && !e.isInvoiced)
+                        .reduce((s, e) => s + (e.duration || 0) / 60, 0)
+                      const badge = uninvH > 0 ? ` · ${uninvH.toFixed(1)}h to invoice` : ''
+                      return (
+                        <option key={i} value={String(i)}>{c.name}{c.email ? ` (${c.email})` : ''}{badge}</option>
+                      )
+                    })}
+                    <option value="__new__">＋ New client (not in list)</option>
+                  </select>
+                  {autoFilledNote && invClientId !== '' && invClientId !== '__new__' && (
+                    <p className="text-xs text-primary/80 px-1">{autoFilledNote}</p>
+                  )}
+                  {invClientId !== '' && invClientId !== '__new__' && usedEntryIds.length === 0 && (
+                    <p className="text-xs text-base-content/50 px-1">No uninvoiced sessions found — fill in hours manually.</p>
+                  )}
+                  {invClientId === '__new__' && (
+                    <div className="space-y-2">
+                      <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                        value={invClient} onChange={e => setInvClient(e.target.value)} />
+                      <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                        value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input type="text" className="input input-bordered input-sm w-full" placeholder="Client name *"
+                    value={invClient} onChange={e => setInvClient(e.target.value)} />
+                  <input type="email" className="input input-bordered input-sm w-full" placeholder="Client email (optional)"
+                    value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                </div>
+              )}
+              {localEntries.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={generateFromThisWeek} className="btn btn-primary btn-xs gap-1">⚡ Generate from this week</button>
+                  <button onClick={autoFillFromEntries} className="btn btn-ghost btn-xs gap-1 text-primary">
+                    <Clock size={12} /> Auto-fill recent
+                  </button>
+                </div>
+              )}
+              <div className="space-y-2">
+                {invItems.map((item, i) => (
+                  <div key={i} className="bg-base-200 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <input type="text" className="input input-bordered input-xs flex-1 mr-2" placeholder="Description"
+                        value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} />
+                      {invItems.length > 1 && (
+                        <button onClick={() => removeItem(i)} className="btn btn-ghost btn-xs btn-circle"><X size={12} /></button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/60">Hours</label>
+                        <input type="number" step="0.25" className="input input-bordered input-xs w-full"
+                          value={item.hours || ''} onChange={e => updateItem(i, 'hours', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/60">Rate</label>
+                        <input type="number" className="input input-bordered input-xs w-full"
+                          value={item.rate || ''} onChange={e => updateItem(i, 'rate', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-base-content/60">Amount</label>
+                        <p className="text-sm font-bold text-base-content pt-1">${item.amount.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addItem} className="btn btn-ghost btn-xs gap-1">
+                  <Plus size={12} /> Add Line Item
+                </button>
+              </div>
+              <div className="flex items-center justify-between bg-base-200 rounded-xl p-3">
+                <span className="font-semibold text-sm">Total</span>
+                <span className="font-bold text-lg text-primary">${invItems.reduce((s, i) => s + i.amount, 0).toFixed(2)}</span>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] text-base-content/60">Due in (days)</label>
+                  <input type="number" className="input input-bordered input-xs w-full"
+                    value={invDueDays} onChange={e => setInvDueDays(e.target.value)} />
+                </div>
+              </div>
+              <textarea className="textarea textarea-bordered w-full text-sm" rows={2} placeholder="Notes (optional)"
+                value={invNotes} onChange={e => setInvNotes(e.target.value)} />
+              <button onClick={handleCreateInvoice} className="btn btn-primary w-full gap-1 rounded-xl">
+                <FileText size={16} /> Create Invoice
+              </button>
+            </div>
           </div>
         </div>
       )}

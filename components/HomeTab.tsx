@@ -457,59 +457,32 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <p className="text-white/85 text-[10px] mt-1">{weekHours.toFixed(0)}/40 hours goal</p>
       </div>
 
-      {/* 6. Profile Completeness Card (only if < 100%) */}
+      {/* 6. Profile Completeness — compact tap-to-fix card */}
       {completeness < 100 && (
-        <div className="bg-base-200 rounded-2xl p-4">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-3">
-            <div className="relative flex-shrink-0">
-              <ProgressRing score={completeness} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-base font-bold text-base-content">{completeness}%</span>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-base-content">Profile Strength</p>
-              <p className="text-xs text-base-content/60">
-                {completenessItems.filter(i => !i.done).length} items left · Complete profiles get 3× more requests
-              </p>
-              {/* Mini progress bar */}
-              <div className="w-full bg-base-300 rounded-full h-1.5 mt-1.5">
-                <div
-                  className={`h-1.5 rounded-full transition-all ${completeness >= 80 ? 'bg-success' : completeness >= 50 ? 'bg-warning' : 'bg-primary'}`}
-                  style={{ width: `${completeness}%` }}
-                />
-              </div>
+        <button
+          onClick={onNavigateToProfile}
+          className="w-full bg-base-200 rounded-2xl p-4 flex items-center gap-4 press-card text-left"
+        >
+          <div className="relative flex-shrink-0">
+            <ProgressRing score={completeness} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-base font-bold text-base-content">{completeness}%</span>
             </div>
           </div>
-          {/* Incomplete items — each is a deep-link row */}
-          <div className="space-y-1.5">
-            {completenessItems.filter(i => !i.done).map((item, i) => (
-              <button
-                key={i}
-                className="w-full flex items-center gap-3 bg-base-100 hover:bg-primary/5 active:scale-[0.98] rounded-xl px-3 py-2.5 text-left transition-all"
-                onClick={() => onNavigateToSection(item.action.section, item.action.scrollTo)}
-              >
-                <span className="text-base flex-shrink-0">{item.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-base-content truncate">{item.label}</p>
-                  <p className="text-[10px] text-base-content/50 truncate">{item.hint}</p>
-                </div>
-                <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">Fix →</span>
-              </button>
-            ))}
-          </div>
-          {/* Completed items (collapsed) */}
-          {completenessItems.filter(i => i.done).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {completenessItems.filter(i => i.done).map((item, i) => (
-                <span key={i} className="text-[10px] text-success/70 bg-success/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <CheckCircle2 size={9} /> {item.label}
-                </span>
-              ))}
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-base-content">Profile Strength</p>
+            <p className="text-xs text-base-content/60 mt-0.5">
+              {completenessItems.filter(i => !i.done).length} items to complete · 3× more requests
+            </p>
+            <div className="w-full bg-base-300 rounded-full h-1.5 mt-1.5">
+              <div
+                className={`h-1.5 rounded-full transition-all ${completeness >= 80 ? 'bg-success' : completeness >= 50 ? 'bg-warning' : 'bg-primary'}`}
+                style={{ width: `${completeness}%` }}
+              />
             </div>
-          )}
-        </div>
+          </div>
+          <ChevronRight size={18} className="text-primary opacity-60 flex-shrink-0" />
+        </button>
       )}
 
       {/* 7. Quick Actions grid (4 buttons) */}
@@ -644,68 +617,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )}
       </div>
 
-      {/* 10. Your Caregiving Office Promo */}
-      <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/10">
-        <h3 className="font-bold text-sm text-base-content mb-1">Your Caregiving Office</h3>
-        <p className="text-xs text-base-content/60 mb-3">Free tools to manage your entire caregiving business</p>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { icon: Timer, label: 'Time Tracker', desc: 'Clock hours for any client' },
-            { icon: FileText, label: 'Invoicing', desc: 'Create & send invoices' },
-            { icon: FolderOpen, label: 'Doc Vault', desc: 'Certifications & expiry alerts' },
-            { icon: Star, label: 'Public Profile', desc: 'Your professional page' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-2 bg-base-100/60 rounded-xl p-2.5">
-              <item.icon size={14} className="text-primary mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-[11px] font-semibold text-base-content">{item.label}</p>
-                <p className="text-[10px] text-base-content/50">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 11. Care Impact + Stats */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-base text-base-content">Your Impact</h2>
-          <span className="text-[10px] text-base-content/60 font-medium bg-base-200 px-2 py-1 rounded-full">All time</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2.5 mb-2.5">
-          <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <Clock size={16} className="mx-auto text-blue-500 mb-1.5" />
-            <p className="text-lg font-bold text-base-content">{weekHours > 0 ? weekHours.toFixed(0) : (profile?.totalJobs || 0)}</p>
-            <p className="text-[10px] text-base-content/50">Hours helped</p>
-          </div>
-          <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <Users size={16} className="mx-auto text-primary mb-1.5" />
-            <p className="text-lg font-bold text-base-content">{profile?.totalJobs || shifts.length}</p>
-            <p className="text-[10px] text-base-content/50">Clients served</p>
-          </div>
-          <div className="bg-base-200 rounded-2xl p-3 text-center">
-            <Star size={16} className="mx-auto text-warning mb-1.5" />
-            <p className="text-lg font-bold text-base-content">{profile?.rating || '—'}</p>
-            <p className="text-[10px] text-base-content/50">Avg rating</p>
-          </div>
-        </div>
-        {/* Trust badges strip */}
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { label: 'Profile Created', color: 'bg-blue-500/10 text-blue-600 border-blue-200/50' },
-            documents.some(d => d.type === 'background_check') && { label: '✓ Background Checked', color: 'bg-success/10 text-success border-success/25' },
-            documents.length > 0 && { label: '✓ Certified', color: 'bg-success/10 text-success border-success/25' },
-            (profile?.totalJobs || 0) >= 5 && { label: '⚡ Fast Responder', color: 'bg-warning/10 text-warning border-warning/25' },
-          ].filter(Boolean).map((badge: any, i) => (
-            <span key={i} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${badge.color}`}>
-              {badge.label}
-            </span>
-          ))}
-          <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full border bg-primary/10 text-primary border-primary/20">
-            ⭐ Early Adopter
-          </span>
-        </div>
-      </div>
     </div>
   )
 }

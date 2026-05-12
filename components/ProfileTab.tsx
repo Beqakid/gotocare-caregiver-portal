@@ -351,14 +351,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 <div className={`h-2 rounded-full transition-all ${completeness >= 80 ? 'bg-success' : completeness >= 50 ? 'bg-warning' : 'bg-primary'}`}
                   style={{ width: `${completeness}%` }} />
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {completenessItems.map((item, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    {item.done ? <CheckCircle2 size={12} className="text-success" /> : <div className="w-3 h-3 rounded-full border border-base-400" />}
-                    <span className={`text-[11px] ${item.done ? 'text-base-content/50 line-through' : 'text-base-content/70'}`}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
+
             </div>
           )}
 
@@ -473,13 +466,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Share Your Profile */}
+          {/* Share & QR — combined compact card */}
           <div id="section-share" className="bg-base-200 rounded-2xl p-4 border border-primary/15">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Link2 size={15} className="text-primary" />
               <p className="font-bold text-sm text-base-content">Share Your Profile</p>
             </div>
-            <p className="text-xs text-base-content/60 mb-3">Share your public profile link with anyone looking for care.</p>
             <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
               <span className="text-xs text-base-content/60 truncate flex-1">carehia.com/caregiver?id={profile?.id}</span>
               <button
@@ -492,44 +484,27 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 {linkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
               </button>
             </div>
-            <button
-              onClick={async () => {
-                const url = `https://carehia.com/caregiver?id=${profile?.id}`
-                try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
-                  try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
-                }
-              }}
-              className="btn btn-primary btn-sm w-full gap-1.5 rounded-xl"
-            >
-              <Share2 size={14} /> Share Profile
-            </button>
-          </div>
-
-          {/* QR Code card */}
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">📲</span>
-              <p className="font-bold text-sm text-base-content">Your QR Code</p>
-            </div>
-            <p className="text-xs text-base-content/60 mb-3">Show this to anyone — they scan it and instantly see your profile.</p>
-            {profile?.id ? (
-              <div className="flex flex-col items-center gap-3">
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const url = `https://carehia.com/caregiver?id=${profile?.id}`
+                  try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
+                    try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
+                  }
+                }}
+                className="btn btn-primary btn-sm flex-1 gap-1.5 rounded-xl"
+              >
+                <Share2 size={14} /> Share
+              </button>
+              {profile?.id && (
                 <button
                   onClick={() => setShowQR(true)}
-                  className="bg-white rounded-2xl p-3 shadow-sm border border-base-300 active:scale-95 transition-transform"
+                  className="btn btn-outline btn-sm flex-1 gap-1.5 rounded-xl border-primary/30 text-primary"
                 >
-                  <img
-                    src={'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=1'}
-                    alt="Profile QR Code" width={180} height={180} className="rounded-xl"
-                  />
+                  📲 QR Code
                 </button>
-                <button onClick={() => setShowQR(true)} className="btn btn-outline btn-sm w-full rounded-xl gap-1.5 border-primary/30 text-primary">
-                  🔍 Enlarge to Show
-                </button>
-              </div>
-            ) : (
-              <div className="text-center text-xs text-base-content/60 py-4">Complete your profile to get your QR code</div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Skills */}

@@ -54,7 +54,7 @@ const CARE_QUOTES: Record<string, string> = {
   'Bathing & Grooming': '"Dad needs morning hygiene help but values his dignity."',
   'Meal Preparation': '"Needs healthy meals prepared — has dietary restrictions."',
   'Companionship': '"Lives alone and gets lonely — just needs company and conversation."',
-  'Transportation': '"Can't drive anymore — needs rides to appointments weekly."',
+  'Transportation': '"Can\'t drive anymore — needs rides to appointments weekly."',
   'Overnight Care': '"Needs someone present through the night for safety."',
   'Physical Therapy Aid': '"Just finished PT — needs home exercises supervised."',
   'Light Housekeeping': '"Needs help keeping the home safe and clean."',

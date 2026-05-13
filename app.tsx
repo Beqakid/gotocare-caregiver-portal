@@ -92,6 +92,8 @@ function getTabFromHash(): TabType {
   } catch { return 'home' }
 }
 
+const API = 'https://gotocare-original.jjioji.workers.dev/api'
+
 const App: React.FC<{}> = () => {
   const [publicCaregiverId] = useState(() => {
     try {
@@ -106,6 +108,10 @@ const App: React.FC<{}> = () => {
 
   // Initialize tab from URL hash so deep links / refresh work
   const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash)
+
+  // Track Stripe return — which booking was just unlocked
+  const [returnedBookingId, setReturnedBookingId] = useState<string | null>(null)
+  const [returnedSubscription, setReturnedSubscription] = useState(false)
 
   // navigateToTab — always use this instead of setActiveTab so browser back works
   const navigateToTab = useCallback((tab: TabType) => {
@@ -176,18 +182,35 @@ const App: React.FC<{}> = () => {
     }
   }, [])
 
-  // Handle Stripe return URLs
+  // Handle Stripe return URLs — detect ?booking_unlocked=X or ?subscription=success
   useEffect(() => {
-    if (!loggedIn || !profile) return
+    if (!loggedIn) return
     const params = new URLSearchParams(window.location.search)
     const unlockedBookingId = params.get('booking_unlocked')
     const subscriptionSuccess = params.get('subscription')
-    if (unlockedBookingId || subscriptionSuccess === 'success') {
+
+    if (unlockedBookingId) {
+      // Single booking unlock — confirm with backend (webhook fallback)
+      setReturnedBookingId(unlockedBookingId)
       navigateToTab('requests')
-      loadData(profile.id)
+      window.history.replaceState({ tab: 'requests' }, '', '#requests')
+
+      // Call confirm endpoint so D1 is updated even if webhook is delayed
+      const token = localStorage.getItem('cgp_token')
+      if (token) {
+        fetch(`${API}/confirm-booking-unlock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, bookingId: Number(unlockedBookingId) }),
+        }).catch(() => {})
+      }
+    } else if (subscriptionSuccess === 'success') {
+      // Subscription unlock — unlocks all pending bookings
+      setReturnedSubscription(true)
+      navigateToTab('requests')
       window.history.replaceState({ tab: 'requests' }, '', '#requests')
     }
-  }, [loggedIn, profile, loadData])
+  }, [loggedIn])
 
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
@@ -261,6 +284,8 @@ const App: React.FC<{}> = () => {
     setRequests(DEMO_REQUESTS)
     setUsingDemoRequests(true)
     setActiveTab('home')
+    setReturnedBookingId(null)
+    setReturnedSubscription(false)
     // Clear hash so next login starts fresh
     try { window.history.replaceState({}, '', window.location.pathname) } catch {}
   }
@@ -434,10 +459,13 @@ const App: React.FC<{}> = () => {
           )}
           {activeTab === 'requests' && (
             <RequestsTab
+              profile={profile}
               requests={requests}
               loading={loading}
               onAccept={handleAcceptRequest}
               onDecline={handleDeclineRequest}
+              returnedBookingId={returnedBookingId}
+              returnedSubscription={returnedSubscription}
             />
           )}
           {activeTab === 'earnings' && (

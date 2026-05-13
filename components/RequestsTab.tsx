@@ -222,11 +222,13 @@ function InterviewRequestCard({
   onUnlock,
   unlocked,
   unlockLoading,
+  justUnlocked,
 }: {
   req: CareRequest
   onUnlock: (req: CareRequest, plan: 'single' | 'unlimited') => void
   unlocked: boolean
   unlockLoading: boolean
+  justUnlocked?: boolean
 }) {
   const statusLabel: Record<string, string> = {
     pending: '📋 Pending Review',
@@ -237,7 +239,13 @@ function InterviewRequestCard({
   }
 
   return (
-    <div className="rounded-2xl bg-base-200 border border-base-300 p-4 space-y-3">
+    <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
+      {justUnlocked && (
+        <div className="flex items-center gap-2 pb-1">
+          <span className="text-lg">🎉</span>
+          <p className="text-sm font-bold text-success">Payment successful! Contact info unlocked.</p>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <p className="font-bold text-base-content">{req.careType || 'Care Request'}</p>
@@ -273,6 +281,9 @@ function InterviewRequestCard({
               ✉️ {req.clientEmail}
             </a>
           )}
+          {!req.clientName && !req.clientPhone && !req.clientEmail && (
+            <p className="text-xs text-base-content/60">Reloading contact info…</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -297,14 +308,31 @@ function InterviewRequestCard({
               ♾️ $19.99/mo
             </button>
           </div>
+          <p className="text-xs text-center text-base-content/50">One-time unlock keeps this forever · Unlimited plan unlocks all future requests</p>
         </div>
       )}
     </div>
   )
 }
 
-export function RequestsTab({ profile }: { profile?: any }) {
-  const [activeSection, setActiveSection] = useState<'live' | 'interviews'>('live')
+export function RequestsTab({
+  profile,
+  returnedBookingId,
+  returnedSubscription,
+}: {
+  profile?: any
+  returnedBookingId?: string | null
+  returnedSubscription?: boolean
+  // Legacy props — kept for backward compat but not used by this component's internal logic
+  requests?: any[]
+  loading?: boolean
+  onAccept?: (id: number) => void
+  onDecline?: (id: number) => void
+}) {
+  // If returning from a Stripe payment, default to interviews tab
+  const [activeSection, setActiveSection] = useState<'live' | 'interviews'>(
+    (returnedBookingId || returnedSubscription) ? 'interviews' : 'live'
+  )
 
   // ── Live Dispatch State ────────────────────────────────
   const [liveRequests, setLiveRequests] = useState<LiveRequest[]>([])
@@ -319,8 +347,14 @@ export function RequestsTab({ profile }: { profile?: any }) {
   // ── Interview Requests State ───────────────────────────
   const [bookings, setBookings] = useState<CareRequest[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = useState(false)
+  // Persisted unlocked set from localStorage
   const [unlockedIds, setUnlockedIds] = useState<Set<number>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('cgp_unlocked') || '[]')) } catch { return new Set() }
+  })
+  // Optimistic unlocked — booking IDs unlocked this session (before D1 reflects it)
+  const [optimisticUnlocked, setOptimisticUnlocked] = useState<Set<number>>(() => {
+    if (returnedBookingId) return new Set([Number(returnedBookingId)])
+    return new Set()
   })
   const [unlockLoading, setUnlockLoading] = useState<number | null>(null)
 
@@ -439,6 +473,7 @@ export function RequestsTab({ profile }: { profile?: any }) {
       .finally(() => setIsLoadingBookings(false))
   }, [])
 
+  // Auto-fetch interviews on mount if coming from Stripe, and whenever section switches to interviews
   useEffect(() => {
     if (activeSection !== 'interviews') return
     fetchBookings()
@@ -446,9 +481,29 @@ export function RequestsTab({ profile }: { profile?: any }) {
     return () => clearInterval(interval)
   }, [activeSection, fetchBookings])
 
+  // When returning from Stripe, auto-switch to interviews + trigger fetch
+  useEffect(() => {
+    if (returnedBookingId || returnedSubscription) {
+      setActiveSection('interviews')
+      fetchBookings()
+      // Add to optimistic unlocked set
+      if (returnedBookingId) {
+        const newSet = new Set([...optimisticUnlocked, Number(returnedBookingId)])
+        setOptimisticUnlocked(newSet)
+        // Also persist so it survives tab switching
+        const newPersisted = new Set([...unlockedIds, Number(returnedBookingId)])
+        setUnlockedIds(newPersisted)
+        localStorage.setItem('cgp_unlocked', JSON.stringify([...newPersisted]))
+      }
+    }
+  }, [returnedBookingId, returnedSubscription])
+
+  // ── Check if a booking is unlocked (D1 flag OR optimistic local state) ──
+  const isUnlocked = (req: CareRequest) =>
+    !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) ||
+    (returnedSubscription === true)
+
   // ── Unlock Handler ─────────────────────────────────────
-  // Fix: send camelCase bookingId (not booking_id), call right endpoint per plan,
-  // and check data.url (not data.checkout_url) for the Stripe redirect.
   const handleUnlock = async (req: CareRequest, plan: 'single' | 'unlimited') => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
@@ -457,14 +512,19 @@ export function RequestsTab({ profile }: { profile?: any }) {
       let endpoint: string
       let payload: Record<string, any>
 
+      // Get caregiver ID from profile prop or localStorage
+      const caregiverId = profile?.id || (() => {
+        try { return JSON.parse(localStorage.getItem('cgp_account') || '{}').id } catch { return undefined }
+      })()
+
       if (plan === 'unlimited') {
         // Subscription plan — separate endpoint
         endpoint = `${API}/create-caregiver-subscription-checkout`
-        payload = { token, caregiverId: profile?.id }
+        payload = { token, caregiverId }
       } else {
         // One-time $4.99 unlock
         endpoint = `${API}/unlock-booking`
-        payload = { token, bookingId: req.id, caregiverId: profile?.id }
+        payload = { token, bookingId: req.id, caregiverId }
       }
 
       const r = await fetch(endpoint, {
@@ -527,6 +587,11 @@ export function RequestsTab({ profile }: { profile?: any }) {
           >
             <span>📅</span>
             <span>Interviews</span>
+            {bookings.length > 0 && (
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'interviews' ? 'bg-white/20 text-white' : 'bg-primary/80 text-white'}`}>
+                {bookings.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -611,6 +676,22 @@ export function RequestsTab({ profile }: { profile?: any }) {
                 <span className="text-4xl">📅</span>
                 <p className="font-bold text-base-content/60">No Interview Requests Yet</p>
                 <p className="text-sm text-base-content/60">When clients book an interview with you, it will appear here.</p>
+                <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">
+                  <p className="text-xs font-semibold text-base-content/60 mb-2">💡 How it works</p>
+                  {[
+                    ['Client books you', 'A family finds your profile and requests an interview'],
+                    ['You get notified', 'Email alert sent to you instantly'],
+                    ['Unlock to connect', 'Pay $4.99 to see their contact info, or $19.99/mo for unlimited'],
+                  ].map(([title, desc]) => (
+                    <div key={title} className="flex items-start gap-2">
+                      <span className="text-primary text-sm mt-0.5">→</span>
+                      <div>
+                        <p className="text-xs font-semibold text-base-content/70">{title}</p>
+                        <p className="text-xs text-base-content/60">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -619,8 +700,9 @@ export function RequestsTab({ profile }: { profile?: any }) {
                 key={req.id}
                 req={req}
                 onUnlock={handleUnlock}
-                unlocked={unlockedIds.has(req.id) || !!req.is_unlocked}
+                unlocked={isUnlocked(req)}
                 unlockLoading={unlockLoading === req.id}
+                justUnlocked={returnedBookingId ? Number(returnedBookingId) === req.id : false}
               />
             ))}
           </>

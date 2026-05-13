@@ -209,6 +209,16 @@ const App: React.FC<{}> = () => {
       setReturnedSubscription(true)
       navigateToTab('requests')
       window.history.replaceState({ tab: 'requests' }, '', '#requests')
+
+      // Confirm subscription in D1 — unlocks all bookings for this caregiver
+      const token = localStorage.getItem('cgp_token')
+      if (token) {
+        fetch(`${API}/confirm-caregiver-subscription`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        }).catch(() => {})
+      }
     }
   }, [loggedIn])
 

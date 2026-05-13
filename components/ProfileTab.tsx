@@ -15,6 +15,7 @@ interface ProfileTabProps {
   onDocumentsChange: () => void
   deepLink?: string
   initialSection?: 'profile' | 'documents' | 'badges' | 'clients' | 'trust'
+  returnedSubscription?: boolean
   onNavigateHome?: () => void
 }
 
@@ -46,7 +47,7 @@ const BADGES = [
   { id: 'caregiver_pro', icon: Heart, label: 'Caregiver Pro', desc: 'Fully certified & insured', color: 'text-error', earn: (p: any, d: CaregiverDocument[]) => d.filter(x => x.type === 'certification' || x.type === 'license').length >= 2 && d.some(x => x.type === 'insurance') },
 ]
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, onNavigateHome }) => {
+export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
@@ -67,6 +68,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [cgSub, setCgSub] = useState<{subscribed: boolean, plan: string, expiresAt?: string, createdAt?: string} | null>(null)
   const [cgSubLoading, setCgSubLoading] = useState(true)
   const [subUpgrading, setSubUpgrading] = useState(false)
+  const [showSubBanner, setShowSubBanner] = useState(!!returnedSubscription)
 
   useEffect(() => {
     if (initialSection) setSection(initialSection)
@@ -646,6 +648,30 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <ChevronRight size={16} className="opacity-30" />
             </button>
           </div>
+
+          {/* Subscription success banner */}
+          {showSubBanner && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #22C55E 0%, #16a34a 100%)',
+                borderRadius: 16,
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>🎉</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: 14, margin: 0 }}>You&apos;re on Unlimited!</p>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: 0 }}>All new bookings will be auto-unlocked.</p>
+              </div>
+              <button
+                onClick={() => setShowSubBanner(false)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >&#x2715;</button>
+            </div>
+          )}
 
           {/* Subscription card */}
           <div className="bg-base-200 rounded-2xl p-4">

@@ -143,7 +143,14 @@ const App: React.FC<{}> = () => {
   const [profile, setProfile] = useState<CaregiverProfile | null>(() => {
     try {
       const saved = localStorage.getItem('cgp_account')
-      return saved ? JSON.parse(saved) : null
+      if (!saved) return null
+      const parsed = JSON.parse(saved)
+      // Shape migration: old raw account had `name` instead of firstName/lastName
+      if (parsed && !parsed.firstName && parsed.name) {
+        parsed.firstName = parsed.name.split(' ')[0] || parsed.email?.split('@')[0] || 'Caregiver'
+        parsed.lastName = parsed.name.split(' ').slice(1).join(' ') || ''
+      }
+      return parsed
     } catch { return null }
   })
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -341,10 +348,9 @@ const App: React.FC<{}> = () => {
   }
 
   const handleMarketplaceAuth = async (token: string, account: any) => {
-    // Store session token from marketplace registration/login
+    // Store token immediately; cgp_account saved below after cgProfile is built
     try {
       localStorage.setItem('cgp_token', token)
-      localStorage.setItem('cgp_account', JSON.stringify(account))
       localStorage.setItem('cgp_auth_type', 'marketplace')
     } catch {}
     // Fetch fresh full profile from D1 (includes all new columns)
@@ -372,6 +378,8 @@ const App: React.FC<{}> = () => {
       profilePhoto: fullAccount.photoUrl || fullAccount.profilePhoto || undefined,
       certifications: Array.isArray(fullAccount.certifications) ? fullAccount.certifications : [],
     }
+    // Save structured cgProfile (not raw account) so refresh restores firstName correctly
+    try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)
     setLoggedIn(true)
 

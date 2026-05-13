@@ -19,7 +19,7 @@ interface ProfileTabProps {
 }
 
 const ALL_CARE_NEEDS = [
-  'Elder Care', 'Dementia Care', 'Alzheimer\'s Support', 'Wheelchair Assistance',
+  'Elder Care', 'Dementia Care', "Alzheimer's Support", 'Wheelchair Assistance',
   'Post-Surgery Recovery', 'Medication Management', 'Bathing & Grooming', 'Meal Preparation',
   'Companionship', 'Transportation', 'Overnight Care', 'Physical Therapy Aid',
   'Wound Care', 'Hospice Support', 'Mental Health Support', 'Feeding Assistance',
@@ -64,6 +64,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients' | 'trust'>(initialSection || 'profile')
   const [myClients, setMyClients] = useState<any[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
+  const [cgSub, setCgSub] = useState<{subscribed: boolean, plan: string, expiresAt?: string, createdAt?: string} | null>(null)
+  const [cgSubLoading, setCgSubLoading] = useState(true)
+  const [subUpgrading, setSubUpgrading] = useState(false)
 
   useEffect(() => {
     if (initialSection) setSection(initialSection)
@@ -90,6 +93,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .catch(() => {})
       .finally(() => setClientsLoading(false))
   }, [section])
+
+  useEffect(() => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) { setCgSubLoading(false); return; }
+    fetch(`${API_BASE}/api/caregiver-subscription?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => setCgSub(d))
+      .catch(() => setCgSub(null))
+      .finally(() => setCgSubLoading(false))
+  }, [])
 
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
@@ -219,6 +232,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     }
     deleteDocument(id)
     onDocumentsChange()
+  }
+
+  const handleCgSubscribe = async () => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setSubUpgrading(true)
+    try {
+      const r = await fetch(`${API_BASE}/api/create-caregiver-subscription-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const d = await r.json()
+      if (d.url) window.location.href = d.url
+    } catch (e) {}
+    setSubUpgrading(false)
   }
 
   const profileUrl = `carehia.com/caregiver?id=${profile?.id}`
@@ -510,7 +539,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           {/* Skills */}
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm text-base-content">Skills & Specializations</p>
+              <p className="font-semibold text-sm text-base-content">Skills &amp; Specializations</p>
               <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-ghost btn-xs gap-1">
                 <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
               </button>
@@ -616,6 +645,53 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <span className="flex-1 text-left text-sm text-base-content">Settings</span>
               <ChevronRight size={16} className="opacity-30" />
             </button>
+          </div>
+
+          {/* Subscription card */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-sm text-base-content">Subscription</p>
+              {cgSub?.subscribed && (
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>
+              )}
+            </div>
+            {cgSubLoading ? (
+              <p className="text-xs text-base-content/60">Loading...</p>
+            ) : cgSub?.subscribed ? (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">♾️</div>
+                  <div>
+                    <p className="font-semibold text-sm text-base-content">Unlimited Plan</p>
+                    <p className="text-xs text-base-content/60">$19.99/mo · All bookings auto-unlocked</p>
+                  </div>
+                </div>
+                {cgSub.createdAt && (
+                  <p className="text-xs text-base-content/50">Member since {new Date(cgSub.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base">🆓</div>
+                  <div>
+                    <p className="font-semibold text-sm text-base-content">Pay-per-unlock</p>
+                    <p className="text-xs text-base-content/60">$4.99 per booking reveal</p>
+                  </div>
+                </div>
+                <div className="bg-primary/5 rounded-xl p-3 mb-3">
+                  <p className="text-xs font-semibold text-primary mb-1">♾️ Unlimited Plan — $19.99/mo</p>
+                  <p className="text-xs text-base-content/60">Auto-unlock all bookings. Pay once, never miss a lead.</p>
+                </div>
+                <button
+                  onClick={handleCgSubscribe}
+                  disabled={subUpgrading}
+                  className="btn btn-primary btn-sm w-full rounded-xl gap-1"
+                >
+                  {subUpgrading ? 'Redirecting...' : '⚡ Upgrade to Unlimited'}
+                </button>
+              </div>
+            )}
           </div>
 
           <button onClick={onLogout} className="btn btn-ghost w-full text-error gap-2 mt-2">
@@ -752,7 +828,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <div className="bg-base-200 rounded-2xl p-6 text-center">
               <div className="text-4xl mb-3">👤</div>
               <p className="font-semibold text-sm text-base-content">No clients yet</p>
-              <p className="text-xs text-base-content/60 mt-1">When a family adds you to their care team, they'll appear here.</p>
+              <p className="text-xs text-base-content/60 mt-1">When a family adds you to their care team, they will appear here.</p>
             </div>
           )}
           {myClients.map((client, i) => {

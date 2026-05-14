@@ -205,6 +205,26 @@ const App: React.FC<{}> = () => {
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
 
+  // Fetch real rating + jobs stats after login/session restore
+  useEffect(() => {
+    if (!loggedIn) return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`${API_BASE}/api/caregiver-account?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.account) {
+          setProfile(prev => prev ? {
+            ...prev,
+            rating: d.account.avgRating || null,
+            totalJobs: d.account.totalJobs || 0,
+            totalReviews: d.account.reviewCount || 0,
+          } : prev)
+        }
+      })
+      .catch(() => {})
+  }, [loggedIn])
+
   // On login: go to home tab. But on session RESTORE (page refresh), stay on current tab.
   useEffect(() => {
     if (loggedIn) {
@@ -236,9 +256,9 @@ const App: React.FC<{}> = () => {
           hourlyRate: user.hourlyRate || 0,
           skills: user.skills || user.care_types?.split(',').map((s: string) => s.trim()) || [],
           languages: user.languages || [],
-          rating: 4.8,
-          totalJobs: 47,
-          totalReviews: 12,
+          rating: null,
+          totalJobs: 0,
+          totalReviews: 0,
           bio: user.bio || '',
           location: user.location || undefined,
           profilePhoto: user.profilePhoto || undefined,
@@ -370,7 +390,7 @@ const App: React.FC<{}> = () => {
       hourlyRate: fullAccount.hourlyRate || 0,
       skills: fullAccount.skills?.length ? fullAccount.skills : (fullAccount.careTypes?.length ? fullAccount.careTypes : (fullAccount.care_types ? fullAccount.care_types.split(',').map((s: string) => s.trim()) : [])),
       languages: Array.isArray(fullAccount.languages) ? fullAccount.languages : [],
-      rating: 4.8,
+      rating: null,
       totalJobs: 0,
       totalReviews: 0,
       bio: fullAccount.bio || '',

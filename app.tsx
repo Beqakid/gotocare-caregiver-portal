@@ -10,6 +10,45 @@ import { BottomNav } from './components/BottomNav'
 // Module-level API base URL (used in useEffect hooks below)
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 
+// ── Push Notification Helpers ───────────────────────────────────────────────
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+}
+
+async function registerPushNotifications(token: string): Promise<void> {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+    const keyRes = await fetch(`${API_BASE}/api/vapid-public-key`)
+    const keyData = await keyRes.json() as any
+    if (!keyData.publicKey) return
+    const reg = await navigator.serviceWorker.ready
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+    })
+    const subJson = subscription.toJSON()
+    await fetch(`${API_BASE}/api/push-subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys?.p256dh || null,
+        auth: subJson.keys?.auth || null,
+        user_agent: navigator.userAgent,
+      }),
+    })
+  } catch (_) {
+    // Push registration is best-effort — never crash the app
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 // Lazy-load tabs — each becomes a separate JS chunk (~150-250KB each)
 const HomeTab = React.lazy(() => import('./components/HomeTab').then(m => ({ default: m.HomeTab })))
 const ScheduleTab = React.lazy(() => import('./components/ScheduleTab').then(m => ({ default: m.ScheduleTab })))
@@ -303,6 +342,8 @@ const App: React.FC<{}> = () => {
         } catch {}
         setProfile(cgProfile)
         setLoggedIn(true)
+        // Register push notifications (best-effort)
+        registerPushNotifications(result.token).catch(() => {})
         refreshDocs()
         if (!window.tasklet?.runCommand) {
           await loadData(cgProfile.id)
@@ -434,6 +475,8 @@ const App: React.FC<{}> = () => {
     try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)
     setLoggedIn(true)
+    // Register push notifications (best-effort)
+    registerPushNotifications(token).catch(() => {})
 
     // Fetch real booking requests for this caregiver (use D1 account id)
     try {
@@ -470,14 +513,14 @@ const App: React.FC<{}> = () => {
         }}>
           {verifyStatus === 'pending' && (
             <>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#9203;</div>
               <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verifying your email…</h2>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Just a moment</p>
             </>
           )}
           {verifyStatus === 'success' && (
             <>
-              <div style={{ fontSize: '56px', marginBottom: '16px' }}>✅</div>
+              <div style={{ fontSize: '56px', marginBottom: '16px' }}>&#9989;</div>
               <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Email Verified!</h2>
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', marginBottom: '28px' }}>{verifyMessage}</p>
               <button
@@ -496,7 +539,7 @@ const App: React.FC<{}> = () => {
           )}
           {verifyStatus === 'error' && (
             <>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#10060;</div>
               <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verification Failed</h2>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '24px' }}>{verifyMessage}</p>
               <button

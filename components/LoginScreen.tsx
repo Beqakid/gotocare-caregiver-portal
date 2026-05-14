@@ -228,25 +228,38 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>Your free professional caregiving office</p>
       </div>
 
-      {/* Social proof */}
+      {/* Stats strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px', width: '100%', maxWidth: '360px' }}>
+        {[
+          { value: '$28/hr', label: 'avg rate' },
+          { value: '1,200+', label: 'families' },
+          { value: '100%', label: 'free' },
+        ].map(({ value, label }) => (
+          <div key={label} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: '14px', padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>{value}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '1px' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+      {/* Social proof pill */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.14)', borderRadius: '50px',
-        padding: '6px 16px', marginBottom: '24px',
+        background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.12)', borderRadius: '50px',
+        padding: '6px 16px', marginBottom: '20px',
       }}>
         <div style={{ display: 'flex' }}>
           {['rgba(124,92,255,0.7)','rgba(74,144,226,0.7)','rgba(34,197,94,0.7)'].map((c, i) => (
             <div key={i} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: '2px solid rgba(255,255,255,0.25)', marginLeft: i > 0 ? '-6px' : '0' }} />
           ))}
         </div>
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.80)', fontWeight: 500 }}>Join trusted caregivers in your area</span>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.78)', fontWeight: 500 }}>Caregivers in your area are earning now</span>
       </div>
 
       {/* Glass card */}
       <div style={glassCard}>
         <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', textAlign: 'center', marginBottom: '5px' }}>Create your free account</h2>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency fees. Your data stays private.</p>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency cut. Start earning in minutes.</p>
 
         {/* Google button */}
         {GOOGLE_ENABLED ? (

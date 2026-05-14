@@ -308,28 +308,46 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         const hasDocs = documents.length > 0
         if (hasPhoto && hasAvailability && hasDocs) return null
         const steps = [
-          { done: hasPhoto, label: 'Add your photo', action: () => onNavigateToSection('profile', 'section-photo') },
-          { done: hasAvailability, label: 'Set availability', action: onNavigateToSchedule },
-          { done: hasDocs, label: 'Upload a document', action: () => onNavigateToSection('documents', 'section-docs') },
+          { done: hasPhoto, label: 'Add your photo', benefit: 'Profiles with photos get 3× more requests', action: () => onNavigateToSection('profile', 'section-photo') },
+          { done: hasAvailability, label: 'Set your availability', benefit: 'Families match based on your schedule', action: onNavigateToSchedule },
+          { done: hasDocs, label: 'Upload a document', benefit: 'Verified caregivers get priority matching', action: () => onNavigateToSection('documents', 'section-docs') },
         ]
         const doneCount = steps.filter(s => s.done).length
-        const nextStep = steps.find(s => !s.done)
-        if (!nextStep) return null
+        const nextIdx = steps.findIndex(s => !s.done)
+        if (nextIdx === -1) return null
         return (
-          <button onClick={nextStep.action} className="w-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/15 rounded-2xl p-3.5 flex items-center gap-3 press-card text-left">
-            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-bold text-sm">{doneCount}/3</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-xs text-base-content">Next: {nextStep.label}</p>
-              <div className="flex gap-1 mt-1.5">
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-primary/3 overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 flex items-center gap-2 border-b border-primary/10">
+              <div className="flex-1">
+                <p className="font-bold text-sm text-base-content">Complete your profile</p>
+                <p className="text-xs text-base-content/50">Get 3× more interview requests</p>
+              </div>
+              <div className="flex gap-1.5 items-center">
                 {steps.map((s, i) => (
-                  <div key={i} className={`h-1.5 flex-1 rounded-full ${s.done ? 'bg-success' : i === steps.indexOf(nextStep) ? 'bg-primary/40' : 'bg-base-300'}`} />
+                  <div key={i} className={`h-1.5 w-8 rounded-full transition-all ${s.done ? 'bg-success' : i === nextIdx ? 'bg-primary/50' : 'bg-base-300'}`} />
                 ))}
               </div>
             </div>
-            <ChevronRight size={16} className="text-primary flex-shrink-0" />
-          </button>
+            {/* Steps */}
+            {steps.map((s, i) => (
+              <button key={i} onClick={s.done ? undefined : s.action} disabled={s.done}
+                className={`w-full flex items-start gap-3 px-4 py-3 border-b border-primary/8 last:border-0 text-left ${!s.done && i === nextIdx ? 'press-card bg-primary/5' : ''}`}
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 ${s.done ? 'bg-success' : i === nextIdx ? 'bg-primary/20' : 'bg-base-300/60'}`}>
+                  {s.done
+                    ? <span className="text-white text-xs font-bold">✓</span>
+                    : <span className={`text-xs font-bold ${i === nextIdx ? 'text-primary' : 'text-base-content/30'}`}>{i + 1}</span>
+                  }
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${s.done ? 'text-base-content/40 line-through' : i === nextIdx ? 'text-base-content' : 'text-base-content/40'}`}>{s.label}</p>
+                  {!s.done && <p className="text-xs text-base-content/45 mt-0.5">{s.benefit}</p>}
+                </div>
+                {!s.done && i === nextIdx && <ChevronRight size={14} className="text-primary/70 mt-1 flex-shrink-0" />}
+              </button>
+            ))}
+          </div>
         )
       })()}
 

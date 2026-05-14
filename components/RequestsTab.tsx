@@ -759,6 +759,34 @@ export function RequestsTab({
                     </div>
                   ))}
                 </div>
+
+                {/* Demo request preview */}
+                <div className="relative w-full rounded-2xl overflow-hidden border border-primary/20">
+                  {/* Overlay */}
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-base-100/85 backdrop-blur-sm rounded-2xl px-4">
+                    <span className="text-2xl mb-1">📬</span>
+                    <p className="font-bold text-sm text-base-content/80">This is what a request looks like</p>
+                    <p className="text-xs text-base-content/50 text-center mt-1">Stay online — you'll get a push notification the moment a family requests you</p>
+                  </div>
+                  {/* Blurred sample behind */}
+                  <div className="blur-sm pointer-events-none select-none p-4 bg-base-200">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <span className="badge badge-primary badge-sm">Elder Care</span>
+                        <p className="font-bold text-base-content mt-1">Family needs support</p>
+                        <p className="text-xs text-base-content/60">2.4 mi away · Starts soon</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-success text-lg">$28/hr</p>
+                        <p className="text-xs text-base-content/60">4 hrs</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-error/10 rounded-xl py-2 text-center text-xs font-semibold text-error">Pass</div>
+                      <div className="flex-1 bg-success/10 rounded-xl py-2 text-center text-xs font-semibold text-success">Accept $112</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             {liveRequests.map(req => (

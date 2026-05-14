@@ -7,6 +7,9 @@ import { getDocuments, refreshDocumentStatuses } from './utils/storage'
 import { LoginScreen } from './components/LoginScreen'
 import { BottomNav } from './components/BottomNav'
 
+// Module-level API base URL (used in useEffect hooks below)
+const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
+
 // Lazy-load tabs — each becomes a separate JS chunk (~150-250KB each)
 const HomeTab = React.lazy(() => import('./components/HomeTab').then(m => ({ default: m.HomeTab })))
 const ScheduleTab = React.lazy(() => import('./components/ScheduleTab').then(m => ({ default: m.ScheduleTab })))
@@ -194,7 +197,6 @@ const App: React.FC<{}> = () => {
   // Handle email verification token in URL
   useEffect(() => {
     if (!verifyToken) return
-    const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
     fetch(`${API_BASE}/api/caregiver-verify-email?token=${encodeURIComponent(verifyToken)}`)
       .then(r => r.json())
       .then(d => {
@@ -406,7 +408,7 @@ const App: React.FC<{}> = () => {
     // Fetch fresh full profile from D1 (includes all new columns)
     let fullAccount = account
     try {
-      const res = await fetch(`https://gotocare-original.jjioji.workers.dev/api/caregiver-account?token=${encodeURIComponent(token)}`)
+      const res = await fetch(`${API_BASE}/api/caregiver-account?token=${encodeURIComponent(token)}`)
       const data = await res.json()
       if (data.success && data.account) fullAccount = { ...account, ...data.account }
     } catch (e) { /* use passed account as fallback */ }
@@ -438,7 +440,7 @@ const App: React.FC<{}> = () => {
       const cgId = fullAccount.id
       if (cgId) {
         const bookingsRes = await fetch(
-          `https://gotocare-original.jjioji.workers.dev/api/caregiver-bookings?token=${encodeURIComponent(token)}`
+          `${API_BASE}/api/caregiver-bookings?token=${encodeURIComponent(token)}`
         )
         const bookingsData = await bookingsRes.json()
         if (bookingsData?.bookings && bookingsData.bookings.length > 0) {
@@ -451,7 +453,6 @@ const App: React.FC<{}> = () => {
 
   // Email verification screen — shows when ?verify=TOKEN is in URL
   if (verifyStatus) {
-    const API_BASE_CONST = 'https://gotocare-original.jjioji.workers.dev'
     return (
       <div style={{
         minHeight: '100vh',
@@ -538,9 +539,9 @@ const App: React.FC<{}> = () => {
   const pendingRequestCount = requests.filter(r => r.status === 'pending').length
 
   return (
-    <div className="min-h-screen bg-base-100 flex flex-col">
-      <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
-        <div className="tab-content max-w-lg mx-auto">
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--color-base-100, #f5f3ff)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 80 }}>
+        <div style={{ maxWidth: 512, margin: '0 auto' }}>
           <React.Suspense fallback={<TabSpinner />}>
           {activeTab === 'home' && (
             <HomeTab

@@ -50,7 +50,7 @@ interface HireOffer {
   care_types: string
   start_date: string | null
   schedule_notes: string | null
-  status: 'pending_caregiver' | 'active' | 'declined'
+  status: 'pending_caregiver' | 'pending_client' | 'active' | 'declined'
   created_at: string
 }
 
@@ -336,9 +336,10 @@ function HireOfferCard({ offer, onSign, onDecline }: {
     ? offer.client_name.split(' ').slice(-1)[0].charAt(0) + '.'
     : ''
 
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
     pending_caregiver: { label: 'Awaiting Your Signature', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)' },
-    active: { label: 'Signed - Active', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
+    pending_client: { label: 'Signed ✓ — Waiting for Client', color: '#4A90E2', bg: 'rgba(74,144,226,0.1)', border: 'rgba(74,144,226,0.3)' },
+    active: { label: 'Agreement Active ✔', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
     declined: { label: 'Declined', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
   }
   const s = statusConfig[offer.status] || statusConfig.pending_caregiver
@@ -348,6 +349,7 @@ function HireOfferCard({ offer, onSign, onDecline }: {
       <div style={{ background: s.bg, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</span>
         {offer.status === 'pending_caregiver' && <span style={{ fontSize: 11, color: s.color }}>Expires in 72 hrs</span>}
+        {offer.status === 'pending_client' && <span style={{ fontSize: 11, color: s.color }}>Waiting for client countersignature</span>}
         {offer.status === 'active' && <span style={{ fontSize: 11, color: s.color }}>Both parties signed</span>}
       </div>
 
@@ -389,9 +391,11 @@ function HireOfferCard({ offer, onSign, onDecline }: {
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, marginTop: 10 }}>
-          Client signed: <em>{offer.client_signature}</em> &middot; {new Date(offer.client_signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-        </div>
+        {offer.created_at && (
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, marginTop: 10 }}>
+            Offer received: {new Date(offer.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
+        )}
 
         {offer.status === 'pending_caregiver' && (
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
@@ -410,6 +414,12 @@ function HireOfferCard({ offer, onSign, onDecline }: {
           </div>
         )}
 
+        {offer.status === 'pending_client' && (
+          <div style={{ marginTop: 14, background: 'rgba(74,144,226,0.1)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(74,144,226,0.3)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90E2' }}>You signed! Waiting for client.</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>The client has been notified by email. Once they countersign, the agreement activates and you both receive a copy.</div>
+          </div>
+        )}
         {offer.status === 'active' && (
           <div style={{ marginTop: 14, background: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: '10px 14px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>Agreement Active</div>
@@ -620,7 +630,7 @@ export function RequestsTab({
       })
       const data = await r.json()
       if (data.success) {
-        setHireOffers(prev => prev.map(o => o.agreement_token === signingOffer.agreement_token ? { ...o, status: 'active' as const, caregiver_signature: signature } : o))
+        setHireOffers(prev => prev.map(o => o.agreement_token === signingOffer.agreement_token ? { ...o, status: 'pending_client' as const, caregiver_signature: signature } : o))
         setSignSuccess(signingOffer.client_name?.split(' ')[0] || 'client')
         setSigningOffer(null)
       } else {
@@ -794,10 +804,10 @@ export function RequestsTab({
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">
                   <p className="text-xs font-semibold text-base-content/60 mb-2">How hire offers work</p>
                   {[
-                    ['Client chooses you directly', 'They select you from search or shortlist and initiate a hire'],
-                    ['They sign first', 'Client reviews and signs the care agreement with their rate and schedule'],
-                    ['You review and sign', 'You review the full terms, then accept or decline'],
-                    ['Agreement is finalized', 'Once both sign, you are officially on their care team'],
+                    ['Client sends you a hire offer', 'They set the rate, hours, and schedule — you get notified'],
+                    ['You sign first', 'Review all terms and sign — your rate is locked in at this point'],
+                    ['Client countersigns', 'Client gets an email alert and countersigns to finalize'],
+                    ['Both get email copies', 'Agreement is stored securely. You are officially on their care team.'],
                   ].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
                       <span className="text-primary text-sm mt-0.5">arrow</span>

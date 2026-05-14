@@ -38,6 +38,22 @@ interface CareRequest {
   is_unlocked?: boolean | number
 }
 
+interface HireOffer {
+  id: number
+  agreement_token: string
+  client_email: string
+  client_name: string
+  client_signature: string
+  client_signed_at: string
+  caregiver_name: string
+  caregiver_rate: number
+  care_types: string
+  start_date: string | null
+  schedule_notes: string | null
+  status: 'pending_caregiver' | 'active' | 'declined'
+  created_at: string
+}
+
 interface CountdownInfo {
   text: string
   urgent: boolean
@@ -76,79 +92,59 @@ function CountdownRing({ countdown, expiresAt }: { countdown: CountdownInfo; exp
   if (countdown.expired) {
     return (
       <div className="flex items-center gap-1 text-base-content/60">
-        <span className="text-xs">⏱ Expired</span>
+        <span className="text-xs">Expired</span>
       </div>
     )
   }
   return (
     <div className={`flex items-center gap-1 ${countdown.urgent ? 'text-error' : 'text-warning'}`}>
       <span className="text-xs font-mono font-bold">{countdown.text}</span>
-      {countdown.urgent && <span className="text-xs animate-pulse">⚡</span>}
+      {countdown.urgent && <span className="text-xs animate-pulse">!</span>}
     </div>
   )
 }
 
 function LiveRequestCard({
-  req,
-  countdown,
-  onAccept,
-  onDecline,
-  accepting,
-  declining,
-  accepted,
-  taken,
+  req, countdown, onAccept, onDecline, accepting, declining, accepted, taken,
 }: {
-  req: LiveRequest
-  countdown: CountdownInfo
-  onAccept: (id: number) => void
-  onDecline: (id: number) => void
-  accepting: number | null
-  declining: number | null
-  accepted: boolean
-  taken: boolean
+  req: LiveRequest; countdown: CountdownInfo; onAccept: (id: number) => void; onDecline: (id: number) => void
+  accepting: number | null; declining: number | null; accepted: boolean; taken: boolean
 }) {
   const isExpired = countdown.expired || req.is_expired
   const isTaken = taken || req.request_status === 'taken'
   const isProcessing = accepting === req.request_id || declining === req.request_id
 
-  if (accepted) {
-    return (
-      <div className="rounded-2xl p-5 bg-success/10 border border-success/30 space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">✅</span>
-          <div>
-            <p className="font-bold text-success">Booking Accepted!</p>
-            <p className="text-sm text-base-content/60">{req.care_type} · {req.city} · ${req.pay_rate}/hr</p>
-          </div>
+  if (accepted) return (
+    <div className="rounded-2xl p-5 bg-success/10 border border-success/30 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">ok</span>
+        <div>
+          <p className="font-bold text-success">Booking Accepted!</p>
+          <p className="text-sm text-base-content/60">{req.care_type} &middot; {req.city} &middot; ${req.pay_rate}/hr</p>
         </div>
-        <p className="text-xs text-base-content/65">Check your Interview Requests tab for full details.</p>
       </div>
-    )
-  }
+      <p className="text-xs text-base-content/65">Check your Interview Requests tab for full details.</p>
+    </div>
+  )
 
-  if (isTaken) {
-    return (
-      <div className="rounded-2xl p-4 bg-base-200 border border-base-300 opacity-60">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🔒</span>
-          <div>
-            <p className="font-semibold text-sm text-base-content/50">Accepted by Another Caregiver</p>
-            <p className="text-xs text-base-content/60">{req.care_type} · {req.city}</p>
-          </div>
+  if (isTaken) return (
+    <div className="rounded-2xl p-4 bg-base-200 border border-base-300 opacity-60">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">lock</span>
+        <div>
+          <p className="font-semibold text-sm text-base-content/50">Accepted by Another Caregiver</p>
+          <p className="text-xs text-base-content/60">{req.care_type} &middot; {req.city}</p>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <div className={`rounded-2xl border transition-all ${
-      isExpired
-        ? 'bg-base-200/50 border-base-300 opacity-50'
-        : countdown.urgent
-        ? 'bg-warning/5 border-warning/40 shadow-sm'
+      isExpired ? 'bg-base-200/50 border-base-300 opacity-50'
+        : countdown.urgent ? 'bg-warning/5 border-warning/40 shadow-sm'
         : 'bg-base-200 border-base-300 shadow-sm'
     }`}>
-      {/* Header */}
       <div className="p-4 pb-0">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1">
@@ -163,86 +159,48 @@ function LiveRequestCard({
             {req.duration_hours && <p className="text-xs text-base-content/65">{req.duration_hours}h session</p>}
           </div>
         </div>
-
-        {/* Care quote */}
-        <p className="text-sm text-base-content/60 italic mb-3 leading-relaxed">
-          {getQuote(req.care_type)}
-        </p>
-
-        {/* Meta info */}
+        <p className="text-sm text-base-content/60 italic mb-3 leading-relaxed">{getQuote(req.care_type)}</p>
         <div className="flex items-center gap-3 flex-wrap text-xs text-base-content/60 mb-3">
-          <span className="flex items-center gap-1">📍 {req.city || req.zip_code} · {req.distance_miles} mi away</span>
-          {req.start_date && <span>📅 {req.start_date}</span>}
-          {req.start_time && <span>⏰ {req.start_time}</span>}
+          <span>pin {req.city || req.zip_code} &middot; {req.distance_miles} mi away</span>
+          {req.start_date && <span>cal {req.start_date}</span>}
+          {req.start_time && <span>clock {req.start_time}</span>}
         </div>
-
-        {/* Trust strip */}
         <div className="flex items-center gap-2 text-xs text-base-content/50 mb-3 py-2 border-t border-base-300">
-          <span>🛡️ Client verified</span>
-          <span>·</span>
-          <span>🔒 Booking protected</span>
-          {!isExpired && <span>·</span>}
+          <span>shield Client verified</span>
+          <span>&middot;</span>
+          <span>lock Booking protected</span>
+          {!isExpired && <span>&middot;</span>}
           {!isExpired && <CountdownRing countdown={countdown} expiresAt={req.expires_at} />}
         </div>
       </div>
-
-      {/* Actions */}
       {!isExpired ? (
         <div className="px-4 pb-4 flex gap-2">
-          <button
-            onClick={() => onAccept(req.request_id)}
-            disabled={isProcessing}
-            className="flex-1 btn btn-success btn-sm font-bold text-white"
-          >
-            {accepting === req.request_id ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : '✅ Accept Booking'}
+          <button onClick={() => onAccept(req.request_id)} disabled={isProcessing} className="flex-1 btn btn-success btn-sm font-bold text-white">
+            {accepting === req.request_id ? <span className="loading loading-spinner loading-xs" /> : 'Accept Booking'}
           </button>
-          <button
-            onClick={() => onDecline(req.request_id)}
-            disabled={isProcessing}
-            className="btn btn-ghost btn-sm text-base-content/50"
-          >
-            {declining === req.request_id ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : 'Pass'}
+          <button onClick={() => onDecline(req.request_id)} disabled={isProcessing} className="btn btn-ghost btn-sm text-base-content/50">
+            {declining === req.request_id ? <span className="loading loading-spinner loading-xs" /> : 'Pass'}
           </button>
         </div>
       ) : (
-        <div className="px-4 pb-4">
-          <p className="text-xs text-center text-base-content/60">⏱ This request has expired</p>
-        </div>
+        <div className="px-4 pb-4"><p className="text-xs text-center text-base-content/60">This request has expired</p></div>
       )}
     </div>
   )
 }
 
-function InterviewRequestCard({
-  req,
-  onUnlock,
-  unlocked,
-  unlockLoading,
-  justUnlocked,
-}: {
-  req: CareRequest
-  onUnlock: (req: CareRequest, plan: 'single' | 'unlimited') => void
-  unlocked: boolean
-  unlockLoading: boolean
-  justUnlocked?: boolean
+function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlocked }: {
+  req: CareRequest; onUnlock: (req: CareRequest, plan: 'single' | 'unlimited') => void
+  unlocked: boolean; unlockLoading: boolean; justUnlocked?: boolean
 }) {
   const statusLabel: Record<string, string> = {
-    pending: '📋 Pending Review',
-    accepted: '✅ Accepted',
-    declined: '❌ Declined',
-    completed: '🏁 Completed',
-    cancelled: '🚫 Cancelled',
+    pending: 'Pending Review', accepted: 'Accepted', declined: 'Declined', completed: 'Completed', cancelled: 'Cancelled',
   }
-
   return (
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
       {justUnlocked && (
         <div className="flex items-center gap-2 pb-1">
-          <span className="text-lg">🎉</span>
+          <span className="text-lg">star</span>
           <p className="text-sm font-bold text-success">Payment successful! Contact info unlocked.</p>
         </div>
       )}
@@ -256,61 +214,209 @@ function InterviewRequestCard({
           {req.payRate && <p className="text-sm font-bold text-success">${req.payRate}/hr</p>}
         </div>
       </div>
-
       {req.scheduledDate && (
-        <p className="text-xs text-base-content/65">📅 {req.scheduledDate} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
+        <p className="text-xs text-base-content/65">cal {req.scheduledDate} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
       )}
-
-      {/* Trust strip */}
       <div className="text-xs text-base-content/60 flex items-center gap-2 pt-1 border-t border-base-300">
-        <span>🛡️ Client verified</span><span>·</span><span>🔒 Secure Contact Unlock</span>
+        <span>shield Client verified</span><span>&middot;</span><span>lock Secure Contact Unlock</span>
       </div>
-
-      {/* Unlock / contact section */}
       {unlocked ? (
         <div className="rounded-xl bg-success/10 border border-success/20 p-3 space-y-1">
-          <p className="text-xs font-bold text-success mb-2">✅ Contact Unlocked</p>
+          <p className="text-xs font-bold text-success mb-2">Contact Unlocked</p>
           {req.clientName && <p className="text-sm font-semibold">{req.clientName}</p>}
-          {req.clientPhone && (
-            <a href={`tel:${req.clientPhone}`} className="flex items-center gap-2 text-sm text-primary">
-              📞 {req.clientPhone}
-            </a>
-          )}
-          {req.clientEmail && (
-            <a href={`mailto:${req.clientEmail}`} className="flex items-center gap-2 text-sm text-primary">
-              ✉️ {req.clientEmail}
-            </a>
-          )}
-          {!req.clientName && !req.clientPhone && !req.clientEmail && (
-            <p className="text-xs text-base-content/60">Reloading contact info…</p>
-          )}
+          {req.clientPhone && <a href={`tel:${req.clientPhone}`} className="flex items-center gap-2 text-sm text-primary">phone {req.clientPhone}</a>}
+          {req.clientEmail && <a href={`mailto:${req.clientEmail}`} className="flex items-center gap-2 text-sm text-primary">email {req.clientEmail}</a>}
+          {!req.clientName && !req.clientPhone && !req.clientEmail && <p className="text-xs text-base-content/60">Reloading contact info...</p>}
         </div>
       ) : (
         <div className="space-y-2">
           <div className="rounded-xl bg-base-300/50 p-3">
-            <p className="text-xs text-base-content/50 mb-2">🔒 Client contact info is locked</p>
+            <p className="text-xs text-base-content/50 mb-2">lock Client contact info is locked</p>
             <div className="h-3 rounded bg-base-300 mb-1 w-3/4" />
             <div className="h-3 rounded bg-base-300 w-1/2" />
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => onUnlock(req, 'single')}
-              disabled={unlockLoading}
-              className="flex-1 btn btn-primary btn-sm text-white font-bold"
-            >
-              {unlockLoading ? <span className="loading loading-spinner loading-xs" /> : '🔓 Unlock · $4.99'}
+            <button onClick={() => onUnlock(req, 'single')} disabled={unlockLoading} className="flex-1 btn btn-primary btn-sm text-white font-bold">
+              {unlockLoading ? <span className="loading loading-spinner loading-xs" /> : 'Unlock $4.99'}
             </button>
-            <button
-              onClick={() => onUnlock(req, 'unlimited')}
-              disabled={unlockLoading}
-              className="btn btn-outline btn-sm border-primary text-primary"
-            >
-              ♾️ $19.99/mo
+            <button onClick={() => onUnlock(req, 'unlimited')} disabled={unlockLoading} className="btn btn-outline btn-sm border-primary text-primary">
+              $19.99/mo
             </button>
           </div>
-          <p className="text-xs text-center text-base-content/50">One-time unlock keeps this forever · Unlimited plan unlocks all future requests</p>
+          <p className="text-xs text-center text-base-content/50">One-time unlock · Unlimited plan unlocks all future requests</p>
         </div>
       )}
+    </div>
+  )
+}
+
+function SignAgreementModal({ offer, onSign, onClose, signing }: {
+  offer: HireOffer; onSign: (sig: string) => void; onClose: () => void; signing: boolean
+}) {
+  const [sig, setSig] = useState('')
+  const firstName = offer.client_name ? offer.client_name.split(' ')[0] : 'Client'
+  const lastInitial = offer.client_name && offer.client_name.split(' ').length > 1
+    ? offer.client_name.split(' ').slice(-1)[0].charAt(0) + '.'
+    : ''
+  let careTypes: string[] = []
+  try { careTypes = JSON.parse(offer.care_types || '[]') } catch { careTypes = [] }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ background: '#1a1a2e', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', padding: '0 0 40px', border: '1px solid rgba(124,92,255,0.3)' }}>
+        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#1a1a2e', zIndex: 1 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>Sign Hire Agreement</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Review terms and sign below</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', lineHeight: 1 }}>x</button>
+        </div>
+
+        <div style={{ padding: '20px' }}>
+          <div style={{ background: 'rgba(124,92,255,0.12)', border: '1px solid rgba(124,92,255,0.3)', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', marginBottom: 10 }}>Agreement Summary</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.8 }}>
+              <div><span style={{ color: 'rgba(255,255,255,0.45)' }}>Client: </span>{firstName} {lastInitial}</div>
+              <div><span style={{ color: 'rgba(255,255,255,0.45)' }}>Rate: </span><strong style={{ color: '#22C55E' }}>${offer.caregiver_rate}/hr</strong> <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>(locked in)</span></div>
+              {offer.start_date && <div><span style={{ color: 'rgba(255,255,255,0.45)' }}>Start: </span>{offer.start_date}</div>}
+              {careTypes.length > 0 && <div><span style={{ color: 'rgba(255,255,255,0.45)' }}>Services: </span>{careTypes.join(', ')}</div>}
+              {offer.schedule_notes && <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.55)', whiteSpace: 'pre-line' }}>{offer.schedule_notes}</div>}
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>By Signing, You Agree To</div>
+            {[
+              'Rate of $' + offer.caregiver_rate + '/hr is locked — cannot change after signing',
+              'Provide care services as listed in this agreement',
+              '24-hour notice required if you need to cancel or reschedule',
+              'Keep all client information strictly confidential',
+              'Maintain professional conduct and safe working environment',
+            ].map((t) => (
+              <div key={t} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                <span style={{ color: '#22C55E', fontSize: 13, flexShrink: 0, marginTop: 1 }}>ok</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{t}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 14, fontWeight: 700, color: '#fff', display: 'block', marginBottom: 8 }}>Type your full legal name to sign</label>
+            <input
+              type="text"
+              value={sig}
+              onChange={e => setSig(e.target.value)}
+              placeholder={offer.caregiver_name || 'Your Full Name'}
+              style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '2px solid rgba(124,92,255,0.5)', background: 'rgba(255,255,255,0.06)', fontSize: 16, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#fff', boxSizing: 'border-box' }}
+            />
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Your typed name constitutes your digital signature and is legally binding.</div>
+          </div>
+
+          <button
+            onClick={() => onSign(sig.trim())}
+            disabled={signing || sig.trim().length < 3}
+            style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: signing || sig.trim().length < 3 ? 'rgba(124,92,255,0.3)' : 'linear-gradient(135deg,#7C5CFF,#4A90E2)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: signing || sig.trim().length < 3 ? 'default' : 'pointer' }}
+          >
+            {signing ? 'Signing...' : 'Accept & Sign Agreement'}
+          </button>
+          <button onClick={onClose} style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: 12, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HireOfferCard({ offer, onSign, onDecline }: {
+  offer: HireOffer; onSign: (offer: HireOffer) => void; onDecline: (token: string) => void
+}) {
+  let careTypes: string[] = []
+  try { careTypes = JSON.parse(offer.care_types || '[]') } catch { careTypes = [] }
+  const firstName = offer.client_name ? offer.client_name.split(' ')[0] : 'A client'
+  const lastInitial = offer.client_name && offer.client_name.split(' ').length > 1
+    ? offer.client_name.split(' ').slice(-1)[0].charAt(0) + '.'
+    : ''
+
+  const statusConfig = {
+    pending_caregiver: { label: 'Awaiting Your Signature', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)' },
+    active: { label: 'Signed - Active', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
+    declined: { label: 'Declined', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+  }
+  const s = statusConfig[offer.status] || statusConfig.pending_caregiver
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${s.border}`, borderRadius: 18, overflow: 'hidden' }}>
+      <div style={{ background: s.bg, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</span>
+        {offer.status === 'pending_caregiver' && <span style={{ fontSize: 11, color: s.color }}>Expires in 72 hrs</span>}
+        {offer.status === 'active' && <span style={{ fontSize: 11, color: s.color }}>Both parties signed</span>}
+      </div>
+
+      <div style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+              Hire Offer from {firstName} {lastInitial}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+              {new Date(offer.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#22C55E' }}>${offer.caregiver_rate}<span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.45)' }}>/hr</span></div>
+            <div style={{ fontSize: 10, color: '#22C55E', fontWeight: 600 }}>RATE LOCKED</div>
+          </div>
+        </div>
+
+        {careTypes.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {careTypes.map((t: string) => (
+                <span key={t} style={{ background: 'rgba(124,92,255,0.2)', color: '#a78bfa', borderRadius: 20, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {offer.start_date && (
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+            Start date: {offer.start_date}
+          </div>
+        )}
+
+        {offer.schedule_notes && (
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+            {offer.schedule_notes}
+          </div>
+        )}
+
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, marginTop: 10 }}>
+          Client signed: <em>{offer.client_signature}</em> &middot; {new Date(offer.client_signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </div>
+
+        {offer.status === 'pending_caregiver' && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <button
+              onClick={() => onSign(offer)}
+              style={{ flex: 1, padding: '13px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#7C5CFF,#4A90E2)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
+            >
+              Sign &amp; Accept
+            </button>
+            <button
+              onClick={() => onDecline(offer.agreement_token)}
+              style={{ padding: '13px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: 'rgba(239,68,68,0.75)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Decline
+            </button>
+          </div>
+        )}
+
+        {offer.status === 'active' && (
+          <div style={{ marginTop: 14, background: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: '10px 14px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>Agreement Active</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Both parties have signed. You are on their care team.</div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -323,18 +429,16 @@ export function RequestsTab({
   profile?: any
   returnedBookingId?: string | null
   returnedSubscription?: boolean
-  // Legacy props — kept for backward compat but not used by this component's internal logic
   requests?: any[]
   loading?: boolean
   onAccept?: (id: number) => void
   onDecline?: (id: number) => void
 }) {
-  // If returning from a Stripe payment, default to interviews tab
-  const [activeSection, setActiveSection] = useState<'live' | 'interviews'>(
+  const [activeSection, setActiveSection] = useState<'live' | 'interviews' | 'offers'>(
     (returnedBookingId || returnedSubscription) ? 'interviews' : 'live'
   )
 
-  // ── Live Dispatch State ────────────────────────────────
+  // Live Dispatch
   const [liveRequests, setLiveRequests] = useState<LiveRequest[]>([])
   const [isLoadingLive, setIsLoadingLive] = useState(false)
   const [countdowns, setCountdowns] = useState<Record<number, CountdownInfo>>({})
@@ -344,21 +448,26 @@ export function RequestsTab({
   const [takenIds, setTakenIds] = useState<Set<number>>(new Set())
   const [liveError, setLiveError] = useState('')
 
-  // ── Interview Requests State ───────────────────────────
+  // Interview Requests
   const [bookings, setBookings] = useState<CareRequest[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = useState(false)
-  // Persisted unlocked set from localStorage
   const [unlockedIds, setUnlockedIds] = useState<Set<number>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('cgp_unlocked') || '[]')) } catch { return new Set() }
   })
-  // Optimistic unlocked — booking IDs unlocked this session (before D1 reflects it)
   const [optimisticUnlocked, setOptimisticUnlocked] = useState<Set<number>>(() => {
     if (returnedBookingId) return new Set([Number(returnedBookingId)])
     return new Set()
   })
   const [unlockLoading, setUnlockLoading] = useState<number | null>(null)
 
-  // ── Fetch Live Requests ────────────────────────────────
+  // Hire Offers
+  const [hireOffers, setHireOffers] = useState<HireOffer[]>([])
+  const [isLoadingOffers, setIsLoadingOffers] = useState(false)
+  const [signingOffer, setSigningOffer] = useState<HireOffer | null>(null)
+  const [isSigning, setIsSigning] = useState(false)
+  const [signSuccess, setSignSuccess] = useState<string | null>(null)
+
+  // Fetch Live Requests
   const fetchLiveRequests = useCallback(async () => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
@@ -368,11 +477,8 @@ export function RequestsTab({
       const r = await fetch(`${API}/caregiver-live-requests?token=${token}`)
       const data = await r.json()
       if (data.requests) setLiveRequests(data.requests)
-    } catch (e: any) {
-      setLiveError('Could not load live requests.')
-    } finally {
-      setIsLoadingLive(false)
-    }
+    } catch { setLiveError('Could not load live requests.') }
+    finally { setIsLoadingLive(false) }
   }, [])
 
   useEffect(() => {
@@ -381,7 +487,7 @@ export function RequestsTab({
     return () => clearInterval(interval)
   }, [fetchLiveRequests])
 
-  // ── Countdown Timer ────────────────────────────────────
+  // Countdown Timer
   useEffect(() => {
     const tick = setInterval(() => {
       const now = Date.now()
@@ -401,62 +507,49 @@ export function RequestsTab({
     return () => clearInterval(tick)
   }, [liveRequests])
 
-  // ── Accept Dispatch ────────────────────────────────────
+  // Accept Dispatch
   const handleAccept = async (requestId: number) => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setAccepting(requestId)
     try {
       const r = await fetch(`${API}/dispatch-accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, request_id: requestId }),
       })
       const data = await r.json()
-      if (data.success) {
-        setAcceptedIds((prev) => new Set([...prev, requestId]))
-        setTimeout(fetchLiveRequests, 2000)
-      } else if (data.taken) {
-        setTakenIds((prev) => new Set([...prev, requestId]))
-      } else if (data.error) {
-        alert(data.error)
-      }
-    } catch (e: any) {
-      alert('Failed to accept. Please try again.')
-    } finally {
-      setAccepting(null)
-    }
+      if (data.success) { setAcceptedIds(prev => new Set([...prev, requestId])); setTimeout(fetchLiveRequests, 2000) }
+      else if (data.taken) setTakenIds(prev => new Set([...prev, requestId]))
+      else if (data.error) alert(data.error)
+    } catch { alert('Failed to accept. Please try again.') }
+    finally { setAccepting(null) }
   }
 
-  // ── Decline Dispatch ───────────────────────────────────
+  // Decline Dispatch
   const handleDecline = async (requestId: number) => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setDeclining(requestId)
     try {
       await fetch(`${API}/dispatch-decline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, request_id: requestId }),
       })
-      setLiveRequests((prev) => prev.filter((r) => r.request_id !== requestId))
-    } finally {
-      setDeclining(null)
-    }
+      setLiveRequests(prev => prev.filter(r => r.request_id !== requestId))
+    } finally { setDeclining(null) }
   }
 
-  // ── Fetch Interview Bookings ───────────────────────────
+  // Fetch Interview Bookings
   const fetchBookings = useCallback(async () => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setIsLoadingBookings(true)
     fetch(`${API}/caregiver-bookings?token=${token}`)
-      .then((r) => r.json())
-      .then((data) => {
+      .then(r => r.json())
+      .then(data => {
         const raw: any[] = data.bookings || data.requests || []
         setBookings(raw.map((b: any) => ({
-          id: b.id,
-          status: b.status || 'pending',
+          id: b.id, status: b.status || 'pending',
           careType: b.care_type || b.careType || b.careNeeds,
           scheduledDate: b.scheduled_date || b.scheduledDate || b.preferredDate,
           scheduledTime: b.scheduled_time || b.scheduledTime || b.preferredTime,
@@ -465,15 +558,13 @@ export function RequestsTab({
           clientEmail: b.client_email || b.clientEmail,
           clientLocation: b.client_location || b.zip_code,
           payRate: b.pay_rate || b.payRate,
-          notes: b.notes,
-          is_unlocked: b.is_unlocked || b.isUnlocked,
+          notes: b.notes, is_unlocked: b.is_unlocked || b.isUnlocked,
         })))
       })
       .catch(() => {})
       .finally(() => setIsLoadingBookings(false))
   }, [])
 
-  // Auto-fetch interviews on mount if coming from Stripe, and whenever section switches to interviews
   useEffect(() => {
     if (activeSection !== 'interviews') return
     fetchBookings()
@@ -481,16 +572,13 @@ export function RequestsTab({
     return () => clearInterval(interval)
   }, [activeSection, fetchBookings])
 
-  // When returning from Stripe, auto-switch to interviews + trigger fetch
   useEffect(() => {
     if (returnedBookingId || returnedSubscription) {
       setActiveSection('interviews')
       fetchBookings()
-      // Add to optimistic unlocked set
       if (returnedBookingId) {
         const newSet = new Set([...optimisticUnlocked, Number(returnedBookingId)])
         setOptimisticUnlocked(newSet)
-        // Also persist so it survives tab switching
         const newPersisted = new Set([...unlockedIds, Number(returnedBookingId)])
         setUnlockedIds(newPersisted)
         localStorage.setItem('cgp_unlocked', JSON.stringify([...newPersisted]))
@@ -498,63 +586,100 @@ export function RequestsTab({
     }
   }, [returnedBookingId, returnedSubscription])
 
-  // ── Check if a booking is unlocked (D1 flag OR optimistic local state) ──
-  const isUnlocked = (req: CareRequest) =>
-    !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) ||
-    (returnedSubscription === true)
+  // Fetch Hire Offers
+  const fetchHireOffers = useCallback(async () => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setIsLoadingOffers(true)
+    try {
+      const r = await fetch(`${API}/pending-hire-offers?token=${token}`)
+      const data = await r.json()
+      if (data.success) setHireOffers(data.offers || [])
+    } catch { }
+    finally { setIsLoadingOffers(false) }
+  }, [])
 
-  // ── Unlock Handler ─────────────────────────────────────
+  useEffect(() => {
+    if (activeSection !== 'offers') return
+    fetchHireOffers()
+  }, [activeSection, fetchHireOffers])
+
+  // Also fetch offers count on mount (for badge)
+  useEffect(() => { fetchHireOffers() }, [fetchHireOffers])
+
+  // Handle caregiver signing
+  const handleSign = async (signature: string) => {
+    if (!signingOffer || signature.length < 3) return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setIsSigning(true)
+    try {
+      const r = await fetch(`${API}/sign-hire-agreement`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, agreementToken: signingOffer.agreement_token, caregiverSignature: signature }),
+      })
+      const data = await r.json()
+      if (data.success) {
+        setHireOffers(prev => prev.map(o => o.agreement_token === signingOffer.agreement_token ? { ...o, status: 'active' as const, caregiver_signature: signature } : o))
+        setSignSuccess(signingOffer.client_name?.split(' ')[0] || 'client')
+        setSigningOffer(null)
+      } else {
+        alert(data.error || 'Something went wrong. Please try again.')
+      }
+    } catch { alert('Network error. Please try again.') }
+    finally { setIsSigning(false) }
+  }
+
+  // Handle caregiver declining
+  const handleDeclineOffer = async (agreementToken: string) => {
+    if (!confirm('Are you sure you want to decline this hire offer?')) return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    try {
+      await fetch(`${API}/decline-hire-agreement`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, agreementToken }),
+      })
+      setHireOffers(prev => prev.map(o => o.agreement_token === agreementToken ? { ...o, status: 'declined' as const } : o))
+    } catch { alert('Could not decline. Please try again.') }
+  }
+
+  const isUnlocked = (req: CareRequest) =>
+    !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) || (returnedSubscription === true)
+
   const handleUnlock = async (req: CareRequest, plan: 'single' | 'unlimited') => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
     setUnlockLoading(req.id)
     try {
-      let endpoint: string
-      let payload: Record<string, any>
-
-      // Get caregiver ID from profile prop or localStorage
       const caregiverId = profile?.id || (() => {
         try { return JSON.parse(localStorage.getItem('cgp_account') || '{}').id } catch { return undefined }
       })()
-
+      let endpoint: string
+      let payload: Record<string, any>
       if (plan === 'unlimited') {
-        // Subscription plan — separate endpoint
         endpoint = `${API}/create-caregiver-subscription-checkout`
         payload = { token, caregiverId }
       } else {
-        // One-time $4.99 unlock
         endpoint = `${API}/unlock-booking`
         payload = { token, bookingId: req.id, caregiverId }
       }
-
-      const r = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await r.json()
-
-      // Backend returns { url } — redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url
-      } else if (data.success) {
-        // Free override or already unlocked
+      if (data.url) { window.location.href = data.url }
+      else if (data.success) {
         const newUnlocked = new Set([...unlockedIds, req.id])
         setUnlockedIds(newUnlocked)
         localStorage.setItem('cgp_unlocked', JSON.stringify([...newUnlocked]))
       } else {
-        console.error('Unlock error:', data)
         alert(data.error || 'Could not start checkout. Please try again.')
       }
-    } catch (e: any) {
-      alert('Error processing unlock. Please try again.')
-    } finally {
-      setUnlockLoading(null)
-    }
+    } catch { alert('Error processing unlock. Please try again.') }
+    finally { setUnlockLoading(null) }
   }
 
-  // ── Live count badge ───────────────────────────────────
-  const activeLiveCount = liveRequests.filter((r) => !r.is_expired && r.request_status !== 'taken').length
+  const activeLiveCount = liveRequests.filter(r => !r.is_expired && r.request_status !== 'taken').length
+  const pendingOffersCount = hireOffers.filter(o => o.status === 'pending_caregiver').length
 
   return (
     <div className="flex flex-col h-full">
@@ -563,34 +688,29 @@ export function RequestsTab({
         <div className="flex rounded-2xl bg-base-200 p-1 gap-1">
           <button
             onClick={() => setActiveSection('live')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeSection === 'live'
-                ? 'bg-primary text-primary-content shadow-sm'
-                : 'text-base-content/50'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'live' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
-            <span>⚡</span>
             <span>Live</span>
             {activeLiveCount > 0 && (
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'live' ? 'bg-white/20 text-white' : 'bg-error text-white'}`}>
-                {activeLiveCount}
-              </span>
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'live' ? 'bg-white/20 text-white' : 'bg-error text-white'}`}>{activeLiveCount}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveSection('offers')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'offers' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
+          >
+            <span>Hire Offers</span>
+            {pendingOffersCount > 0 && (
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'offers' ? 'bg-white/20 text-white' : 'bg-warning text-black'}`}>{pendingOffersCount}</span>
             )}
           </button>
           <button
             onClick={() => setActiveSection('interviews')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeSection === 'interviews'
-                ? 'bg-primary text-primary-content shadow-sm'
-                : 'text-base-content/50'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'interviews' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
-            <span>📅</span>
             <span>Interviews</span>
             {bookings.length > 0 && (
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'interviews' ? 'bg-white/20 text-white' : 'bg-primary/80 text-white'}`}>
-                {bookings.length}
-              </span>
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'interviews' ? 'bg-white/20 text-white' : 'bg-primary/80 text-white'}`}>{bookings.length}</span>
             )}
           </button>
         </div>
@@ -599,70 +719,106 @@ export function RequestsTab({
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24">
 
-        {/* ── LIVE DISPATCH SECTION ── */}
+        {/* LIVE DISPATCH */}
         {activeSection === 'live' && (
           <>
             {isLoadingLive && liveRequests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <span className="loading loading-ring loading-lg text-primary" />
-                <p className="text-sm text-base-content/65">Scanning for care requests near you…</p>
+                <p className="text-sm text-base-content/65">Scanning for care requests near you...</p>
               </div>
             )}
-
             {!isLoadingLive && liveRequests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
                 <div className="relative w-20 h-20">
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
                   <div className="absolute inset-2 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDuration: '2.5s' }} />
-                  <div className="absolute inset-0 flex items-center justify-center text-3xl">📡</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-3xl">radar</div>
                 </div>
                 <div>
-                  <p className="font-bold text-base-content/70 mb-1">Scanning your area…</p>
+                  <p className="font-bold text-base-content/70 mb-1">Scanning your area...</p>
                   <p className="text-sm text-base-content/60">No live requests right now.</p>
-                  <p className="text-sm text-base-content/60">Make sure you're online to get dispatched.</p>
+                  <p className="text-sm text-base-content/60">Make sure you are online to get dispatched.</p>
                 </div>
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2">
-                  <p className="text-xs font-semibold text-base-content/60 mb-2">💡 Tips to get more requests</p>
+                  <p className="text-xs font-semibold text-base-content/60 mb-2">Tips to get more requests</p>
+                  {[['Complete your profile', 'Add photo, bio, and skills'], ['Stay online', 'Toggle the Online switch on your Home tab'], ['Enable notifications', 'Never miss a request when it arrives']].map(([title, desc]) => (
+                    <div key={title} className="flex items-start gap-2">
+                      <span className="text-success text-sm mt-0.5">ok</span>
+                      <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {liveRequests.map(req => (
+              <LiveRequestCard key={req.dispatch_id} req={req}
+                countdown={countdowns[req.request_id] || { text: '...', urgent: false, expired: false, pct: 100 }}
+                onAccept={handleAccept} onDecline={handleDecline}
+                accepting={accepting} declining={declining}
+                accepted={acceptedIds.has(req.request_id)} taken={takenIds.has(req.request_id)}
+              />
+            ))}
+            {liveRequests.length > 0 && (
+              <p className="text-xs text-center text-base-content/60 pb-2">
+                Refreshes every 30 seconds &middot; {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </>
+        )}
+
+        {/* HIRE OFFERS */}
+        {activeSection === 'offers' && (
+          <>
+            {signSuccess && (
+              <div className="rounded-2xl bg-success/10 border border-success/30 p-4 flex items-center gap-3">
+                <span className="text-2xl">party</span>
+                <div>
+                  <p className="font-bold text-success">You signed the agreement!</p>
+                  <p className="text-sm text-base-content/60">You are now on {signSuccess}&apos;s care team. Check My Clients for details.</p>
+                </div>
+              </div>
+            )}
+
+            {isLoadingOffers && hireOffers.length === 0 && (
+              <div className="flex items-center justify-center py-10">
+                <span className="loading loading-ring loading-md text-primary" />
+              </div>
+            )}
+
+            {!isLoadingOffers && hireOffers.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                <span className="text-5xl">handshake</span>
+                <p className="font-bold text-base-content/60">No Hire Offers Yet</p>
+                <p className="text-sm text-base-content/60 px-4">When a client directly hires you, their signed agreement will appear here for your review and signature.</p>
+                <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">
+                  <p className="text-xs font-semibold text-base-content/60 mb-2">How hire offers work</p>
                   {[
-                    ['Complete your profile', 'Add photo, bio, and skills'],
-                    ['Stay online', 'Toggle the Online switch on your Home tab'],
-                    ['Enable notifications', 'Never miss a request when it arrives'],
+                    ['Client chooses you directly', 'They select you from search or shortlist and initiate a hire'],
+                    ['They sign first', 'Client reviews and signs the care agreement with their rate and schedule'],
+                    ['You review and sign', 'You review the full terms, then accept or decline'],
+                    ['Agreement is finalized', 'Once both sign, you are officially on their care team'],
                   ].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
-                      <span className="text-success text-sm mt-0.5">✓</span>
-                      <div>
-                        <p className="text-xs font-semibold text-base-content/70">{title}</p>
-                        <p className="text-xs text-base-content/60">{desc}</p>
-                      </div>
+                      <span className="text-primary text-sm mt-0.5">arrow</span>
+                      <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {liveRequests.map((req) => (
-              <LiveRequestCard
-                key={req.dispatch_id}
-                req={req}
-                countdown={countdowns[req.request_id] || { text: '...', urgent: false, expired: false, pct: 100 }}
-                onAccept={handleAccept}
-                onDecline={handleDecline}
-                accepting={accepting}
-                declining={declining}
-                accepted={acceptedIds.has(req.request_id)}
-                taken={takenIds.has(req.request_id)}
-              />
+            {hireOffers.map(offer => (
+              <HireOfferCard key={offer.id} offer={offer} onSign={setSigningOffer} onDecline={handleDeclineOffer} />
             ))}
 
-            {liveRequests.length > 0 && (
-              <p className="text-xs text-center text-base-content/60 pb-2">
-                Refreshes every 30 seconds · {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
+            {signingOffer && (
+              <SignAgreementModal offer={signingOffer} onSign={handleSign} onClose={() => setSigningOffer(null)} signing={isSigning} />
             )}
           </>
         )}
 
-        {/* ── INTERVIEW REQUESTS SECTION ── */}
+        {/* INTERVIEW REQUESTS */}
         {activeSection === 'interviews' && (
           <>
             {isLoadingBookings && (
@@ -670,38 +826,25 @@ export function RequestsTab({
                 <span className="loading loading-ring loading-md text-primary" />
               </div>
             )}
-
             {!isLoadingBookings && bookings.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                <span className="text-4xl">📅</span>
+                <span className="text-4xl">calendar</span>
                 <p className="font-bold text-base-content/60">No Interview Requests Yet</p>
                 <p className="text-sm text-base-content/60">When clients book an interview with you, it will appear here.</p>
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">
-                  <p className="text-xs font-semibold text-base-content/60 mb-2">💡 How it works</p>
-                  {[
-                    ['Client books you', 'A family finds your profile and requests an interview'],
-                    ['You get notified', 'Email alert sent to you instantly'],
-                    ['Unlock to connect', 'Pay $4.99 to see their contact info, or $19.99/mo for unlimited'],
-                  ].map(([title, desc]) => (
+                  <p className="text-xs font-semibold text-base-content/60 mb-2">How it works</p>
+                  {[['Client books you', 'A family finds your profile and requests an interview'], ['You get notified', 'Email alert sent to you instantly'], ['Unlock to connect', 'Pay $4.99 to see their contact info, or $19.99/mo for unlimited']].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
-                      <span className="text-primary text-sm mt-0.5">→</span>
-                      <div>
-                        <p className="text-xs font-semibold text-base-content/70">{title}</p>
-                        <p className="text-xs text-base-content/60">{desc}</p>
-                      </div>
+                      <span className="text-primary text-sm mt-0.5">arrow</span>
+                      <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            {bookings.map((req) => (
-              <InterviewRequestCard
-                key={req.id}
-                req={req}
-                onUnlock={handleUnlock}
-                unlocked={isUnlocked(req)}
-                unlockLoading={unlockLoading === req.id}
+            {bookings.map(req => (
+              <InterviewRequestCard key={req.id} req={req} onUnlock={handleUnlock}
+                unlocked={isUnlocked(req)} unlockLoading={unlockLoading === req.id}
                 justUnlocked={returnedBookingId ? Number(returnedBookingId) === req.id : false}
               />
             ))}

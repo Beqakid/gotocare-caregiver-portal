@@ -117,7 +117,7 @@ function LiveRequestCard({
   if (accepted) return (
     <div className="rounded-2xl p-5 bg-success/10 border border-success/30 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-2xl">ok</span>
+        <span className="text-2xl">✅</span>
         <div>
           <p className="font-bold text-success">Booking Accepted!</p>
           <p className="text-sm text-base-content/60">{req.care_type} &middot; {req.city} &middot; ${req.pay_rate}/hr</p>
@@ -130,7 +130,7 @@ function LiveRequestCard({
   if (isTaken) return (
     <div className="rounded-2xl p-4 bg-base-200 border border-base-300 opacity-60">
       <div className="flex items-center gap-2">
-        <span className="text-lg">lock</span>
+        <span className="text-lg">🔒</span>
         <div>
           <p className="font-semibold text-sm text-base-content/50">Accepted by Another Caregiver</p>
           <p className="text-xs text-base-content/60">{req.care_type} &middot; {req.city}</p>
@@ -200,7 +200,7 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
       {justUnlocked && (
         <div className="flex items-center gap-2 pb-1">
-          <span className="text-lg">star</span>
+          <span className="text-lg">⭐</span>
           <p className="text-sm font-bold text-success">Payment successful! Contact info unlocked.</p>
         </div>
       )}
@@ -224,8 +224,8 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
         <div className="rounded-xl bg-success/10 border border-success/20 p-3 space-y-1">
           <p className="text-xs font-bold text-success mb-2">Contact Unlocked</p>
           {req.clientName && <p className="text-sm font-semibold">{req.clientName}</p>}
-          {req.clientPhone && <a href={`tel:${req.clientPhone}`} className="flex items-center gap-2 text-sm text-primary">phone {req.clientPhone}</a>}
-          {req.clientEmail && <a href={`mailto:${req.clientEmail}`} className="flex items-center gap-2 text-sm text-primary">email {req.clientEmail}</a>}
+          {req.clientPhone && <a href={`tel:${req.clientPhone}`} className="flex items-center gap-2 text-sm text-primary">📞 {req.clientPhone}</a>}
+          {req.clientEmail && <a href={`mailto:${req.clientEmail}`} className="flex items-center gap-2 text-sm text-primary">✉️ {req.clientEmail}</a>}
           {!req.clientName && !req.clientPhone && !req.clientEmail && <p className="text-xs text-base-content/60">Reloading contact info...</p>}
         </div>
       ) : (
@@ -294,7 +294,7 @@ function SignAgreementModal({ offer, onSign, onClose, signing }: {
               'Maintain professional conduct and safe working environment',
             ].map((t) => (
               <div key={t} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-                <span style={{ color: '#22C55E', fontSize: 13, flexShrink: 0, marginTop: 1 }}>ok</span>
+                <span style={{ color: '#22C55E', fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{t}</span>
               </div>
             ))}
@@ -743,7 +743,7 @@ export function RequestsTab({
                 <div className="relative w-20 h-20">
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
                   <div className="absolute inset-2 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDuration: '2.5s' }} />
-                  <div className="absolute inset-0 flex items-center justify-center text-3xl">radar</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-3xl">📡</div>
                 </div>
                 <div>
                   <p className="font-bold text-base-content/70 mb-1">Scanning your area...</p>
@@ -754,7 +754,7 @@ export function RequestsTab({
                   <p className="text-xs font-semibold text-base-content/60 mb-2">Tips to get more requests</p>
                   {[['Complete your profile', 'Add photo, bio, and skills'], ['Stay online', 'Toggle the Online switch on your Home tab'], ['Enable notifications', 'Never miss a request when it arrives']].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
-                      <span className="text-success text-sm mt-0.5">ok</span>
+                      <span className="text-success text-sm mt-0.5">✓</span>
                       <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
                     </div>
                   ))}
@@ -782,7 +782,7 @@ export function RequestsTab({
           <>
             {signSuccess && (
               <div className="rounded-2xl bg-success/10 border border-success/30 p-4 flex items-center gap-3">
-                <span className="text-2xl">party</span>
+                <span className="text-2xl">🎉</span>
                 <div>
                   <p className="font-bold text-success">You signed the agreement!</p>
                   <p className="text-sm text-base-content/60">You are now on {signSuccess}&apos;s care team. Check My Clients for details.</p>
@@ -798,7 +798,7 @@ export function RequestsTab({
 
             {!isLoadingOffers && hireOffers.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                <span className="text-5xl">handshake</span>
+                <span className="text-5xl">🤝</span>
                 <p className="font-bold text-base-content/60">No Hire Offers Yet</p>
                 <p className="text-sm text-base-content/60 px-4">When a client directly hires you, their signed agreement will appear here for your review and signature.</p>
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">
@@ -810,7 +810,7 @@ export function RequestsTab({
                     ['Both get email copies', 'Agreement is stored securely. You are officially on their care team.'],
                   ].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
-                      <span className="text-primary text-sm mt-0.5">arrow</span>
+                      <span className="text-primary text-sm mt-0.5">→</span>
                       <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
                     </div>
                   ))}
@@ -845,7 +845,7 @@ export function RequestsTab({
                   <p className="text-xs font-semibold text-base-content/60 mb-2">How it works</p>
                   {[['Client books you', 'A family finds your profile and requests an interview'], ['You get notified', 'Email alert sent to you instantly'], ['Unlock to connect', 'Pay $4.99 to see their contact info, or $19.99/mo for unlimited']].map(([title, desc]) => (
                     <div key={title} className="flex items-start gap-2">
-                      <span className="text-primary text-sm mt-0.5">arrow</span>
+                      <span className="text-primary text-sm mt-0.5">→</span>
                       <div><p className="text-xs font-semibold text-base-content/70">{title}</p><p className="text-xs text-base-content/60">{desc}</p></div>
                     </div>
                   ))}

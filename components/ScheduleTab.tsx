@@ -128,6 +128,8 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate }) => {
   const [viewMode, setViewMode] = useState<'schedule' | 'timesheet' | 'clients' | 'availability'>('schedule')
+  const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
+  const [schedulesLoading, setSchedulesLoading] = useState(false)
 
   // Availability state
   const [availability, setAvailability] = useState<Record<string, { available: boolean; start: string; end: string }>>(() => {
@@ -264,6 +266,19 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       }
     }
   }
+
+  // Fetch confirmed schedules (from hire agreements) when schedule tab is active
+  useEffect(() => {
+    if (viewMode !== 'schedule') return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setSchedulesLoading(true)
+    fetch(`https://gotocare-original.jjioji.workers.dev/api/caregiver-work-schedule?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setConfirmedSchedules(d.schedules || []) })
+      .catch(() => {})
+      .finally(() => setSchedulesLoading(false))
+  }, [viewMode])
 
   // Timer tick
   useEffect(() => {
@@ -710,6 +725,41 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       {/* ---- SCHEDULE VIEW ---- */}
       {viewMode === 'schedule' && (
         <div className="px-4 space-y-5">
+          {/* ── Confirmed Schedules (from signed hire agreements) ── */}
+          {(confirmedSchedules.length > 0 || schedulesLoading) && (
+            <div>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Confirmed Schedules</p>
+              {schedulesLoading && confirmedSchedules.length === 0 ? (
+                <div className="skeleton-shimmer h-16 rounded-2xl" />
+              ) : (
+                <div className="space-y-2">
+                  {confirmedSchedules.map((sched: any, idx: number) => (
+                    <div key={idx} className="bg-gradient-to-r from-primary/8 to-primary/4 border border-primary/15 rounded-2xl p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-primary">{(sched.client_display_name || '?').charAt(0).toUpperCase()}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-base-content">{sched.client_display_name || sched.client_email}</p>
+                            <p className="text-xs text-base-content/60 mt-0.5">
+                              {sched.days?.split(',').join(' · ')} &nbsp;·&nbsp; {sched.start_time} – {sched.end_time}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          {sched.care_type && (
+                            <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{sched.care_type}</span>
+                          )}
+                          <p className="text-[10px] text-base-content/40 mt-1">View only</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {Object.keys(grouped).length === 0 ? (
             <div className="text-center py-12">
               <Calendar size={40} className="mx-auto opacity-20 mb-3" />

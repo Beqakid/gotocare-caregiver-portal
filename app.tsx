@@ -98,6 +98,13 @@ const App: React.FC<{}> = () => {
       return new URLSearchParams(window.location.search).get('caregiver')
     } catch { return null }
   })
+  const [verifyToken] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('verify') } catch { return null }
+  })
+  const [verifyStatus, setVerifyStatus] = useState<null | 'pending' | 'success' | 'error'>(
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('verify') ? 'pending' : null
+  )
+  const [verifyMessage, setVerifyMessage] = useState('')
   // Restore session on refresh — check localStorage immediately (lazy initializer)
   const sessionRestored = React.useRef(!!localStorage.getItem('cgp_token'))
   const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('cgp_token'))
@@ -183,6 +190,29 @@ const App: React.FC<{}> = () => {
       setLoading(false)
     }
   }, [])
+
+  // Handle email verification token in URL
+  useEffect(() => {
+    if (!verifyToken) return
+    const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
+    fetch(`${API_BASE}/api/caregiver-verify-email?token=${encodeURIComponent(verifyToken)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setVerifyStatus('success')
+          setVerifyMessage(d.name ? `Welcome, ${d.name}! Your email is verified.` : 'Email verified! You can now sign in.')
+        } else {
+          setVerifyStatus('error')
+          setVerifyMessage(d.error || 'Verification failed. The link may have expired.')
+        }
+        // Clear ?verify= param from URL
+        try { window.history.replaceState({}, '', window.location.pathname) } catch {}
+      })
+      .catch(() => {
+        setVerifyStatus('error')
+        setVerifyMessage('Network error. Please try again.')
+      })
+  }, [verifyToken])
 
   // Handle Stripe return URLs
   useEffect(() => {
@@ -417,6 +447,72 @@ const App: React.FC<{}> = () => {
         }
       }
     } catch (e) { /* keep demo requests */ }
+  }
+
+  // Email verification screen — shows when ?verify=TOKEN is in URL
+  if (verifyStatus) {
+    const API_BASE_CONST = 'https://gotocare-original.jjioji.workers.dev'
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(160deg, #1e1b4b 0%, #2d1b69 40%, #0f2a5e 100%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 20px',
+      }}>
+        <div style={{
+          width: '100%', maxWidth: '380px',
+          background: 'rgba(255,255,255,0.09)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          borderRadius: '28px', padding: '32px 24px',
+          textAlign: 'center',
+        }}>
+          {verifyStatus === 'pending' && (
+            <>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+              <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verifying your email…</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Just a moment</p>
+            </>
+          )}
+          {verifyStatus === 'success' && (
+            <>
+              <div style={{ fontSize: '56px', marginBottom: '16px' }}>✅</div>
+              <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Email Verified!</h2>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', marginBottom: '28px' }}>{verifyMessage}</p>
+              <button
+                onClick={() => setVerifyStatus(null)}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: '50px',
+                  background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: '15px', fontWeight: 700, color: '#ffffff',
+                  boxShadow: '0 4px 16px rgba(124,92,255,0.35)',
+                }}
+              >
+                Sign In to Carehia
+              </button>
+            </>
+          )}
+          {verifyStatus === 'error' && (
+            <>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+              <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verification Failed</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '24px' }}>{verifyMessage}</p>
+              <button
+                onClick={() => setVerifyStatus(null)}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: '50px',
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+                  cursor: 'pointer', fontSize: '14px', color: 'rgba(255,255,255,0.7)',
+                }}
+              >
+                Back to Sign In
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )
   }
 
   // Public profile route — no login required

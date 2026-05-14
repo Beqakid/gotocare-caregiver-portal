@@ -21,7 +21,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   agencyError,
   agencyLoading,
 }) => {
-  const [screen, setScreen] = useState<'choose' | 'register' | 'signin' | 'agency'>('choose')
+  const [screen, setScreen] = useState<'choose' | 'register' | 'signin' | 'agency' | 'verify-pending'>('choose')
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendDone, setResendDone] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,10 +95,30 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       })
       const data = await res.json()
-      if (data.success && data.token) onMarketplaceAuth(data.token, data.account)
-      else setError(data.error || 'Registration failed. Please try again.')
+      if (data.success && data.emailVerificationRequired) {
+        setPendingEmail(email.trim().toLowerCase())
+        setScreen('verify-pending')
+      } else if (data.success && data.token) {
+        onMarketplaceAuth(data.token, data.account)
+      } else {
+        setError(data.error || 'Registration failed. Please try again.')
+      }
     } catch { setError('Connection error. Please try again.') }
     finally { setLoading(false) }
+  }
+
+  const handleResendVerification = async () => {
+    if (resendLoading || resendDone) return
+    setResendLoading(true)
+    try {
+      await fetch(`${API_BASE}/api/caregiver-resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail }),
+      })
+      setResendDone(true)
+    } catch {}
+    finally { setResendLoading(false) }
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -335,6 +358,51 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Signing in…' : 'Sign in'}</button>
           </form>
           <button onClick={() => setScreen('register')} style={{ ...btnOutline, marginBottom: 0 }}>Create an account instead</button>
+        </div>
+      </div>
+    </div>
+  )
+
+
+  // ── VERIFY PENDING SCREEN ──────────────────────────────────────────
+  if (screen === 'verify-pending') return (
+    <div style={bgStyle}>
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
+      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.15)')} />
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={glassCard}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7C5CFF22, #4A90E222)',
+              border: '2px solid rgba(124,92,255,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', fontSize: '32px',
+            }}>✉️</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Check your email</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>
+              We sent a verification link to<br />
+              <span style={{ color: '#7C5CFF', fontWeight: 600 }}>{pendingEmail}</span>
+            </p>
+          </div>
+          <div style={{ background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.25)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
+              Click the link in the email to verify your account. Check your spam folder if you don't see it within a minute.
+            </p>
+          </div>
+          {resendDone
+            ? <p style={{ textAlign: 'center', color: '#22C55E', fontSize: '14px', marginBottom: '16px' }}>✓ Verification email resent!</p>
+            : <button
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                style={{ ...btnOutline, opacity: resendLoading ? 0.5 : 1 }}
+              >
+                {resendLoading ? 'Sending…' : 'Resend verification email'}
+              </button>
+          }
+          <button onClick={() => { setScreen('signin') }} style={{ ...btnOutline, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+            Already verified? Sign in
+          </button>
         </div>
       </div>
     </div>

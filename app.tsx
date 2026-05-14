@@ -147,22 +147,18 @@ const App: React.FC<{}> = () => {
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('verify') ? 'pending' : null
   )
   const [verifyMessage, setVerifyMessage] = useState('')
-  // Restore session on refresh — check localStorage immediately (lazy initializer)
   const sessionRestored = React.useRef(!!localStorage.getItem('cgp_token'))
   const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('cgp_token'))
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
-  // Initialize tab from URL hash so deep links / refresh work
   const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash)
 
-  // navigateToTab — always use this instead of setActiveTab so browser back works
   const navigateToTab = useCallback((tab: TabType) => {
     setActiveTab(tab)
     try { window.history.pushState({ tab }, '', '#' + tab) } catch {}
   }, [])
 
-  // Listen for browser back/forward buttons
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       try {
@@ -170,7 +166,6 @@ const App: React.FC<{}> = () => {
         if (tab && VALID_TABS.includes(tab)) {
           setActiveTab(tab)
         } else {
-          // Hash changed but no state — read from hash
           const hashTab = getTabFromHash()
           setActiveTab(hashTab)
         }
@@ -194,7 +189,6 @@ const App: React.FC<{}> = () => {
       const saved = localStorage.getItem('cgp_account')
       if (!saved) return null
       const parsed = JSON.parse(saved)
-      // Shape migration: old raw account had `name` instead of firstName/lastName
       if (parsed && !parsed.firstName && parsed.name) {
         parsed.firstName = parsed.name.split(' ')[0] || parsed.email?.split('@')[0] || 'Caregiver'
         parsed.lastName = parsed.name.split(' ').slice(1).join(' ') || ''
@@ -209,7 +203,29 @@ const App: React.FC<{}> = () => {
   const [loading, setLoading] = useState(false)
   const [documents, setDocuments] = useState<CaregiverDocument[]>(getDocuments())
 
-  // Refresh local documents
+  // ── Notification inbox ──────────────────────────────────────────────────
+  const [notifications, setNotifications] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cgp_notifications') || '[]') } catch { return [] }
+  })
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
+
+  const addNotification = useCallback((notif) => {
+    setNotifications(prev => {
+      const updated = [notif, ...prev].slice(0, 50)
+      try { localStorage.setItem('cgp_notifications', JSON.stringify(updated)) } catch {}
+      return updated
+    })
+  }, [])
+
+  const markAllRead = useCallback(() => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
+      try { localStorage.setItem('cgp_notifications', JSON.stringify(updated)) } catch {}
+      return updated
+    })
+  }, [])
+  // ────────────────────────────────────────────────────────────────────────
+
   const refreshDocs = () => setDocuments(refreshDocumentStatuses())
 
   const loadData = useCallback(async (caregiverId: number) => {
@@ -246,7 +262,6 @@ const App: React.FC<{}> = () => {
           setVerifyStatus('error')
           setVerifyMessage(d.error || 'Verification failed. The link may have expired.')
         }
-        // Clear ?verify= param from URL
         try { window.history.replaceState({}, '', window.location.pathname) } catch {}
       })
       .catch(() => {
@@ -266,7 +281,6 @@ const App: React.FC<{}> = () => {
       loadData(profile.id)
       window.history.replaceState({ tab: 'requests' }, '', '#requests')
     } else if (subscriptionSuccess === 'success') {
-      // Subscription unlock — unlocks all pending bookings
       setReturnedSubscription(true)
       navigateToTab('profile')
       window.history.replaceState({ tab: 'profile' }, '', '#profile')
@@ -275,6 +289,18 @@ const App: React.FC<{}> = () => {
 
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
+
+  // Listen for push notification messages from SW → update in-app inbox
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'NEW_NOTIFICATION' && event.data.notification) {
+        addNotification(event.data.notification)
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handler)
+    return () => navigator.serviceWorker.removeEventListener('message', handler)
+  }, [addNotification])
 
   // Fetch real rating + jobs stats after login/session restore
   useEffect(() => {
@@ -296,15 +322,12 @@ const App: React.FC<{}> = () => {
       .catch(() => {})
   }, [loggedIn])
 
-  // On login: go to home tab. But on session RESTORE (page refresh), stay on current tab.
   useEffect(() => {
     if (loggedIn) {
       if (sessionRestored.current) {
-        // Restoring from localStorage on refresh — skip redirect, stay on current hash/tab
         sessionRestored.current = false
         return
       }
-      // Fresh login — go to home tab
       try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
       setActiveTab('home')
     }
@@ -334,7 +357,6 @@ const App: React.FC<{}> = () => {
           location: user.location || undefined,
           profilePhoto: user.profilePhoto || undefined,
         }
-        // Persist agency session so refresh doesn't bounce to login
         try {
           localStorage.setItem('cgp_token', result.token)
           localStorage.setItem('cgp_account', JSON.stringify(cgProfile))
@@ -342,7 +364,6 @@ const App: React.FC<{}> = () => {
         } catch {}
         setProfile(cgProfile)
         setLoggedIn(true)
-        // Register push notifications (best-effort)
         registerPushNotifications(result.token).catch(() => {})
         refreshDocs()
         if (!window.tasklet?.runCommand) {
@@ -367,7 +388,6 @@ const App: React.FC<{}> = () => {
     setRequests(DEMO_REQUESTS)
     setUsingDemoRequests(true)
     setActiveTab('home')
-    // Clear hash so next login starts fresh
     try { window.history.replaceState({}, '', window.location.pathname) } catch {}
   }
 
@@ -405,12 +425,10 @@ const App: React.FC<{}> = () => {
 
   const handleUpdateProfile = async (data: any) => {
     if (!profile) return
-    // Always update local React state immediately for responsive UI
     setProfile(prev => prev ? { ...prev, ...data } : prev)
     try {
       const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
       if (cgToken) {
-        // D1-backed: self-registered caregiver
         const payload: any = { token: cgToken }
         if (data.firstName !== undefined || data.lastName !== undefined) {
           const p = profile as any
@@ -432,7 +450,6 @@ const App: React.FC<{}> = () => {
         const result = await res.json()
         if (!result.success) console.error('D1 profile save failed:', result.error)
       } else {
-        // Payload CMS: agency-registered caregiver
         await updateProfile(profile.id, data)
       }
     } catch (e) {
@@ -441,12 +458,10 @@ const App: React.FC<{}> = () => {
   }
 
   const handleMarketplaceAuth = async (token: string, account: any) => {
-    // Store token immediately; cgp_account saved below after cgProfile is built
     try {
       localStorage.setItem('cgp_token', token)
       localStorage.setItem('cgp_auth_type', 'marketplace')
     } catch {}
-    // Fetch fresh full profile from D1 (includes all new columns)
     let fullAccount = account
     try {
       const res = await fetch(`${API_BASE}/api/caregiver-account?token=${encodeURIComponent(token)}`)
@@ -471,14 +486,11 @@ const App: React.FC<{}> = () => {
       profilePhoto: fullAccount.photoUrl || fullAccount.profilePhoto || undefined,
       certifications: Array.isArray(fullAccount.certifications) ? fullAccount.certifications : [],
     }
-    // Save structured cgProfile (not raw account) so refresh restores firstName correctly
     try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)
     setLoggedIn(true)
-    // Register push notifications (best-effort)
     registerPushNotifications(token).catch(() => {})
 
-    // Fetch real booking requests for this caregiver (use D1 account id)
     try {
       const cgId = fullAccount.id
       if (cgId) {
@@ -494,7 +506,7 @@ const App: React.FC<{}> = () => {
     } catch (e) { /* keep demo requests */ }
   }
 
-  // Email verification screen — shows when ?verify=TOKEN is in URL
+  // Email verification screen
   if (verifyStatus) {
     return (
       <div style={{
@@ -514,7 +526,7 @@ const App: React.FC<{}> = () => {
           {verifyStatus === 'pending' && (
             <>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#9203;</div>
-              <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verifying your email…</h2>
+              <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Verifying your email&#8230;</h2>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Just a moment</p>
             </>
           )}
@@ -580,6 +592,7 @@ const App: React.FC<{}> = () => {
   }
 
   const pendingRequestCount = requests.filter(r => r.status === 'pending').length
+  const unreadNotifCount = notifications.filter(n => !n.read).length
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--color-base-100, #f5f3ff)' }}>
@@ -594,6 +607,8 @@ const App: React.FC<{}> = () => {
               requests={requests}
               loading={loading}
               documents={documents}
+              notifCount={unreadNotifCount}
+              onBellPress={() => { setShowNotifPanel(true); markAllRead() }}
               onNavigateToRequests={() => navigateToTab('requests')}
               onNavigateToSchedule={() => navigateToTab('schedule')}
               onNavigateToEarnings={() => navigateToTab('earnings')}
@@ -644,6 +659,65 @@ const App: React.FC<{}> = () => {
         onTabChange={navigateToTab}
         requestCount={pendingRequestCount}
       />
+
+      {/* ── In-App Notification Panel ──────────────────────────────────── */}
+      {showNotifPanel && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+          {/* Backdrop */}
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
+            onClick={() => setShowNotifPanel(false)}
+          />
+          {/* Panel */}
+          <div style={{
+            position: 'relative', background: '#ffffff', borderRadius: '24px 24px 0 0',
+            maxHeight: '72vh', overflowY: 'auto', padding: '20px 20px 40px',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.15)',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontWeight: 700, fontSize: 18, margin: 0, color: '#0f172a' }}>Notifications</h2>
+              <button
+                onClick={() => setShowNotifPanel(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#64748b', padding: 4, lineHeight: 1 }}
+              >
+                &#x2715;
+              </button>
+            </div>
+            {/* Empty state */}
+            {notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>&#x1F514;</div>
+                <p style={{ color: '#94a3b8', fontSize: 14, margin: 0 }}>No notifications yet</p>
+                <p style={{ color: '#cbd5e1', fontSize: 12, marginTop: 4 }}>New care requests will appear here</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {notifications.map((n) => (
+                  <div key={n.id} style={{
+                    background: n.read ? '#f8fafc' : '#f0ebff',
+                    border: `1px solid ${n.read ? '#e2e8f0' : 'rgba(124,92,255,0.25)'}`,
+                    borderRadius: 16, padding: '14px 16px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: n.read ? 500 : 700, fontSize: 14, margin: '0 0 4px', color: '#0f172a' }}>{n.title}</p>
+                        <p style={{ fontSize: 13, margin: '0 0 6px', color: '#475569', lineHeight: '1.4' }}>{n.body}</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+                          {new Date(n.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {!n.read && (
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C5CFF', flexShrink: 0, marginTop: 3 }} />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

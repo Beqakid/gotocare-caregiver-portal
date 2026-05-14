@@ -36,7 +36,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Cache a fresh copy for offline fallback
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
@@ -87,7 +86,25 @@ self.addEventListener('push', (event) => {
     data: notifData.data || { url: '/?tab=requests' },
   };
 
-  event.waitUntil(self.registration.showNotification(notifData.title, options));
+  // Show OS notification AND postMessage to all open app windows (in-app inbox)
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(notifData.title, options),
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        const msg = {
+          type: 'NEW_NOTIFICATION',
+          notification: {
+            id: Date.now(),
+            title: notifData.title,
+            body: notifData.body,
+            timestamp: Date.now(),
+            read: false,
+          },
+        };
+        clientList.forEach((c) => c.postMessage(msg));
+      }),
+    ])
+  );
 });
 
 // ── Notification Click Handler ────────────────────────────────────────

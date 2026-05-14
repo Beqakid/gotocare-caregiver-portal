@@ -47,6 +47,8 @@ interface HomeTabProps {
   requests: CareRequest[]
   loading: boolean
   documents: CaregiverDocument[]
+  notifCount?: number
+  onBellPress?: () => void
   onNavigateToRequests: () => void
   onNavigateToSchedule: () => void
   onNavigateToEarnings: () => void
@@ -72,6 +74,7 @@ const ProgressRing = ({ score }: { score: number }) => {
 
 export const HomeTab: React.FC<HomeTabProps> = ({
   profile, shifts, timesheets, requests, loading, documents,
+  notifCount = 0, onBellPress,
   onNavigateToRequests, onNavigateToSchedule, onNavigateToEarnings, onNavigateToProfile, onNavigateToSection, onClockIn, onTimerUpdate
 }) => {
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(getActiveTimer())
@@ -133,10 +136,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   // Profile completeness
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents)
 
-  // This week's hours + earnings — from Time Tracker entries (not agency timesheets)
+  // This week's hours + earnings
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(() => getTimeEntries())
 
-  // Refresh on mount AND whenever page becomes visible (catches ScheduleTab entries)
   useEffect(() => {
     setTimeEntries(getTimeEntries())
     const onVisible = () => {
@@ -148,8 +150,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   const getWeekStart = () => {
     const now = new Date()
-    const day = now.getDay() // 0=Sun
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Mon
+    const day = now.getDay()
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1)
     const monday = new Date(now.setDate(diff))
     return monday.toISOString().split('T')[0]
   }
@@ -166,7 +168,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   }, 0)
   const completedWeekEarnings = weekEntries.reduce((sum, e) => sum + (e.totalPay || 0), 0)
 
-  // Include live timer so the card ticks in real-time while a shift is running
   const activeTimerThisWeek = activeTimer
     ? new Date(activeTimer.startTime).toISOString().split('T')[0] >= weekStart
     : false
@@ -220,7 +221,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const stopTimer = () => {
     if (!activeTimer) return
     const start = new Date(activeTimer.startTime).getTime()
-    const duration = Math.round((Date.now() - start) / 60000) // minutes
+    const duration = Math.round((Date.now() - start) / 60000)
     updateTimeEntry(activeTimer.id, {
       endTime: new Date().toISOString(),
       duration,
@@ -229,7 +230,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     setActiveTimer(null)
     setActiveTimerState(null)
     setElapsed(0)
-    // Refresh so the completed entry appears in weekHours immediately
     setTimeEntries(getTimeEntries())
     onTimerUpdate()
   }
@@ -253,20 +253,46 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   return (
     <div className="p-4 space-y-5 pb-4">
-      {/* 1. Greeting header (no "Available for work" dot) */}
+      {/* 1. Greeting header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-base-content">
-            {greeting()}, {profile?.firstName || 'Caregiver'} 👋
+            {greeting()}, {profile?.firstName || 'Caregiver'} &#x1F44B;
           </h1>
           <p className="text-xs text-base-content/65 mt-0.5">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-sm font-bold text-primary">
-            {profile?.firstName?.[0]}{profile?.lastName?.[0]}
-          </span>
+        {/* Bell + Avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={onBellPress}
+            style={{
+              position: 'relative', width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(124,92,255,0.08)', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >
+            <Bell size={20} style={{ color: '#7C5CFF' }} />
+            {notifCount > 0 && (
+              <span style={{
+                position: 'absolute', top: -2, right: -2,
+                minWidth: 18, height: 18, borderRadius: 9,
+                background: '#EF4444', color: '#fff',
+                fontSize: 10, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 3px', lineHeight: '18px',
+                border: '2px solid #f5f3ff',
+              }}>
+                {notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
+          </button>
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-sm font-bold text-primary">
+              {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -307,7 +333,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )
       })()}
 
-      {/* 2. Online/Offline toggle card — HERO ELEMENT */}
+      {/* 2. Online/Offline toggle card */}
       <div
         onClick={toggleOnline}
         className={`rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all press-card ${isOnline ? 'bg-success/10 border-l-4 border-success' : 'bg-base-200 border-l-4 border-base-300'}`}
@@ -328,19 +354,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </p>
           </div>
         </div>
-        {/* Toggle switch */}
         <div className={`w-12 h-6 rounded-full transition-all relative flex-shrink-0 ${isOnline ? 'bg-success' : 'bg-base-300'}`}>
           <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${isOnline ? 'left-6' : 'left-0.5'}`} />
         </div>
       </div>
-
 
       {/* Notification Permission Prompt */}
       {showNotifPrompt && notifPermission === 'default' && (
         <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">🔔</span>
+              <span className="text-xl">&#x1F514;</span>
             </div>
             <div className="flex-1">
               <p className="font-bold text-sm text-base-content">Don't miss care requests</p>
@@ -353,7 +377,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               disabled={notifSubscribing}
               className="flex-1 btn btn-primary btn-sm text-white font-bold"
             >
-              {notifSubscribing ? <span className="loading loading-spinner loading-xs" /> : '🔔 Enable Notifications'}
+              {notifSubscribing ? <span className="loading loading-spinner loading-xs" /> : '&#x1F514; Enable Notifications'}
             </button>
             <button
               onClick={() => setShowNotifPrompt(false)}
@@ -368,26 +392,26 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       {/* Notifications enabled confirmation */}
       {notifPermission === 'granted' && (
         <div className="rounded-xl bg-success/10 border border-success/20 px-4 py-2 flex items-center gap-2">
-          <span className="text-success text-sm">🔔</span>
+          <span className="text-success text-sm">&#x1F514;</span>
           <p className="text-xs text-success font-medium">Notifications enabled — you won't miss a request</p>
         </div>
       )}
 
-      {/* 3. New requests banner — hot orange, only when pending */}
+      {/* 3. New requests banner */}
       {pendingRequests.length > 0 && (
         <div
           onClick={onNavigateToRequests}
           className="bg-warning/10 border border-warning/30 border-l-4 border-l-warning rounded-2xl p-4 flex items-center gap-3 press-card"
         >
           <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center flex-shrink-0">
-            <span className="text-lg">🔥</span>
+            <span className="text-lg">&#x1F525;</span>
           </div>
           <div className="flex-1">
             <p className="font-bold text-sm text-base-content">
               {pendingRequests.length} New Care Request{pendingRequests.length > 1 ? 's' : ''}
             </p>
             <p className="text-xs text-base-content/60">
-              Up to ${Math.max(...pendingRequests.map(r => r.hourlyRate || 0))}/hr · Tap to respond
+              Up to ${Math.max(...pendingRequests.map(r => r.hourlyRate || 0))}/hr &#183; Tap to respond
             </p>
           </div>
           <ChevronRight size={18} className="text-warning" />
@@ -404,7 +428,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               </div>
               <div>
                 <p className="text-2xl font-mono font-bold text-base-content">{formatElapsed(elapsed)}</p>
-                <p className="text-xs text-base-content/60">{activeTimer.clientName} · ${activeTimer.hourlyRate}/hr</p>
+                <p className="text-xs text-base-content/60">{activeTimer.clientName} &#183; ${activeTimer.hourlyRate}/hr</p>
               </div>
             </div>
             <button onClick={stopTimer} className="btn btn-error btn-sm gap-1">
@@ -419,7 +443,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      {/* 7. Quick Actions grid (4 buttons) */}
+      {/* 7. Quick Actions grid */}
       <div>
         <h2 className="font-bold text-base text-base-content mb-3">Quick Actions</h2>
         <div className="grid grid-cols-4 gap-2">
@@ -458,7 +482,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <p className="text-white/85 text-[10px] mt-1">{weekHours.toFixed(0)}/40 hours goal</p>
       </div>
 
-      {/* 6. Profile Completeness — compact tap-to-fix card */}
+      {/* 6. Profile Completeness */}
       {completeness < 100 && (
         <button
           onClick={onNavigateToProfile}
@@ -473,7 +497,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-base-content">Profile Strength</p>
             <p className="text-xs text-base-content/60 mt-0.5">
-              {completenessItems.filter(i => !i.done).length} items to complete · 3× more requests
+              {completenessItems.filter(i => !i.done).length} items to complete &#183; 3&#xD7; more requests
             </p>
             <div className="w-full bg-base-300 rounded-full h-1.5 mt-1.5">
               <div
@@ -576,7 +600,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                         {typeof shift.client === 'object' ? `${shift.client.firstName || ''} ${shift.client.lastName || ''}`.trim() : `Client #${shift.client}`}
                       </p>
                       <p className="text-xs text-base-content/60 mt-0.5">
-                        {shift.startTime} — {shift.endTime}
+                        {shift.startTime} &#8212; {shift.endTime}
                       </p>
                       {shift.careType && (
                         <span className="inline-block mt-1.5 text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">

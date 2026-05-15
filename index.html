@@ -22,6 +22,9 @@
     <!-- Google Sign-In SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+    <!-- Plausible Analytics -->
+    <script defer data-domain="work.carehia.com" src="https://plausible.io/js/script.js"></script>
+
     <style>
 /* ══ Carehia Light Theme ══ */
 [data-theme='alfred-light'] {
@@ -34,15 +37,12 @@
   --border: 1px;
   --depth: 0;
   --noise: 0;
-  /* Page bg — very light purple tint; cards are white */
   --color-base-100: #f5f3ff;
   --color-base-200: #ffffff;
   --color-base-300: #ede9fe;
   --color-base-content: #1a1a2e;
-  /* Carehia purple */
   --color-primary: #7c3aed;
   --color-primary-content: #ffffff;
-  /* Carehia blue */
   --color-secondary: #3b82f6;
   --color-secondary-content: #ffffff;
   --color-accent: #7c3aed;
@@ -112,8 +112,8 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <!-- App bundle (ESM code-split, built by GitHub Actions) — v20260515c busts stale browser cache -->
-    <script type="module" src="dist/app.js?v=20260515c"></script>
+    <!-- App bundle (ESM code-split, built by GitHub Actions) — v20260516a busts stale browser cache -->
+    <script type="module" src="dist/app.js?v=20260516a"></script>
 
     <!-- Service Worker Registration -->
     <script>
@@ -122,14 +122,12 @@
           navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(function(reg) {
               console.log('[SW] Registered:', reg.scope);
-              // Listen for messages from SW (e.g. notification click)
               navigator.serviceWorker.addEventListener('message', function(event) {
                 const data = event.data;
                 if (data && data.type === 'NOTIFICATION_CLICK') {
                   const url = data.url || '/?tab=requests';
                   const tab = new URLSearchParams(url).get('tab');
                   if (tab) {
-                    // Signal the app to switch tab
                     window.__carehia_notification_tab = tab;
                     const ev = new CustomEvent('carehia:notification-click', { detail: { tab } });
                     window.dispatchEvent(ev);

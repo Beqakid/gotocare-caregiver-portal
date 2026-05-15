@@ -21,7 +21,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   agencyError,
   agencyLoading,
 }) => {
-  const [screen, setScreen] = useState<'choose' | 'register' | 'signin' | 'agency' | 'verify-pending'>('choose')
+  const [screen, setScreen] = useState<'choose' | 'register' | 'signin' | 'agency' | 'verify-pending' | 'forgot' | 'reset-sent' | 'reset'>('choose')
+  const [resetToken, setResetToken] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [resetDone, setResetDone] = useState(false)
   const [pendingEmail, setPendingEmail] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendDone, setResendDone] = useState(false)
@@ -31,6 +34,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  // Check for ?reset=TOKEN URL param on mount (handles password reset link clicks)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const rt = params.get('reset')
+    if (rt) {
+      setResetToken(rt)
+      setScreen('reset')
+      // Clean URL without reload
+      const url = new URL(window.location.href)
+      url.searchParams.delete('reset')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   // Render Google button
   useEffect(() => {
@@ -228,38 +245,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>Your free professional caregiving office</p>
       </div>
 
-      {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px', width: '100%', maxWidth: '360px' }}>
-        {[
-          { value: '$28/hr', label: 'avg rate' },
-          { value: '1,200+', label: 'families' },
-          { value: '100%', label: 'free' },
-        ].map(({ value, label }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.11)', borderRadius: '14px', padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>{value}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '1px' }}>{label}</div>
-          </div>
-        ))}
-      </div>
-      {/* Social proof pill */}
+      {/* Social proof */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.12)', borderRadius: '50px',
-        padding: '6px 16px', marginBottom: '20px',
+        background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.14)', borderRadius: '50px',
+        padding: '6px 16px', marginBottom: '24px',
       }}>
         <div style={{ display: 'flex' }}>
           {['rgba(124,92,255,0.7)','rgba(74,144,226,0.7)','rgba(34,197,94,0.7)'].map((c, i) => (
             <div key={i} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: '2px solid rgba(255,255,255,0.25)', marginLeft: i > 0 ? '-6px' : '0' }} />
           ))}
         </div>
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.78)', fontWeight: 500 }}>Caregivers in your area are earning now</span>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.80)', fontWeight: 500 }}>Join trusted caregivers in your area</span>
       </div>
 
       {/* Glass card */}
       <div style={glassCard}>
         <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', textAlign: 'center', marginBottom: '5px' }}>Create your free account</h2>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency cut. Start earning in minutes.</p>
+        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency fees. Your data stays private.</p>
 
         {/* Google button */}
         {GOOGLE_ENABLED ? (
@@ -339,6 +343,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password (6+ characters)" value={password} onChange={e => setPassword(e.target.value)} />
             {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Creating account…' : 'Create free account'}</button>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: '10px', lineHeight: 1.6 }}>
+              By creating an account you agree to our{' '}
+              <a href="https://carehia.com/terms" target="_blank" rel="noreferrer" style={{ color: 'rgba(124,92,255,0.8)', textDecoration: 'underline' }}>Terms of Service</a>{' '}and{' '}
+              <a href="https://carehia.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'rgba(124,92,255,0.8)', textDecoration: 'underline' }}>Privacy Policy</a>
+            </p>
           </form>
           <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Sign in instead</button>
         </div>
@@ -366,7 +375,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
           <form onSubmit={handleSignIn}>
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
-            <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input style={{ ...inputStyle, marginBottom: '4px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+              <button type="button" onClick={() => { setError(''); setScreen('forgot') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(124,92,255,0.8)', fontSize: '13px', fontWeight: 500, padding: 0 }}>
+                Forgot password?
+              </button>
+            </div>
             {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Signing in…' : 'Sign in'}</button>
           </form>
@@ -420,6 +434,119 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       </div>
     </div>
   )
+
+  // ── FORGOT PASSWORD SCREEN ─────────────────────────────────
+  if (screen === 'forgot') {
+    const handleForgot = async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!email.trim()) { setError('Please enter your email address'); return }
+      setLoading(true); setError('')
+      try {
+        await fetch(`${API_BASE}/api/caregiver-forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        })
+        // Always show success (backend doesn't reveal if email exists)
+        setScreen('reset-sent')
+      } catch { setError('Connection error. Please try again.') }
+      finally { setLoading(false) }
+    }
+    return (
+      <div style={bgStyle}>
+        <div style={orb('-80px', '-80px')} />
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+          <button onClick={() => { setScreen('signin'); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            ← Back
+          </button>
+          <div style={glassCard}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Reset password</h2>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Enter your email and we'll send you a reset link.</p>
+            <form onSubmit={handleForgot}>
+              <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
+              {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+              <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Sending…' : 'Send reset link'}</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── RESET SENT SCREEN ──────────────────────────────────────
+  if (screen === 'reset-sent') return (
+    <div style={bgStyle}>
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={glassCard}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(124,92,255,0.15), rgba(74,144,226,0.15))', border: '2px solid rgba(124,92,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '32px' }}>✉️</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Check your email</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>
+              If an account exists for <span style={{ color: '#7C5CFF', fontWeight: 600 }}>{email}</span>, you'll receive a reset link shortly.
+            </p>
+          </div>
+          <div style={{ background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.25)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
+              The link expires in 1 hour. Check your spam folder if you don't see it.
+            </p>
+          </div>
+          <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Back to sign in</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ── RESET PASSWORD SCREEN ──────────────────────────────────
+  if (screen === 'reset') {
+    const handleReset = async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (newPassword.length < 8) { setError('Password must be at least 8 characters'); return }
+      setLoading(true); setError('')
+      try {
+        const res = await fetch(`${API_BASE}/api/caregiver-reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: resetToken, new_password: newPassword }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setResetDone(true)
+          setTimeout(() => setScreen('signin'), 2500)
+        } else {
+          setError(data.error || 'Reset failed. The link may have expired — please request a new one.')
+        }
+      } catch { setError('Connection error. Please try again.') }
+      finally { setLoading(false) }
+    }
+    return (
+      <div style={bgStyle}>
+        <div style={orb('-80px', '-80px')} />
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+          <div style={glassCard}>
+            {resetDone ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Password updated!</h2>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Redirecting you to sign in…</p>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Create new password</h2>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Must be at least 8 characters.</p>
+                <form onSubmit={handleReset}>
+                  <input style={inputStyle} type="password" placeholder="New password (8+ characters)" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                  {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+                  <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Updating…' : 'Set new password'}</button>
+                </form>
+                <button onClick={() => setScreen('forgot')} style={{ ...btnOutline, fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>Request a new link</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── AGENCY SCREEN ──────────────────────────────────────────
   return (

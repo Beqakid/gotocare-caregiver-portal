@@ -5,7 +5,7 @@
 
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react'
-import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2 } from 'lucide-react'
+import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
 import { TrustCenter } from './TrustCenter'
@@ -277,7 +277,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     setSubUpgrading(false)
   }
 
-  const profileUrl = `carehia.com/caregiver?id=${profile?.id}`
+  const profileUrl = `work.carehia.com?caregiver=${profile?.id}`
 
   const copyProfileLink = () => {
     navigator.clipboard?.writeText(`https://${profileUrl}`)
@@ -287,6 +287,58 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
   const earnedBadges = BADGES.filter(b => b.earn(profile, docs))
   const unearnedBadges = BADGES.filter(b => !b.earn(profile, docs))
+  const validDocCount = docs.filter(d => d.status === 'valid' || d.status === 'no_expiry').length
+  const expiringDocCount = docs.filter(d => d.status === 'expiring_soon' || d.status === 'expired').length
+  const readinessTasks = [
+    {
+      done: !!profile.profilePhoto,
+      title: 'Add a profile photo',
+      detail: 'Families are more likely to contact caregivers they can recognize.',
+      action: 'Add photo',
+      run: () => photoInputRef.current?.click(),
+    },
+    {
+      done: !!profile.bio && profile.bio.trim().length >= 40,
+      title: 'Write a stronger bio',
+      detail: 'Share your experience, care style, and what families can count on.',
+      action: 'Edit bio',
+      run: () => setEditing(true),
+    },
+    {
+      done: !!profile.hourlyRate && profile.hourlyRate > 0,
+      title: 'Set hourly rate',
+      detail: 'Clear pricing helps families decide quickly.',
+      action: 'Set rate',
+      run: () => setEditing(true),
+    },
+    {
+      done: (profile.skills?.length || 0) >= 3,
+      title: 'Select at least 3 care skills',
+      detail: 'Skills improve matching for live jobs and interview requests.',
+      action: 'Edit skills',
+      run: () => { setSelectedSkills(profile.skills || []); setEditingSkills(true) },
+    },
+    {
+      done: !!profile.phone && !!profile.location?.city,
+      title: 'Add phone and service area',
+      detail: 'Clients need to know where you work and how to reach you.',
+      action: 'Edit contact',
+      run: () => {
+        setEditPhone(profile.phone || '')
+        setEditCity(profile.location?.city || '')
+        setEditState(profile.location?.state || '')
+        setEditingContact(true)
+      },
+    },
+    {
+      done: validDocCount > 0,
+      title: 'Upload at least 1 trust document',
+      detail: 'Certifications, licenses, and background checks build confidence.',
+      action: 'Add document',
+      run: () => { setSection('documents'); setShowAddDoc(true) },
+    },
+  ]
+  const nextReadinessTasks = readinessTasks.filter(t => !t.done).slice(0, 3)
 
   if (!profile) return null
 
@@ -316,52 +368,44 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* Profile header */}
-      <div id="section-photo" className="earnings-card px-4 pt-6 pb-8 text-center">
+      <div id="section-photo" className="px-4 pt-6 pb-4 text-center">
         <div className="relative inline-block mb-3">
-          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center avatar-ring overflow-hidden">
+          <div className="w-24 h-24 rounded-full bg-base-200 border border-base-300 flex items-center justify-center overflow-hidden shadow-sm">
             {profile.profilePhoto ? (
               <img src={profile.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-2xl font-bold text-white">
+              <span className="text-3xl font-bold text-primary">
                 {profile.firstName?.[0]}{profile.lastName?.[0]}
               </span>
             )}
           </div>
           <button
             onClick={() => photoInputRef.current?.click()}
-            className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-md"
+            className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md border-2 border-base-100"
           >
-            <Camera size={14} className="text-primary" />
+            <Camera size={15} className="text-primary-content" />
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
         </div>
-        <h2 className="text-xl font-bold text-white">{profile.firstName} {profile.lastName}</h2>
-        <p className="text-white/90 text-sm mt-0.5">Professional Caregiver</p>
-        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+        <h2 className="text-2xl font-bold text-base-content">{profile.firstName} {profile.lastName}</h2>
+        <div className="mt-1 flex items-center justify-center gap-2 text-sm text-base-content/55">
+          <span>Professional Caregiver</span>
+          <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? 'bg-success' : 'bg-base-content/30'}`} />
+          <span>{isAvailable ? 'Available' : 'Offline'}</span>
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
           {earnedBadges.slice(0, 3).map(b => (
-            <div key={b.id} className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5">
-              <b.icon size={12} className={b.color === 'text-success' ? 'text-green-300' : b.color === 'text-warning' ? 'text-yellow-300' : 'text-white'} />
-              <span className="text-xs font-medium text-white">{b.label}</span>
+            <div key={b.id} className="flex items-center gap-1 bg-base-200 rounded-full px-2.5 py-1">
+              <b.icon size={12} className={b.color} />
+              <span className="text-xs font-medium text-base-content/70">{b.label}</span>
             </div>
           ))}
           {earnedBadges.length === 0 && (
-            <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5">
-              <Shield size={12} className="text-green-300" />
-              <span className="text-xs font-medium text-white">Verified</span>
+            <div className="flex items-center gap-1 bg-base-200 rounded-full px-2.5 py-1">
+              <Shield size={12} className="text-success" />
+              <span className="text-xs font-medium text-base-content/70">Trust profile</span>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Shareable profile link */}
-      <div className="-mt-4 mx-4 bg-base-100 rounded-2xl p-3 shadow-sm border border-base-200 mb-3">
-        <div className="flex items-center gap-2">
-          <Link2 size={16} className="text-primary flex-shrink-0" />
-          <p className="text-xs text-base-content/70 flex-1 truncate">{profileUrl}</p>
-          <button onClick={copyProfileLink} className="btn btn-ghost btn-xs gap-1">
-            {linkCopied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
-            {linkCopied ? 'Copied!' : 'Copy'}
-          </button>
         </div>
       </div>
 
@@ -379,11 +423,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* Section tabs */}
       <div className="px-4 mt-4 mb-3 flex gap-2">
         {[
-          { key: 'profile' as const, label: 'Profile' },
-          { key: 'documents' as const, label: `Documents (${docs.length})` },
+          { key: 'profile' as const, label: 'Readiness' },
+          { key: 'documents' as const, label: `Docs (${docs.length})` },
           { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
           { key: 'clients' as const, label: `My Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
-          { key: 'trust' as const, label: '🛡️ Trust' },
+          { key: 'trust' as const, label: 'Trust' },
         ].map(t => (
           <button key={t.key}
             className={`btn btn-sm rounded-full ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
@@ -395,21 +439,74 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ---- PROFILE SECTION ---- */}
       {section === 'profile' && (
         <div className="px-4 space-y-3">
-          {completeness < 100 && (
-            <div className="bg-base-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-semibold text-sm text-base-content">Profile Strength</p>
-                <span className={`text-sm font-bold ${completeness >= 80 ? 'text-success' : completeness >= 50 ? 'text-warning' : 'text-error'}`}>
+          <div className="bg-base-200 rounded-3xl p-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Profile Readiness</p>
+                <p className="text-lg font-bold text-base-content">Become discoverable</p>
+                <p className="text-sm text-base-content/55 mt-1">
+                  Complete the items families use to decide who to contact.
+                </p>
+              </div>
+              <div className="relative h-16 w-16 shrink-0">
+                <svg viewBox="0 0 44 44" className="h-16 w-16 -rotate-90">
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(148,163,184,0.25)" strokeWidth="5" />
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    className={completeness >= 80 ? 'text-success' : completeness >= 50 ? 'text-warning' : 'text-primary'}
+                    strokeDasharray={`${(completeness / 100) * 113} 113`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-base-content">
                   {completeness}%
-                </span>
+                </div>
               </div>
-              <div className="w-full bg-base-300 rounded-full h-2 mb-3">
-                <div className={`h-2 rounded-full transition-all ${completeness >= 80 ? 'bg-success' : completeness >= 50 ? 'bg-warning' : 'bg-primary'}`}
-                  style={{ width: `${completeness}%` }} />
-              </div>
-
             </div>
-          )}
+
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="rounded-xl bg-base-100 p-3 text-center">
+                <p className="text-lg font-bold text-base-content">{profile.skills?.length || 0}</p>
+                <p className="text-[10px] text-base-content/50">Skills</p>
+              </div>
+              <div className="rounded-xl bg-base-100 p-3 text-center">
+                <p className="text-lg font-bold text-base-content">{validDocCount}</p>
+                <p className="text-[10px] text-base-content/50">Valid Docs</p>
+              </div>
+              <div className="rounded-xl bg-base-100 p-3 text-center">
+                <p className="text-lg font-bold text-base-content">{earnedBadges.length}</p>
+                <p className="text-[10px] text-base-content/50">Badges</p>
+              </div>
+            </div>
+
+            {nextReadinessTasks.length > 0 ? (
+              <div className="space-y-2">
+                {nextReadinessTasks.map(task => (
+                  <button key={task.title} onClick={task.run} className="w-full rounded-2xl bg-base-100 p-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Zap size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-base-content">{task.title}</p>
+                        <p className="text-xs text-base-content/55">{task.detail}</p>
+                      </div>
+                      <span className="text-xs font-bold text-primary">{task.action}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-success/10 p-3 text-sm font-semibold text-success">
+                Your profile has the core items families expect.
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-base-200 rounded-xl p-3 text-center">
@@ -557,10 +654,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <p className="font-bold text-sm text-base-content">Share Your Profile</p>
             </div>
             <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
-              <span className="text-xs text-base-content/60 truncate flex-1">carehia.com/caregiver?id={profile?.id}</span>
+              <span className="text-xs text-base-content/60 truncate flex-1">{profileUrl}</span>
               <button
                 onClick={async () => {
-                  const url = `https://carehia.com/caregiver?id=${profile?.id}`
+                  const url = `https://${profileUrl}`
                   try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                 }}
                 className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
@@ -571,7 +668,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={async () => {
-                  const url = `https://carehia.com/caregiver?id=${profile?.id}`
+                  const url = `https://${profileUrl}`
                   try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
                     try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                   }
@@ -582,7 +679,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </button>
               {profile?.id && (
                 <a
-                  href={`https://wa.me/?text=I'm%20a%20professional%20caregiver%20on%20Carehia.%20Book%20me%20here%3A%20https%3A%2F%2Fcarehia.com%2Fcaregiver%3Fid%3D${profile.id}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(`I'm a professional caregiver on Carehia. Book me here: https://${profileUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm flex-1 gap-1.5 rounded-xl text-white border-0"
@@ -1080,13 +1177,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
             <div className="bg-white rounded-3xl p-5 shadow-2xl">
               <img
-                src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=https://carehia.com/caregiver%3Fid%3D' + profile.id + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
+                src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(`https://${profileUrl}`) + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
                 alt="Profile QR Code" width={280} height={280} className="rounded-2xl"
               />
             </div>
             <div className="text-center">
               <p className="text-white/80 text-sm font-semibold">{profile.firstName} {profile.lastName}</p>
-              <p className="text-white/50 text-xs mt-0.5">carehia.com/caregiver?id={profile.id}</p>
+              <p className="text-white/50 text-xs mt-0.5">{profileUrl}</p>
             </div>
             <button onClick={() => setShowQR(false)} className="btn btn-ghost text-white/60 btn-sm rounded-xl">
               ✕ Close

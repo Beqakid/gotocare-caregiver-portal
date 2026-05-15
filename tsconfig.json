@@ -8,13 +8,8 @@
     "strict": false,
     "skipLibCheck": true,
     "baseUrl": ".",
-    "paths": {
-      "*": [
-        "/tmp/tasklet-deps/caregiver-portal-3883ea111dc1/node_modules/*"
-      ]
-    },
     "typeRoots": [
-      "/tmp/tasklet-deps/caregiver-portal-3883ea111dc1/node_modules/@types"
+      "./node_modules/@types"
     ],
     "types": [
       "react",

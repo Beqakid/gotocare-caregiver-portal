@@ -25,12 +25,12 @@
   "shortcuts": [
     {
       "name": "Live Requests",
-      "url": "/?tab=requests",
+      "url": "/#requests",
       "description": "View live care requests near you"
     },
     {
       "name": "My Schedule",
-      "url": "/?tab=schedule",
+      "url": "/#schedule",
       "description": "View your schedule and time tracker"
     }
   ]

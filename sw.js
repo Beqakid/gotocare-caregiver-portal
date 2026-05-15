@@ -1,6 +1,6 @@
 // Carehia Caregiver Portal — Service Worker
 // Handles: PWA caching, push notifications, notification clicks
-const CACHE_NAME = 'carehia-cgp-v4';
+const CACHE_NAME = 'carehia-cgp-v10';
 const STATIC_ASSETS = ['/styles.css'];
 
 // ── Install ──────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ self.addEventListener('push', (event) => {
     icon: '/icon-192.png',
     badge: '/badge-72.png',
     tag: 'care-request-' + Date.now(),
-    data: { url: '/?tab=requests' },
+    data: { url: '/#requests' },
   };
 
   if (event.data) {
@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
       { action: 'view', title: '\u2705 View Request' },
       { action: 'dismiss', title: '\u2715 Dismiss' },
     ],
-    data: notifData.data || { url: '/?tab=requests' },
+    data: notifData.data || { url: '/#requests' },
   };
 
   // Show OS notification AND postMessage to all open app windows (in-app inbox)
@@ -115,7 +115,7 @@ self.addEventListener('notificationclick', (event) => {
 
   if (action === 'dismiss') return;
 
-  const targetUrl = data.url || '/?tab=requests';
+  const targetUrl = data.url || '/#requests';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

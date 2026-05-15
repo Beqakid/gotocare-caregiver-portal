@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react'
-import { Home, Calendar, Bell, DollarSign, User, Megaphone } from 'lucide-react'
+import { CheckSquare, Calendar, Bell, DollarSign, User } from 'lucide-react'
 import { TabType } from '../types'
 
 interface BottomNavProps {
@@ -12,10 +12,10 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, requestCount = 0 }) => {
   // Marketing tab is kept in TabType (app.tsx routes to it) but removed from display
   const tabs: { id: TabType; label: string; icon: any }[] = [
-    { id: 'home', label: 'Home', icon: Home },
+    { id: 'home', label: 'Today', icon: CheckSquare },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'requests', label: 'Requests', icon: Bell },
-    { id: 'earnings', label: 'Earnings', icon: DollarSign },
+    { id: 'earnings', label: 'Money', icon: DollarSign },
     { id: 'profile', label: 'Profile', icon: User },
   ]
 

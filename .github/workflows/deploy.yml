@@ -18,20 +18,10 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install react react-dom lucide-react esbuild
+        run: npm ci
 
       - name: Build (code-split ESM)
-        run: |
-          npx esbuild app.tsx \
-            --bundle \
-            --splitting \
-            --format=esm \
-            --outdir=dist \
-            --platform=browser \
-            --target=es2020 \
-            --loader:.tsx=tsx \
-            --loader:.ts=tsx \
-            --minify
+        run: npm run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

@@ -116,8 +116,8 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <!-- App bundle (ESM code-split, built by GitHub Actions) — v20260516a busts stale browser cache -->
-    <script type="module" src="dist/app.js?v=20260516a"></script>
+    <!-- App bundle (ESM code-split, built by GitHub Actions) — version query busts stale browser cache -->
+    <script type="module" src="dist/app.js?v=20260516g"></script>
 
     <!-- Service Worker Registration -->
     <script>
@@ -129,8 +129,8 @@
               navigator.serviceWorker.addEventListener('message', function(event) {
                 const data = event.data;
                 if (data && data.type === 'NOTIFICATION_CLICK') {
-                  const url = data.url || '/?tab=requests';
-                  const tab = new URLSearchParams(url).get('tab');
+                  const url = data.url || '/#requests';
+                  const tab = new URL(url, window.location.origin).hash.replace('#', '') || new URLSearchParams(url).get('tab');
                   if (tab) {
                     window.__carehia_notification_tab = tab;
                     const ev = new CustomEvent('carehia:notification-click', { detail: { tab } });

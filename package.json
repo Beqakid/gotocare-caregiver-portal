@@ -1,7 +1,11 @@
 {
-  "name": "gotocare-caregiver-portal",
+  "name": "carehia-caregiver-portal",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build": "esbuild app.tsx --bundle --splitting --format=esm --outdir=dist --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=tsx --minify",
+    "dev": "esbuild app.tsx --bundle --splitting --format=esm --outdir=dist --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=tsx --servedir=."
+  },
   "dependencies": {
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",

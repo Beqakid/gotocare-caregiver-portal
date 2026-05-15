@@ -66,8 +66,9 @@ const TabSpinner = () => (
   </div>
 )
 
-// Demo care requests — shown when no real bookings exist yet
-const DEMO_REQUESTS: CareRequest[] = [
+// Sample requests are intentionally kept out of production state so caregivers
+// never see fake jobs as active opportunities.
+const SAMPLE_REQUESTS: CareRequest[] = [
   {
     id: 1, clientName: 'Sarah M.', careType: 'Dementia Care',
     description: 'Looking for a compassionate caregiver for my 82-year-old mother who has early-stage dementia. Needs help with meals, light activities, and companionship.',
@@ -126,11 +127,14 @@ function mapBookingToRequest(b: any): CareRequest {
   }
 }
 
-// Helper: read tab from URL hash
-function getTabFromHash(): TabType {
+function getTabFromLocation(): TabType {
   try {
+    const params = new URLSearchParams(window.location.search)
+    const queryTab = params.get('tab') as TabType | null
+    if (queryTab && VALID_TABS.includes(queryTab)) return queryTab
     const hash = window.location.hash.replace('#', '') as TabType
-    return VALID_TABS.includes(hash) ? hash : 'home'
+    if (VALID_TABS.includes(hash)) return hash
+    return 'home'
   } catch { return 'home' }
 }
 
@@ -152,7 +156,7 @@ const App: React.FC<{}> = () => {
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash)
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromLocation)
 
   const navigateToTab = useCallback((tab: TabType) => {
     setActiveTab(tab)
@@ -166,14 +170,22 @@ const App: React.FC<{}> = () => {
         if (tab && VALID_TABS.includes(tab)) {
           setActiveTab(tab)
         } else {
-          const hashTab = getTabFromHash()
-          setActiveTab(hashTab)
+          setActiveTab(getTabFromLocation())
         }
       } catch {}
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  useEffect(() => {
+    const onNotificationClick = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: TabType }>).detail?.tab
+      if (tab && VALID_TABS.includes(tab)) navigateToTab(tab)
+    }
+    window.addEventListener('carehia:notification-click', onNotificationClick)
+    return () => window.removeEventListener('carehia:notification-click', onNotificationClick)
+  }, [navigateToTab])
 
   const [profileDeepLink, setProfileDeepLink] = useState<string | undefined>(undefined)
   const [profileInitialSection, setProfileInitialSection] = useState<'profile' | 'documents' | 'badges' | undefined>(undefined)
@@ -198,8 +210,8 @@ const App: React.FC<{}> = () => {
   })
   const [shifts, setShifts] = useState<Shift[]>([])
   const [timesheets, setTimesheets] = useState<Timesheet[]>([])
-  const [requests, setRequests] = useState<CareRequest[]>(DEMO_REQUESTS)
-  const [usingDemoRequests, setUsingDemoRequests] = useState(true)
+  const [requests, setRequests] = useState<CareRequest[]>([])
+  const [usingDemoRequests, setUsingDemoRequests] = useState(false)
   const [loading, setLoading] = useState(false)
   const [documents, setDocuments] = useState<CaregiverDocument[]>(getDocuments())
 
@@ -238,10 +250,8 @@ const App: React.FC<{}> = () => {
       ])
       if (shiftRes?.docs) setShifts(shiftRes.docs)
       if (tsRes?.docs) setTimesheets(tsRes.docs)
-      if (bookingsRes?.bookings && bookingsRes.bookings.length > 0) {
-        setRequests(bookingsRes.bookings.map(mapBookingToRequest))
-        setUsingDemoRequests(false)
-      }
+      setRequests((bookingsRes?.bookings || []).map(mapBookingToRequest))
+      setUsingDemoRequests(false)
     } catch (e) {
       console.error('Failed to load data:', e)
     } finally {
@@ -385,8 +395,8 @@ const App: React.FC<{}> = () => {
     setProfile(null)
     setShifts([])
     setTimesheets([])
-    setRequests(DEMO_REQUESTS)
-    setUsingDemoRequests(true)
+    setRequests([])
+    setUsingDemoRequests(false)
     setActiveTab('home')
     try { window.history.replaceState({}, '', window.location.pathname) } catch {}
   }

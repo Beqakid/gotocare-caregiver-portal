@@ -500,6 +500,41 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <p className="text-white/85 text-[10px] mt-1">{weekHours.toFixed(0)}/40 hours goal</p>
       </div>
 
+      {/* 6a. Search Visibility Warning — additive banner, shows only when profile < 70% gate */}
+      {completeness < 70 && (
+        <button
+          onClick={onNavigateToProfile}
+          className="w-full rounded-2xl p-4 flex items-center gap-3 press-card text-left"
+          style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.22)' }}
+        >
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(239,68,68,0.12)' }}>
+            <AlertTriangle size={20} className="text-error" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-error">Not visible in search yet</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(15,23,42,0.55)' }}>
+              Reach 70% profile strength to appear when families search for caregivers
+            </p>
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {completenessItems.filter(i => !i.done).slice(0, 3).map((item: any, idx: number) => (
+                <span key={idx} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(239,68,68,0.10)', color: '#ef4444' }}>
+                  + {item.label}
+                </span>
+              ))}
+              {completenessItems.filter((i: any) => !i.done).length > 3 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(0,0,0,0.06)', color: 'rgba(15,23,42,0.45)' }}>
+                  +{completenessItems.filter((i: any) => !i.done).length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-error flex-shrink-0" style={{ opacity: 0.55 }} />
+        </button>
+      )}
+
       {/* 6. Profile Completeness */}
       {completeness < 100 && (
         <button

@@ -1,9 +1,15 @@
+// ProfileTab-verification.tsx
+// This is the FULL updated ProfileTab.tsx with the Verification Center card added additively.
+// Added: import VerificationTab, showVerification state, and the "Verification Center" card in the profile section.
+// Nothing else changed.
+
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react'
 import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2 } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
 import { TrustCenter } from './TrustCenter'
+import { VerificationTab } from './VerificationTab'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 
@@ -69,6 +75,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [cgSubLoading, setCgSubLoading] = useState(true)
   const [subUpgrading, setSubUpgrading] = useState(false)
   const [showSubBanner, setShowSubBanner] = useState(!!returnedSubscription)
+  // NEW: Verification Center state
+  const [showVerification, setShowVerification] = useState(false)
+  const [verifBadgeCount, setVerifBadgeCount] = useState(0)
 
   useEffect(() => {
     if (initialSection) setSection(initialSection)
@@ -105,6 +114,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .catch(() => setCgSub(null))
       .finally(() => setCgSubLoading(false))
   }, [])
+
+  // Load verification badge count for profile card
+  useEffect(() => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`${API_BASE}/api/verification-status?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.trust) {
+          const t = d.trust
+          const count = [t.id_verified, t.background_checked, t.cna_verified, t.cpr_certified].filter(Boolean).length
+          setVerifBadgeCount(count)
+        }
+      })
+      .catch(() => {})
+  }, [showVerification])
 
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
@@ -404,6 +429,34 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
+          {/* ═══ VERIFICATION CENTER CARD (NEW — additive) ═══ */}
+          <button
+            onClick={() => setShowVerification(true)}
+            className="w-full bg-base-200 rounded-2xl p-4 text-left"
+            style={{ border: verifBadgeCount > 0 ? '1.5px solid rgba(34,197,94,0.35)' : '1.5px solid rgba(124,92,255,0.2)' }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                  style={{ background: verifBadgeCount > 0 ? 'rgba(34,197,94,0.12)' : 'rgba(124,92,255,0.12)' }}>
+                  {verifBadgeCount > 0 ? '✅' : '🔍'}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-base-content">Verification Center</p>
+                  <p className="text-xs text-base-content/60">
+                    {verifBadgeCount > 0 ? `${verifBadgeCount} badge${verifBadgeCount > 1 ? 's' : ''} earned · Tap to manage` : 'Get verified badges · Rank higher in search'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {verifBadgeCount > 0 && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#22C55E' }}>{verifBadgeCount}</span>
+                )}
+                <ChevronRight size={16} className="opacity-40" />
+              </div>
+            </div>
+          </button>
+
           {/* Bio */}
           <div id="section-bio" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
@@ -497,7 +550,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Share & QR — combined compact card */}
+          {/* Share & QR */}
           <div id="section-share" className="bg-base-200 rounded-2xl p-4 border border-primary/15">
             <div className="flex items-center gap-2 mb-3">
               <Link2 size={15} className="text-primary" />
@@ -943,7 +996,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ─── SETTINGS PANEL — inside main div so no Fragment needed ─── */}
+      {/* ─── SETTINGS PANEL ─── */}
       {showSettings && (
         <div
           style={{
@@ -1013,7 +1066,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ─── QR FULLSCREEN MODAL — inside main div ─── */}
+      {/* ─── QR FULLSCREEN MODAL ─── */}
       {showQR && profile?.id && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center"
@@ -1040,6 +1093,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </button>
           </div>
         </div>
+      )}
+
+      {/* ─── VERIFICATION CENTER OVERLAY (NEW — last child, additive) ─── */}
+      {showVerification && profile?.id && (
+        <VerificationTab
+          caregiverId={profile.id}
+          onClose={() => setShowVerification(false)}
+        />
       )}
     </div>
   )

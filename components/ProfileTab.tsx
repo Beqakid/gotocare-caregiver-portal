@@ -302,21 +302,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       title: 'Write a stronger bio',
       detail: 'Share your experience, care style, and what families can count on.',
       action: 'Edit bio',
-      run: () => setEditing(true),
+      run: () => { setEditing(true); setTimeout(() => { const el = document.getElementById('section-bio'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
     },
     {
       done: !!profile.hourlyRate && profile.hourlyRate > 0,
       title: 'Set hourly rate',
       detail: 'Clear pricing helps families decide quickly.',
       action: 'Set rate',
-      run: () => setEditing(true),
+      run: () => { setEditing(true); setTimeout(() => { const el = document.getElementById('section-bio'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
     },
     {
       done: (profile.skills?.length || 0) >= 3,
       title: 'Select at least 3 care skills',
       detail: 'Skills improve matching for live jobs and interview requests.',
       action: 'Edit skills',
-      run: () => { setSelectedSkills(profile.skills || []); setEditingSkills(true) },
+      run: () => { setSelectedSkills(profile.skills || []); setEditingSkills(true); setTimeout(() => { const el = document.getElementById('section-skills'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
     },
     {
       done: !!profile.phone && !!profile.location?.city,
@@ -328,6 +328,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         setEditCity(profile.location?.city || '')
         setEditState(profile.location?.state || '')
         setEditingContact(true)
+        setTimeout(() => { const el = document.getElementById('section-contact'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120)
       },
     },
     {

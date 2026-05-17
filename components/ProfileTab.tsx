@@ -136,6 +136,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [docType, setDocType] = useState('certification')
   const [docExpiry, setDocExpiry] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
+  const [reviewLinkCopied, setReviewLinkCopied] = useState(false)
+  const [profileReviews, setProfileReviews] = useState<any[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [apiDocs, setApiDocs] = useState<any[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
@@ -336,12 +339,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     ? `${window.location.origin}${window.location.pathname}?caregiver=${profile?.id}`
     : `https://work.carehia.com?caregiver=${profile?.id}`
   const profileUrlLabel = profileUrl.replace(/^https?:\/\//, '')
+  const reviewUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}?reviewCaregiver=${profile?.id}`
+    : `https://work.carehia.com?reviewCaregiver=${profile?.id}`
+  const reviewUrlLabel = reviewUrl.replace(/^https?:\/\//, '')
 
   const copyProfileLink = () => {
     navigator.clipboard?.writeText(profileUrl)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
   }
+
+  useEffect(() => {
+    if (!profile?.id) return
+    setReviewsLoading(true)
+    fetch(`${API_BASE}/api/caregiver-reviews?id=${encodeURIComponent(String(profile.id))}`)
+      .then(r => r.json())
+      .then(d => setProfileReviews(d.success ? (d.reviews || []) : []))
+      .catch(() => setProfileReviews([]))
+      .finally(() => setReviewsLoading(false))
+  }, [profile?.id])
 
   const earnedBadges = BADGES.filter(b => b.earn(profile, docs))
   const unearnedBadges = BADGES.filter(b => !b.earn(profile, docs))
@@ -756,6 +773,72 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Review requests */}
+          <div id="section-reviews" className="bg-base-200 rounded-2xl p-4 border border-warning/20">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Star size={15} className="text-warning fill-warning" />
+                  <p className="font-bold text-sm text-base-content">Request Client Reviews</p>
+                </div>
+                <p className="text-xs text-base-content/55 mt-1">Send this link after a completed visit. New reviews appear here and in Trust Center.</p>
+              </div>
+              <span className="text-xs font-bold text-warning whitespace-nowrap">{profileReviews.length} total</span>
+            </div>
+            <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
+              <span className="text-xs text-base-content/60 truncate flex-1">{reviewUrlLabel}</span>
+              <button
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(reviewUrl); setReviewLinkCopied(true); setTimeout(() => setReviewLinkCopied(false), 2000) } catch {}
+                }}
+                className="flex items-center gap-1 text-warning text-xs font-semibold flex-shrink-0"
+              >
+                {reviewLinkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap mb-3">
+              <button
+                onClick={async () => {
+                  try { await navigator.share({ title: `Review ${profile?.firstName || 'my care'} on Carehia`, text: 'Could you leave a quick review of your care experience?', url: reviewUrl }) } catch {
+                    try { await navigator.clipboard.writeText(reviewUrl); setReviewLinkCopied(true); setTimeout(() => setReviewLinkCopied(false), 2000) } catch {}
+                  }
+                }}
+                className="btn btn-warning btn-sm flex-1 gap-1.5 rounded-xl text-white"
+              >
+                <Share2 size={14} /> Send review link
+              </button>
+              <a
+                href={`sms:?&body=${encodeURIComponent(`Could you leave a quick Carehia review for me? ${reviewUrl}`)}`}
+                className="btn btn-outline btn-sm flex-1 gap-1.5 rounded-xl border-warning/30 text-warning"
+              >
+                <Mail size={14} /> SMS
+              </a>
+            </div>
+            {reviewsLoading ? (
+              <div className="text-xs text-base-content/45">Loading reviews...</div>
+            ) : profileReviews.length === 0 ? (
+              <div className="rounded-xl bg-base-100 border border-base-300 p-3 text-xs text-base-content/55">
+                No client reviews yet. Once a client submits this form, their stars and comment will show here.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {profileReviews.slice(0, 3).map(review => (
+                  <div key={review.id || `${review.created_at}-${review.rating}`} className="rounded-xl bg-base-100 border border-base-300 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-0.5">
+                        {[1,2,3,4,5].map(n => (
+                          <Star key={n} size={12} className={n <= review.rating ? 'text-warning fill-warning' : 'text-base-content/20'} />
+                        ))}
+                      </div>
+                      <span className="text-[11px] text-base-content/40">{review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}</span>
+                    </div>
+                    {review.review_text && <p className="text-xs text-base-content/65 leading-relaxed">"{review.review_text}"</p>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Skills */}

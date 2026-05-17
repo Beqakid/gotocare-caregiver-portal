@@ -33,6 +33,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [reviewCards, setReviewCards] = useState<any[]>([])
   const googleBtnRef = useRef<HTMLDivElement>(null)
 
   // Check for ?reset=TOKEN URL param on mount (handles password reset link clicks)
@@ -47,6 +48,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       url.searchParams.delete('reset')
       window.history.replaceState({}, '', url.toString())
     }
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/caregiver-review-cards?limit=6`)
+      .then(r => r.json())
+      .then(d => setReviewCards(d.success ? (d.reviews || []) : []))
+      .catch(() => setReviewCards([]))
   }, [])
 
   // Render Google button
@@ -259,6 +267,51 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
         <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.80)', fontWeight: 500 }}>Join trusted caregivers in your area</span>
       </div>
+
+      {reviewCards.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '400px', marginBottom: '18px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+            {reviewCards.map((review, index) => (
+              <a
+                key={review.id || index}
+                href={`?caregiver=${review.caregiverId}`}
+                style={{
+                  minWidth: '250px',
+                  background: 'rgba(255,255,255,0.09)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderRadius: '18px',
+                  padding: '13px',
+                  color: '#fff',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    {review.caregiverPhoto ? (
+                      <img src={review.caregiverPhoto} alt="" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(124,92,255,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>
+                        {(review.caregiverName || 'C').slice(0, 1)}
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.caregiverName}</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.skill}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                    <Star size={12} fill="#F59E0B" color="#F59E0B" />
+                    <span style={{ fontSize: '11px', fontWeight: 800 }}>{review.rating}</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: '12px', lineHeight: 1.45, color: 'rgba(255,255,255,0.72)', margin: 0 }}>
+                  "{String(review.reviewText || '').slice(0, 115)}{String(review.reviewText || '').length > 115 ? '...' : ''}"
+                </p>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Glass card */}
       <div style={glassCard}>

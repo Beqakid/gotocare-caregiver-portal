@@ -23,6 +23,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [reviews, setReviews] = useState<any[]>([])
   const caregiverHomeUrl = typeof window !== 'undefined' ? window.location.origin : 'https://work.carehia.com'
 
   useEffect(() => {
@@ -39,6 +40,13 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
       }
     }
     load()
+  }, [caregiverId])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/caregiver-reviews?id=${encodeURIComponent(caregiverId)}`)
+      .then(r => r.json())
+      .then(d => setReviews(d.success ? (d.reviews || []) : []))
+      .catch(() => setReviews([]))
   }, [caregiverId])
 
   const handleShare = async () => {
@@ -191,6 +199,30 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
                 <div key={i} className="flex items-center gap-2.5 bg-success/5 border border-success/20 rounded-xl px-3 py-2">
                   <Award size={15} className="text-success flex-shrink-0" />
                   <span className="text-sm text-base-content">{c}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reviews */}
+        {reviews.length > 0 && (
+          <div>
+            <h3 className="text-sm font-bold text-base-content mb-2.5">Client Reviews</h3>
+            <div className="space-y-2">
+              {reviews.slice(0, 4).map((review: any) => (
+                <div key={review.id || `${review.created_at}-${review.rating}`} className="bg-base-200 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-0.5">
+                      {[1,2,3,4,5].map(n => (
+                        <Star key={n} size={13} className={n <= review.rating ? 'text-warning fill-warning' : 'text-base-content/20'} />
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-base-content/45">
+                      {review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                  {review.review_text && <p className="text-sm text-base-content/70 leading-relaxed">"{review.review_text}"</p>}
                 </div>
               ))}
             </div>

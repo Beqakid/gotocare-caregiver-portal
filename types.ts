@@ -143,6 +143,10 @@ export interface Invoice {
   dueDate: string
   notes?: string
   createdAt: string
+  sentAt?: string
+  lastSentAt?: string
+  sendCount?: number
+  emailId?: string
 }
 
 export interface InvoiceItem {

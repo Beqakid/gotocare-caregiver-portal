@@ -23,6 +23,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const caregiverHomeUrl = typeof window !== 'undefined' ? window.location.origin : 'https://work.carehia.com'
 
   useEffect(() => {
     const load = async () => {
@@ -41,7 +42,9 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
   }, [caregiverId])
 
   const handleShare = async () => {
-    const url = `https://work.carehia.com?caregiver=${caregiverId}`
+    const url = typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}?caregiver=${caregiverId}`
+      : `https://work.carehia.com?caregiver=${caregiverId}`
     try {
       await navigator.share({ title: profile?.name || 'Caregiver Profile', url })
     } catch {
@@ -67,7 +70,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
         <div className="text-4xl mb-3">😔</div>
         <h2 className="text-lg font-bold text-base-content mb-2">Profile Not Found</h2>
         <p className="text-sm text-base-content/60 mb-6">{error || 'This caregiver profile is no longer available.'}</p>
-        <a href="https://work.carehia.com" className="btn btn-primary rounded-2xl">Browse Caregivers</a>
+        <a href={caregiverHomeUrl} className="btn btn-primary rounded-2xl">Browse Caregivers</a>
       </div>
     )
   }
@@ -215,7 +218,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
         {/* Join CTA */}
         <div className="text-center py-4 border-t border-base-300">
           <p className="text-xs text-base-content/50 mb-1">Are you a caregiver?</p>
-          <a href="https://work.carehia.com" className="text-sm font-semibold text-primary">
+          <a href={caregiverHomeUrl} className="text-sm font-semibold text-primary">
             Join Carehia Free →
           </a>
         </div>

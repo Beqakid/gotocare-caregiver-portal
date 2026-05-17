@@ -71,7 +71,20 @@ export async function cloudGetInvoices(): Promise<any[]> {
   try {
     const res = await fetch(`${BASE}/caregiver-personal-invoices?token=${token}`)
     const data = await res.json()
-    return data.success ? data.invoices : []
+    return data.success ? (data.invoices || []).map((invoice: any) => ({
+      ...invoice,
+      id: invoice.id || (invoice.cloudId ? `cloud_${invoice.cloudId}` : ''),
+      invoiceNumber: invoice.invoiceNumber || invoice.invoice_number || '',
+      clientName: invoice.clientName || invoice.client_name || '',
+      clientEmail: invoice.clientEmail || invoice.client_email || '',
+      items: invoice.items || invoice.lineItems || invoice.line_items || [],
+      subtotal: Number(invoice.subtotal ?? invoice.amount ?? invoice.total ?? 0),
+      total: Number(invoice.total ?? invoice.amount ?? invoice.subtotal ?? 0),
+      status: invoice.status || 'draft',
+      issueDate: invoice.issueDate || invoice.issuedDate || invoice.issued_date || '',
+      dueDate: invoice.dueDate || invoice.due_date || '',
+      notes: invoice.notes || '',
+    })) : []
   } catch { return [] }
 }
 
@@ -100,6 +113,32 @@ export async function cloudUpdateInvoiceStatus(cloudId: string, status: string):
       body: JSON.stringify({ token, cloudId, updates: { status } })
     })
   } catch {}
+}
+
+export async function cloudUpdateInvoice(cloudId: string, updates: any): Promise<void> {
+  const token = getToken()
+  if (!token) return
+  try {
+    await fetch(`${BASE}/caregiver-personal-invoices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, cloudId, updates })
+    })
+  } catch {}
+}
+
+export async function cloudSendInvoice(invoice: any): Promise<any> {
+  const token = getToken()
+  if (!token) throw new Error('Sign in before sending invoices.')
+  const cloudId = invoice.cloudId || (String(invoice.id || '').startsWith('cloud_') ? String(invoice.id).replace(/^cloud_/, '') : '')
+  const res = await fetch(`${BASE}/caregiver-invoice-send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, cloudId, invoice })
+  })
+  const data = await res.json()
+  if (!res.ok || !data.success) throw new Error(data.error || 'Invoice email could not be sent.')
+  return data
 }
 
 export async function cloudDeleteInvoice(cloudId: string): Promise<void> {

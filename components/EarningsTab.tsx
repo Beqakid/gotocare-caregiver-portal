@@ -9,7 +9,9 @@ import {
   Clock,
   CreditCard,
   DollarSign,
+  Edit3,
   FileText,
+  Mail,
   Plus,
   Send,
   Trash2,
@@ -30,6 +32,8 @@ import {
   cloudDeleteInvoice,
   cloudGetInvoices,
   cloudGetPrivateClients,
+  cloudSendInvoice,
+  cloudUpdateInvoice,
   cloudUpdateInvoiceStatus,
 } from '../utils/cloud-api'
 
@@ -60,6 +64,18 @@ const dateLabel = (date: string) => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
+    })
+  } catch {
+    return date
+  }
+}
+
+const fullDateLabel = (date: string) => {
+  try {
+    return new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
     })
   } catch {
     return date
@@ -129,6 +145,10 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
   const [invoices, setInvoices] = useState<Invoice[]>(getInvoices())
   const [showCreate, setShowCreate] = useState(false)
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
+  const [sendNotice, setSendNotice] = useState('')
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
   const [privateClients, setPrivateClients] = useState<any[]>([])
   const [invClientId, setInvClientId] = useState('')
   const [invClient, setInvClient] = useState('')
@@ -225,6 +245,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const estIncomeTax = Math.max(0, ytdTotal - mileageDeduction) * 0.22
 
   const resetInvoiceForm = () => {
+    setEditingInvoiceId(null)
     setInvClientId('')
     setInvClient('')
     setInvClientEmail('')
@@ -234,11 +255,51 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setUsedEntryIds([])
     setUsedCloudIds([])
     setAutoFilledNote('')
+    setSendNotice('')
   }
 
   const openCreate = () => {
     setView('invoices')
+    setEditingInvoiceId(null)
+    setSendNotice('')
     setShowCreate(true)
+  }
+
+  const syncInvoiceInView = (id: string, updates: Partial<Invoice>) => {
+    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, ...updates } : inv))
+  }
+
+  const getInvoicePayload = (status: Invoice['status'] = 'draft') => {
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + (parseInt(invDueDays, 10) || 14))
+    return {
+      clientName: invClient.trim(),
+      clientEmail: invClientEmail || undefined,
+      items: invItems.filter(item => item.amount > 0),
+      subtotal: invoiceTotal,
+      total: invoiceTotal,
+      status,
+      dueDate: dueDate.toISOString().split('T')[0],
+      notes: invNotes || undefined,
+    }
+  }
+
+  const openEditInvoice = (invoice: Invoice) => {
+    setView('invoices')
+    setShowCreate(true)
+    setEditingInvoiceId(invoice.id)
+    setInvClient(invoice.clientName)
+    setInvClientEmail(invoice.clientEmail || '')
+    setInvItems(invoice.items.length ? invoice.items : [{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+    setInvNotes(invoice.notes || '')
+    const daysUntilDue = Math.max(0, Math.ceil((new Date(invoice.dueDate + 'T00:00:00').getTime() - Date.now()) / 86400000))
+    setInvDueDays(String(daysUntilDue || 14))
+    const matchedIdx = privateClients.findIndex(client => client.name === invoice.clientName)
+    setInvClientId(matchedIdx >= 0 ? String(matchedIdx) : '__new__')
+    setUsedEntryIds([])
+    setUsedCloudIds([])
+    setAutoFilledNote('Editing saved invoice details.')
+    setSendNotice('')
   }
 
   const updateItem = (idx: number, field: string, val: any) => {
@@ -325,25 +386,30 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     openCreate()
   }
 
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (!invClient.trim() || invoiceTotal <= 0) return
-    const dueDate = new Date()
-    dueDate.setDate(dueDate.getDate() + (parseInt(invDueDays, 10) || 14))
+    const payload = getInvoicePayload('draft')
+    if (editingInvoiceId) {
+      updateInvoice(editingInvoiceId, payload)
+      if (editingInvoiceId.startsWith('cloud_')) cloudUpdateInvoice(editingInvoiceId.replace('cloud_', ''), payload)
+      syncInvoiceInView(editingInvoiceId, payload)
+      setShowCreate(false)
+      resetInvoiceForm()
+      return
+    }
     const inv = addInvoice({
       invoiceNumber: getNextInvoiceNumber(),
-      clientName: invClient.trim(),
-      clientEmail: invClientEmail || undefined,
-      items: invItems.filter(item => item.amount > 0),
-      subtotal: invoiceTotal,
-      total: invoiceTotal,
-      status: 'draft',
+      ...payload,
       issueDate: new Date().toISOString().split('T')[0],
-      dueDate: dueDate.toISOString().split('T')[0],
-      notes: invNotes || undefined,
     })
-    cloudAddInvoice(inv)
+    const cloudId = await cloudAddInvoice(inv)
     if (usedCloudIds.length > 0) cloudMarkEntriesInvoiced(usedCloudIds)
-    setInvoices(getInvoices())
+    if (cloudId) {
+      deleteInvoice(inv.id)
+      setInvoices(prev => [{ ...inv, id: `cloud_${cloudId}`, cloudId }, ...prev.filter(existing => existing.id !== inv.id)])
+    } else {
+      setInvoices(getInvoices())
+    }
     setShowCreate(false)
     resetInvoiceForm()
   }
@@ -351,13 +417,46 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const changeInvoiceStatus = (id: string, status: Invoice['status']) => {
     updateInvoice(id, { status })
     if (id.startsWith('cloud_')) cloudUpdateInvoiceStatus(id.replace('cloud_', ''), status)
-    setInvoices(getInvoices())
+    syncInvoiceInView(id, { status })
+  }
+
+  const handleSendInvoice = async (invoice: Invoice) => {
+    if (!invoice.clientEmail) {
+      setSendNotice('Add a client email before sending this invoice.')
+      openEditInvoice(invoice)
+      return
+    }
+    setSendingInvoiceId(invoice.id)
+    setSendNotice('Sending invoice email...')
+    try {
+      const result = await cloudSendInvoice(invoice)
+      const sentUpdates: Partial<Invoice> = {
+        status: 'sent',
+        sentAt: result.invoice?.sentAt || invoice.sentAt || new Date().toISOString(),
+        lastSentAt: result.invoice?.lastSentAt || new Date().toISOString(),
+        sendCount: result.invoice?.sendCount || (invoice.sendCount || 0) + 1,
+        emailId: result.emailId || result.invoice?.emailId,
+      }
+      updateInvoice(invoice.id, sentUpdates)
+      if (result.invoice?.id && result.invoice.id !== invoice.id) {
+        setInvoices(prev => prev.map(inv => inv.id === invoice.id ? result.invoice : inv))
+        if (previewInvoice?.id === invoice.id) setPreviewInvoice(result.invoice)
+      } else {
+        syncInvoiceInView(invoice.id, sentUpdates)
+        if (previewInvoice?.id === invoice.id) setPreviewInvoice({ ...previewInvoice, ...sentUpdates })
+      }
+      setSendNotice(`Sent invoice to ${invoice.clientEmail}.`)
+    } catch (error) {
+      setSendNotice(error instanceof Error ? error.message : 'Invoice email could not be sent.')
+    } finally {
+      setSendingInvoiceId(null)
+    }
   }
 
   const handleDeleteInvoice = (id: string) => {
     deleteInvoice(id)
     if (id.startsWith('cloud_')) cloudDeleteInvoice(id.replace('cloud_', ''))
-    setInvoices(getInvoices())
+    setInvoices(prev => prev.filter(inv => inv.id !== id))
   }
 
   if (loading) {
@@ -522,7 +621,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <SectionLabel>Invoice Builder</SectionLabel>
-                  <p className="text-lg font-bold text-base-content">Draft invoice</p>
+                  <p className="text-lg font-bold text-base-content">{editingInvoiceId ? 'Edit invoice' : 'Draft invoice'}</p>
                 </div>
                 <button
                   onClick={() => { setShowCreate(false); resetInvoiceForm() }}
@@ -533,6 +632,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               </div>
 
               <div className="space-y-3">
+                {sendNotice && (
+                  <div className="rounded-xl bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">{sendNotice}</div>
+                )}
                 {privateClients.length > 0 ? (
                   <select className="select select-bordered w-full" value={invClientId} onChange={e => handleClientSelect(e.target.value)}>
                     <option value="">Select client</option>
@@ -550,10 +652,10 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   </select>
                 ) : null}
 
-                {(!privateClients.length || invClientId === '__new__') && (
+                {(!privateClients.length || invClientId === '__new__' || editingInvoiceId) && (
                   <div className="grid gap-2">
                     <input className="input input-bordered w-full" placeholder="Client name" value={invClient} onChange={e => setInvClient(e.target.value)} />
-                    <input className="input input-bordered w-full" placeholder="Client email optional" value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
+                    <input className="input input-bordered w-full" placeholder="Client email for sending" value={invClientEmail} onChange={e => setInvClientEmail(e.target.value)} />
                   </div>
                 )}
 
@@ -621,7 +723,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   disabled={!invClient.trim() || invoiceTotal <= 0}
                   className="btn btn-primary w-full rounded-2xl gap-2"
                 >
-                  <FileText size={16} /> Save draft invoice
+                  <FileText size={16} /> {editingInvoiceId ? 'Save invoice changes' : 'Save draft invoice'}
                 </button>
               </div>
             </div>
@@ -648,12 +750,23 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                     </div>
                     <p className="text-xl font-bold text-base-content">${inv.total.toFixed(2)}</p>
                   </div>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button onClick={() => setPreviewInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                      <FileText size={12} /> Preview
+                    </button>
+                    <button onClick={() => openEditInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                      <Edit3 size={12} /> Edit
+                    </button>
                     {inv.status === 'draft' && (
-                      <button onClick={() => changeInvoiceStatus(inv.id, 'sent')} className="btn btn-info btn-xs gap-1">
-                        <Send size={12} /> Mark sent
+                      <button onClick={() => handleSendInvoice(inv)} disabled={sendingInvoiceId === inv.id} className="btn btn-info btn-xs gap-1">
+                        <Send size={12} /> {sendingInvoiceId === inv.id ? 'Sending' : 'Send'}
                       </button>
                     )}
+                    {inv.status === 'sent' || inv.status === 'overdue' ? (
+                      <button onClick={() => handleSendInvoice(inv)} disabled={sendingInvoiceId === inv.id} className="btn btn-info btn-xs gap-1">
+                        <Mail size={12} /> {sendingInvoiceId === inv.id ? 'Sending' : 'Resend'}
+                      </button>
+                    ) : null}
                     {inv.status !== 'paid' && (
                       <button onClick={() => changeInvoiceStatus(inv.id, 'paid')} className="btn btn-success btn-xs gap-1">
                         <CreditCard size={12} /> Paid
@@ -667,6 +780,91 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {previewInvoice && (
+        <div className="fixed inset-0 z-[120] flex items-end bg-black/50 backdrop-blur-sm" onClick={() => setPreviewInvoice(null)}>
+          <div className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl bg-base-100 p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto max-w-lg">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Invoice Preview</p>
+                  <h3 className="text-lg font-bold text-base-content">{previewInvoice.invoiceNumber}</h3>
+                </div>
+                <button onClick={() => setPreviewInvoice(null)} className="btn btn-ghost btn-sm btn-circle">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="rounded-2xl bg-white p-5 text-slate-900 shadow-sm">
+                <div className="mb-6 flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+                  <div>
+                    <p className="text-2xl font-black text-primary">Carehia</p>
+                    <p className="text-xs text-slate-500">Professional caregiver invoice</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Invoice</p>
+                    <p className="font-bold">{previewInvoice.invoiceNumber}</p>
+                    <InvoiceStatusBadge status={previewInvoice.status} />
+                  </div>
+                </div>
+
+                <div className="mb-5 grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bill To</p>
+                    <p className="mt-1 font-bold">{previewInvoice.clientName}</p>
+                    {previewInvoice.clientEmail && <p className="text-slate-500">{previewInvoice.clientEmail}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Dates</p>
+                    <p className="mt-1">Issued {fullDateLabel(previewInvoice.issueDate)}</p>
+                    <p>Due {fullDateLabel(previewInvoice.dueDate)}</p>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <div className="grid grid-cols-[1fr_52px_64px_72px] bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                    <span>Service</span>
+                    <span className="text-right">Hrs</span>
+                    <span className="text-right">Rate</span>
+                    <span className="text-right">Amount</span>
+                  </div>
+                  {previewInvoice.items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_52px_64px_72px] border-t border-slate-100 px-3 py-3 text-sm">
+                      <span className="font-medium">{item.description}</span>
+                      <span className="text-right">{(item.hours || 0).toFixed(1)}</span>
+                      <span className="text-right">${(item.rate || 0).toFixed(2)}</span>
+                      <span className="text-right font-semibold">${(item.amount || 0).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {previewInvoice.notes && (
+                  <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Notes</p>
+                    {previewInvoice.notes}
+                  </div>
+                )}
+
+                <div className="mt-5 flex justify-end">
+                  <div className="w-48 rounded-xl bg-primary/10 p-4 text-right">
+                    <p className="text-xs font-bold uppercase tracking-wide text-primary/70">Total Due</p>
+                    <p className="text-3xl font-black text-primary">${previewInvoice.total.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => { openEditInvoice(previewInvoice); setPreviewInvoice(null) }} className="btn btn-outline btn-sm flex-1 gap-1 rounded-xl">
+                  <Edit3 size={14} /> Edit
+                </button>
+                <button onClick={() => handleSendInvoice(previewInvoice)} disabled={sendingInvoiceId === previewInvoice.id} className="btn btn-primary btn-sm flex-1 gap-1 rounded-xl">
+                  <Send size={14} /> {sendingInvoiceId === previewInvoice.id ? 'Sending' : previewInvoice.status === 'draft' ? 'Send' : 'Resend'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

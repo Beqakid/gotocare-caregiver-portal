@@ -143,6 +143,42 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
 
+  const scrollToProfileSection = (id: string, focusSelector?: string) => {
+    window.setTimeout(() => {
+      const el = document.getElementById(id)
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (focusSelector) {
+        window.setTimeout(() => {
+          const focusTarget = el.querySelector(focusSelector) as HTMLElement | null
+          focusTarget?.focus?.()
+        }, 250)
+      }
+    }, 100)
+  }
+
+  const openBioEditor = (focusRate = false) => {
+    setSection('profile')
+    setEditing(true)
+    scrollToProfileSection('section-bio', focusRate ? 'input[type="number"]' : 'textarea')
+  }
+
+  const openSkillsEditor = () => {
+    setSection('profile')
+    setSelectedSkills(profile?.skills || [])
+    setEditingSkills(true)
+    scrollToProfileSection('section-skills')
+  }
+
+  const openContactEditor = () => {
+    setSection('profile')
+    setEditPhone(profile?.phone || '')
+    setEditCity(profile?.location?.city || '')
+    setEditState(profile?.location?.state || '')
+    setEditingContact(true)
+    scrollToProfileSection('section-contact', 'input[type="tel"]')
+  }
+
   useEffect(() => {
     if (cgToken) loadApiDocs()
   }, [cgToken])
@@ -158,7 +194,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   }
 
   const localDocs = refreshDocumentStatuses()
-  const docs = apiDocs.length > 0 ? apiDocs : localDocs
+  const rawDocs = apiDocs.length > 0 ? apiDocs : localDocs
+  const docs = rawDocs.map((doc: any) => {
+    const expiryDate = doc.expiryDate || doc.expiry_date || doc.expires_at
+    let status = doc.status
+    if (!['valid', 'expiring_soon', 'expired', 'no_expiry'].includes(status)) {
+      if (!expiryDate) status = 'no_expiry'
+      else {
+        const daysUntil = (new Date(expiryDate).getTime() - Date.now()) / (1000 * 86400)
+        status = daysUntil < 0 ? 'expired' : daysUntil < 30 ? 'expiring_soon' : 'valid'
+      }
+    }
+    return {
+      ...doc,
+      type: doc.type || doc.doc_type || doc.document_type || 'other',
+      expiryDate,
+      status,
+      fileName: doc.fileName || doc.file_name,
+      r2Key: doc.r2Key || doc.r2_key,
+    }
+  })
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, docs)
 
   const handleToggleAvailability = () => {
@@ -277,10 +332,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     setSubUpgrading(false)
   }
 
-  const profileUrl = `work.carehia.com?caregiver=${profile?.id}`
+  const profileUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${window.location.pathname}?caregiver=${profile?.id}`
+    : `https://work.carehia.com?caregiver=${profile?.id}`
+  const profileUrlLabel = profileUrl.replace(/^https?:\/\//, '')
 
   const copyProfileLink = () => {
-    navigator.clipboard?.writeText(`https://${profileUrl}`)
+    navigator.clipboard?.writeText(profileUrl)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
   }
@@ -302,41 +360,35 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       title: 'Write a stronger bio',
       detail: 'Share your experience, care style, and what families can count on.',
       action: 'Edit bio',
-      run: () => { setEditing(true); setTimeout(() => { const el = document.getElementById('section-bio'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
+      run: () => openBioEditor(),
     },
     {
       done: !!profile.hourlyRate && profile.hourlyRate > 0,
       title: 'Set hourly rate',
       detail: 'Clear pricing helps families decide quickly.',
       action: 'Set rate',
-      run: () => { setEditing(true); setTimeout(() => { const el = document.getElementById('section-bio'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
+      run: () => openBioEditor(true),
     },
     {
       done: (profile.skills?.length || 0) >= 3,
       title: 'Select at least 3 care skills',
       detail: 'Skills improve matching for live jobs and interview requests.',
       action: 'Edit skills',
-      run: () => { setSelectedSkills(profile.skills || []); setEditingSkills(true); setTimeout(() => { const el = document.getElementById('section-skills'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120); },
+      run: openSkillsEditor,
     },
     {
       done: !!profile.phone && !!profile.location?.city,
       title: 'Add phone and service area',
       detail: 'Clients need to know where you work and how to reach you.',
       action: 'Edit contact',
-      run: () => {
-        setEditPhone(profile.phone || '')
-        setEditCity(profile.location?.city || '')
-        setEditState(profile.location?.state || '')
-        setEditingContact(true)
-        setTimeout(() => { const el = document.getElementById('section-contact'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120)
-      },
+      run: openContactEditor,
     },
     {
       done: validDocCount > 0,
       title: 'Upload at least 1 trust document',
       detail: 'Certifications, licenses, and background checks build confidence.',
       action: 'Add document',
-      run: () => { setSection('documents'); setShowAddDoc(true) },
+      run: () => { setSection('documents'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
     },
   ]
   const nextReadinessTasks = readinessTasks.filter(t => !t.done).slice(0, 3)
@@ -422,17 +474,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       </div>
 
       {/* Section tabs */}
-      <div className="px-4 mt-4 mb-3 flex gap-2">
+      <div className="px-4 mt-4 mb-3 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist">
         {[
           { key: 'profile' as const, label: 'Readiness' },
           { key: 'documents' as const, label: `Docs (${docs.length})` },
           { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
-          { key: 'clients' as const, label: `My Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
+          { key: 'clients' as const, label: `Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
           { key: 'trust' as const, label: 'Trust' },
         ].map(t => (
           <button key={t.key}
-            className={`btn btn-sm rounded-full ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setSection(t.key)}
+            className={`btn btn-sm rounded-full shrink-0 ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
+            role="tab"
+            aria-selected={section === t.key}
+            onClick={(e) => {
+              setSection(t.key)
+              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+            }}
           >{t.label}</button>
         ))}
       </div>
@@ -655,10 +712,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               <p className="font-bold text-sm text-base-content">Share Your Profile</p>
             </div>
             <div className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 mb-3">
-              <span className="text-xs text-base-content/60 truncate flex-1">{profileUrl}</span>
+              <span className="text-xs text-base-content/60 truncate flex-1">{profileUrlLabel}</span>
               <button
                 onClick={async () => {
-                  const url = `https://${profileUrl}`
+                  const url = profileUrl
                   try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                 }}
                 className="flex items-center gap-1 text-primary text-xs font-semibold flex-shrink-0"
@@ -669,7 +726,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={async () => {
-                  const url = `https://${profileUrl}`
+                  const url = profileUrl
                   try { await navigator.share({ title: `${profile?.firstName} ${profile?.lastName} — Carehia`, url }) } catch {
                     try { await navigator.clipboard.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000) } catch {}
                   }
@@ -680,7 +737,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </button>
               {profile?.id && (
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`I'm a professional caregiver on Carehia. Book me here: https://${profileUrl}`)}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(`I'm a professional caregiver on Carehia. Book me here: ${profileUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-sm flex-1 gap-1.5 rounded-xl text-white border-0"
@@ -892,10 +949,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ---- DOCUMENTS SECTION ---- */}
       {section === 'documents' && (
         <div id="section-documents" className="px-4 space-y-4">
-          <p className="text-xs text-base-content/60">
+          <div className="text-xs text-base-content/60">
             Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
             <p className="text-xs text-base-content/60 mt-1">🔒 Documents are private unless you choose to share them.</p>
-          </p>
+          </div>
 
           <button onClick={() => setShowAddDoc(true)} className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">
             <Plus size={16} /> Add Document
@@ -980,16 +1037,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                             {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
                         )}
-                        {!doc.expiryDate && !doc.expiry_date && <p className="text-xs text-base-content/60 mt-0.5">No expiry</p>}
-                        {doc.r2_key && cgToken && (
-                          <a href={`${API_BASE}/api/caregiver-documents/file?key=${encodeURIComponent(doc.r2_key)}&token=${cgToken}`}
+                        {!doc.expiryDate && <p className="text-xs text-base-content/60 mt-0.5">No expiry</p>}
+                        {doc.r2Key && cgToken && (
+                          <a href={`${API_BASE}/api/caregiver-documents/file?key=${encodeURIComponent(doc.r2Key)}&token=${cgToken}`}
                             target="_blank" rel="noopener noreferrer"
                             className="text-xs text-primary/70 mt-0.5 flex items-center gap-0.5 hover:text-primary">
                             <Upload size={10} /> View file
                           </a>
                         )}
-                        {doc.file_name && !doc.r2_key && (
-                          <p className="text-xs text-base-content/60 mt-0.5">{doc.file_name}</p>
+                        {doc.fileName && !doc.r2Key && (
+                          <p className="text-xs text-base-content/60 mt-0.5">{doc.fileName}</p>
                         )}
                       </div>
                     </div>
@@ -1178,13 +1235,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
             <div className="bg-white rounded-3xl p-5 shadow-2xl">
               <img
-                src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(`https://${profileUrl}`) + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
+                src={'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(profileUrl) + '&color=7C5CFF&bgcolor=FFFFFF&qzone=2'}
                 alt="Profile QR Code" width={280} height={280} className="rounded-2xl"
               />
             </div>
             <div className="text-center">
               <p className="text-white/80 text-sm font-semibold">{profile.firstName} {profile.lastName}</p>
-              <p className="text-white/50 text-xs mt-0.5">{profileUrl}</p>
+              <p className="text-white/50 text-xs mt-0.5">{profileUrlLabel}</p>
             </div>
             <button onClick={() => setShowQR(false)} className="btn btn-ghost text-white/60 btn-sm rounded-xl">
               ✕ Close

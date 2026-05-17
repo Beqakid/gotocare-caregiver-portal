@@ -585,7 +585,7 @@ const App: React.FC<{}> = () => {
   if (publicCaregiverId) {
     return (
       <React.Suspense fallback={<TabSpinner />}>
-        <PublicProfileView caregiverId={publicCaregiverId} onBack={() => window.location.href = 'https://work.carehia.com'} />
+        <PublicProfileView caregiverId={publicCaregiverId} onBack={() => { window.location.href = window.location.origin }} />
       </React.Suspense>
     )
   }

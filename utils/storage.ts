@@ -215,14 +215,14 @@ export function calculateCompleteness(profile: any, docs: CaregiverDocument[]): 
       done: docs.filter(d => d.type === 'certification' || d.type === 'license').length > 0,
       hint: 'Upload CNA, HHA, or other cert',
       icon: '🎓',
-      action: { section: 'documents' as const, scrollTo: 'section-certs' },
+      action: { section: 'documents' as const, scrollTo: 'section-documents' },
     },
     {
       label: 'Background check',
       done: docs.some(d => d.type === 'background_check'),
       hint: 'Upload your background check',
       icon: '🛡️',
-      action: { section: 'documents' as const, scrollTo: 'section-bgcheck' },
+      action: { section: 'documents' as const, scrollTo: 'section-documents' },
     },
   ]
   const done = items.filter(i => i.done).length

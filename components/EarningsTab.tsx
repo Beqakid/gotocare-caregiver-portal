@@ -82,6 +82,147 @@ const fullDateLabel = (date: string) => {
   }
 }
 
+const escapeHtml = (value: any) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+
+const invoicePrintHtml = (invoice: Invoice) => {
+  const rows = invoice.items.map(item => `
+    <tr>
+      <td>${escapeHtml(item.description || 'Care services')}</td>
+      <td class="num">${(item.hours || 0).toFixed(1)}</td>
+      <td class="num">$${(item.rate || 0).toFixed(2)}</td>
+      <td class="num strong">$${(item.amount || 0).toFixed(2)}</td>
+    </tr>
+  `).join('')
+  const notes = invoice.notes ? `
+    <section class="notes no-break">
+      <p class="eyebrow">Notes</p>
+      <p>${escapeHtml(invoice.notes)}</p>
+    </section>
+  ` : ''
+
+  return `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(invoice.invoiceNumber)} - Carehia Invoice</title>
+        <style>
+          @page { size: letter; margin: 0.5in; }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            background: #ffffff;
+            color: #0f172a;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+          .page { max-width: 7.5in; margin: 0 auto; padding: 0; }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+          }
+          .brand { font-size: 32px; line-height: 1; font-weight: 900; color: #0f172a; }
+          .muted { color: #64748b; }
+          .small { font-size: 13px; }
+          .right { text-align: right; }
+          .eyebrow {
+            margin: 0 0 6px;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          h1, h2, p { margin: 0; }
+          .invoice-no { margin-top: 4px; font-size: 20px; font-weight: 800; }
+          .status { margin-top: 4px; color: #64748b; font-size: 13px; text-transform: capitalize; }
+          .meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+          }
+          .client { margin-top: 8px; font-size: 18px; font-weight: 800; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 32px; font-size: 14px; }
+          thead tr { background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+          th { padding: 12px 10px; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; }
+          td { padding: 14px 10px; border-bottom: 1px solid #f1f5f9; }
+          .num { text-align: right; }
+          .strong { font-weight: 800; }
+          .notes {
+            margin-bottom: 32px;
+            border-radius: 12px;
+            background: #f8fafc;
+            padding: 16px;
+            color: #475569;
+            font-size: 14px;
+          }
+          .total { display: flex; justify-content: flex-end; }
+          .total-box { width: 230px; border-top: 2px solid #0f172a; padding-top: 16px; text-align: right; }
+          .total-amount { margin-top: 4px; font-size: 32px; line-height: 1; font-weight: 900; }
+          .no-break, tr { break-inside: avoid; page-break-inside: avoid; }
+        </style>
+      </head>
+      <body>
+        <main class="page">
+          <header class="header no-break">
+            <div>
+              <p class="brand">Carehia</p>
+              <p class="muted small" style="margin-top: 8px;">Professional caregiver invoice</p>
+            </div>
+            <div class="right">
+              <p class="eyebrow">Invoice</p>
+              <p class="invoice-no">${escapeHtml(invoice.invoiceNumber)}</p>
+              <p class="status">${escapeHtml(invoice.status)}</p>
+            </div>
+          </header>
+
+          <section class="meta no-break">
+            <div>
+              <p class="eyebrow">Bill To</p>
+              <p class="client">${escapeHtml(invoice.clientName)}</p>
+              ${invoice.clientEmail ? `<p class="muted small" style="margin-top: 4px;">${escapeHtml(invoice.clientEmail)}</p>` : ''}
+            </div>
+            <div class="right">
+              <p class="eyebrow">Dates</p>
+              <p class="small" style="margin-top: 8px;">Issued ${escapeHtml(fullDateLabel(invoice.issueDate))}</p>
+              <p class="small muted" style="margin-top: 4px;">Due ${escapeHtml(fullDateLabel(invoice.dueDate))}</p>
+            </div>
+          </section>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th class="num">Hours</th>
+                <th class="num">Rate</th>
+                <th class="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+
+          ${notes}
+
+          <section class="total no-break">
+            <div class="total-box">
+              <p class="eyebrow">Total Due</p>
+              <p class="total-amount">$${invoice.total.toFixed(2)}</p>
+            </div>
+          </section>
+        </main>
+      </body>
+    </html>`
+}
+
 const entryHours = (entry: TimeEntry) => {
   if (entry.regularHours !== undefined || entry.overtimeHours !== undefined) {
     return (entry.regularHours || 0) + (entry.overtimeHours || 0)
@@ -146,70 +287,6 @@ const InvoiceStatusBadge = ({ status }: { status: Invoice['status'] }) => {
   return <span className={`badge badge-xs ${cls}`}>{status}</span>
 }
 
-const InvoicePrintDocument = ({ invoice }: { invoice: Invoice }) => (
-  <div className="invoice-print-page bg-white p-8 text-slate-900">
-    <div className="mb-8 flex items-start justify-between border-b border-slate-200 pb-6">
-      <div>
-        <p className="text-3xl font-black text-slate-950">Carehia</p>
-        <p className="mt-1 text-sm text-slate-500">Professional caregiver invoice</p>
-      </div>
-      <div className="text-right">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Invoice</p>
-        <p className="mt-1 text-xl font-bold text-slate-950">{invoice.invoiceNumber}</p>
-        <p className="mt-1 text-sm capitalize text-slate-500">{invoice.status}</p>
-      </div>
-    </div>
-
-    <div className="invoice-print-no-break mb-8 grid grid-cols-2 gap-8 text-sm">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bill To</p>
-        <p className="mt-2 text-lg font-bold text-slate-950">{invoice.clientName}</p>
-        {invoice.clientEmail && <p className="text-slate-600">{invoice.clientEmail}</p>}
-      </div>
-      <div className="text-right">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Dates</p>
-        <p className="mt-2 text-slate-700">Issued {fullDateLabel(invoice.issueDate)}</p>
-        <p className="text-slate-700">Due {fullDateLabel(invoice.dueDate)}</p>
-      </div>
-    </div>
-
-    <table className="mb-8 w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-          <th className="py-3 pl-3 text-left font-bold">Service</th>
-          <th className="py-3 text-right font-bold">Hours</th>
-          <th className="py-3 text-right font-bold">Rate</th>
-          <th className="py-3 pr-3 text-right font-bold">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {invoice.items.map((item, idx) => (
-          <tr key={idx} className="invoice-print-no-break border-b border-slate-100">
-            <td className="py-3 pl-3 font-medium">{item.description || 'Care services'}</td>
-            <td className="py-3 text-right">{(item.hours || 0).toFixed(1)}</td>
-            <td className="py-3 text-right">${(item.rate || 0).toFixed(2)}</td>
-            <td className="py-3 pr-3 text-right font-semibold">${(item.amount || 0).toFixed(2)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-
-    {invoice.notes && (
-      <div className="invoice-print-no-break mb-8 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Notes</p>
-        {invoice.notes}
-      </div>
-    )}
-
-    <div className="invoice-print-no-break flex justify-end">
-      <div className="w-56 border-t-2 border-slate-950 pt-4 text-right">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Total Due</p>
-        <p className="mt-1 text-3xl font-black text-slate-950">${invoice.total.toFixed(2)}</p>
-      </div>
-    </div>
-  </div>
-)
-
 export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading }) => {
   const [view, setView] = useState<'workspace' | 'invoices' | 'tax'>('workspace')
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
@@ -217,7 +294,6 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [showCreate, setShowCreate] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
-  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null)
   const [sendNotice, setSendNotice] = useState('')
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
   const [privateClients, setPrivateClients] = useState<any[]>([])
@@ -246,12 +322,6 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       }
     }
     loadCloud()
-  }, [])
-
-  useEffect(() => {
-    const clearPrintInvoice = () => setPrintInvoice(null)
-    window.addEventListener('afterprint', clearPrintInvoice)
-    return () => window.removeEventListener('afterprint', clearPrintInvoice)
   }, [])
 
   const now = new Date()
@@ -555,8 +625,38 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const handlePrintInvoice = (invoice: Invoice) => {
-    setPrintInvoice(invoice)
-    window.setTimeout(() => window.print(), 50)
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('title', `Print ${invoice.invoiceNumber}`)
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '1px'
+    iframe.style.height = '1px'
+    iframe.style.opacity = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        try { document.body.removeChild(iframe) } catch {}
+      }, 1000)
+    }
+
+    const printFrame = () => {
+      const frameWindow = iframe.contentWindow
+      if (!frameWindow) return cleanup()
+      frameWindow.focus()
+      frameWindow.print()
+      frameWindow.addEventListener('afterprint', cleanup, { once: true })
+      window.setTimeout(cleanup, 30000)
+    }
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document
+    if (!doc) return cleanup()
+    doc.open()
+    doc.write(invoicePrintHtml(invoice))
+    doc.close()
+    window.setTimeout(printFrame, 150)
   }
 
   if (loading) {
@@ -570,34 +670,6 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   return (
     <div className="pb-4">
-      <style>{`
-        .invoice-print-sheet { display: none; }
-        @media print {
-          @page { size: letter; margin: 0.5in; }
-          html, body, #root { background: #fff !important; }
-          body * { visibility: hidden !important; }
-          .invoice-print-sheet, .invoice-print-sheet * { visibility: visible !important; }
-          .invoice-print-sheet {
-            display: block !important;
-            position: absolute !important;
-            inset: 0 auto auto 0 !important;
-            width: 100% !important;
-            background: #fff !important;
-            color: #0f172a !important;
-          }
-          .invoice-print-page {
-            max-width: 7.5in !important;
-            margin: 0 auto !important;
-            box-shadow: none !important;
-          }
-          .invoice-print-no-break { break-inside: avoid; }
-        }
-      `}</style>
-      {printInvoice && (
-        <div className="invoice-print-sheet">
-          <InvoicePrintDocument invoice={printInvoice} />
-        </div>
-      )}
       <div className="px-4 pt-4 pb-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Money</p>
         <h1 className="text-2xl font-bold text-base-content">Get paid clearly</h1>

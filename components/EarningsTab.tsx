@@ -18,7 +18,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { Timesheet, Invoice, InvoiceItem, TimeEntry } from '../types'
+import { Timesheet, Invoice, InvoiceItem, TimeEntry, CaregiverProfile } from '../types'
 import {
   addInvoice,
   deleteInvoice,
@@ -89,7 +89,36 @@ const escapeHtml = (value: any) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;')
 
-const invoicePrintHtml = (invoice: Invoice) => {
+type InvoiceCaregiverInfo = {
+  name: string
+  email: string
+  phone: string
+  location: string
+}
+
+const getInvoiceCaregiverInfo = (): InvoiceCaregiverInfo => {
+  try {
+    const saved = localStorage.getItem('cgp_account')
+    const profile = saved ? JSON.parse(saved) as Partial<CaregiverProfile> & { name?: string; zipCode?: string } : null
+    const firstLast = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim()
+    const name = profile?.name || firstLast || profile?.email?.split('@')[0] || 'Carehia caregiver'
+    const location = [
+      profile?.location?.city,
+      profile?.location?.state,
+      profile?.location?.zipCode || profile?.zipCode,
+    ].filter(Boolean).join(', ')
+    return {
+      name,
+      email: profile?.email || '',
+      phone: profile?.phone || '',
+      location,
+    }
+  } catch {
+    return { name: 'Carehia caregiver', email: '', phone: '', location: '' }
+  }
+}
+
+const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => {
   const rows = invoice.items.map(item => `
     <tr>
       <td>${escapeHtml(item.description || 'Care services')}</td>
@@ -146,11 +175,12 @@ const invoicePrintHtml = (invoice: Invoice) => {
           .status { margin-top: 4px; color: #64748b; font-size: 13px; text-transform: capitalize; }
           .meta {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
+            grid-template-columns: 1.1fr 1.1fr 0.9fr;
+            gap: 24px;
             margin-bottom: 32px;
           }
-          .client { margin-top: 8px; font-size: 18px; font-weight: 800; }
+          .party { margin-top: 8px; font-size: 17px; font-weight: 800; }
+          .line { margin-top: 4px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 32px; font-size: 14px; }
           thead tr { background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
           th { padding: 12px 10px; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; }
@@ -187,9 +217,16 @@ const invoicePrintHtml = (invoice: Invoice) => {
 
           <section class="meta no-break">
             <div>
+              <p class="eyebrow">From</p>
+              <p class="party">${escapeHtml(caregiver.name)}</p>
+              ${caregiver.email ? `<p class="muted small line">${escapeHtml(caregiver.email)}</p>` : ''}
+              ${caregiver.phone ? `<p class="muted small line">${escapeHtml(caregiver.phone)}</p>` : ''}
+              ${caregiver.location ? `<p class="muted small line">${escapeHtml(caregiver.location)}</p>` : ''}
+            </div>
+            <div>
               <p class="eyebrow">Bill To</p>
-              <p class="client">${escapeHtml(invoice.clientName)}</p>
-              ${invoice.clientEmail ? `<p class="muted small" style="margin-top: 4px;">${escapeHtml(invoice.clientEmail)}</p>` : ''}
+              <p class="party">${escapeHtml(invoice.clientName)}</p>
+              ${invoice.clientEmail ? `<p class="muted small line">${escapeHtml(invoice.clientEmail)}</p>` : ''}
             </div>
             <div class="right">
               <p class="eyebrow">Dates</p>
@@ -337,6 +374,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const paidInvoices = invoices.filter(i => i.status === 'paid')
   const sentInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'overdue')
   const draftInvoices = invoices.filter(i => i.status === 'draft')
+  const invoiceCaregiverInfo = useMemo(() => getInvoiceCaregiverInfo(), [previewInvoice])
 
   const localEarnings = localEntries.reduce((sum, entry) => sum + entryAmount(entry), 0)
   const localHours = localEntries.reduce((sum, entry) => sum + entryHours(entry), 0)
@@ -625,6 +663,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const handlePrintInvoice = (invoice: Invoice) => {
+    const caregiver = getInvoiceCaregiverInfo()
     const iframe = document.createElement('iframe')
     iframe.setAttribute('title', `Print ${invoice.invoiceNumber}`)
     iframe.style.position = 'fixed'
@@ -654,7 +693,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     const doc = iframe.contentDocument || iframe.contentWindow?.document
     if (!doc) return cleanup()
     doc.open()
-    doc.write(invoicePrintHtml(invoice))
+    doc.write(invoicePrintHtml(invoice, caregiver))
     doc.close()
     window.setTimeout(printFrame, 150)
   }
@@ -1013,7 +1052,14 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   </div>
                 </div>
 
-                <div className="mb-5 grid grid-cols-2 gap-4 text-sm">
+                <div className="mb-5 grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">From</p>
+                    <p className="mt-1 font-bold">{invoiceCaregiverInfo.name}</p>
+                    {invoiceCaregiverInfo.email && <p className="text-slate-500">{invoiceCaregiverInfo.email}</p>}
+                    {invoiceCaregiverInfo.phone && <p className="text-slate-500">{invoiceCaregiverInfo.phone}</p>}
+                    {invoiceCaregiverInfo.location && <p className="text-slate-500">{invoiceCaregiverInfo.location}</p>}
+                  </div>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bill To</p>
                     <p className="mt-1 font-bold">{previewInvoice.clientName}</p>

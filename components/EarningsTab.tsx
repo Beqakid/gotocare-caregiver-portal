@@ -13,6 +13,7 @@ import {
   FileText,
   Mail,
   Plus,
+  Printer,
   Send,
   Trash2,
   X,
@@ -34,7 +35,6 @@ import {
   cloudGetPrivateClients,
   cloudSendInvoice,
   cloudUpdateInvoice,
-  cloudUpdateInvoiceStatus,
 } from '../utils/cloud-api'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
@@ -94,6 +94,12 @@ const entryAmount = (entry: TimeEntry) => {
   return entryHours(entry) * (entry.hourlyRate || 0)
 }
 
+const dateValue = (date?: string) => {
+  if (!date) return 0
+  const parsed = new Date(date.includes('T') ? date : `${date}T00:00:00`).getTime()
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-bold uppercase tracking-wide text-base-content/45">{children}</p>
 )
@@ -140,6 +146,70 @@ const InvoiceStatusBadge = ({ status }: { status: Invoice['status'] }) => {
   return <span className={`badge badge-xs ${cls}`}>{status}</span>
 }
 
+const InvoicePrintDocument = ({ invoice }: { invoice: Invoice }) => (
+  <div className="invoice-print-page bg-white p-8 text-slate-900">
+    <div className="mb-8 flex items-start justify-between border-b border-slate-200 pb-6">
+      <div>
+        <p className="text-3xl font-black text-slate-950">Carehia</p>
+        <p className="mt-1 text-sm text-slate-500">Professional caregiver invoice</p>
+      </div>
+      <div className="text-right">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Invoice</p>
+        <p className="mt-1 text-xl font-bold text-slate-950">{invoice.invoiceNumber}</p>
+        <p className="mt-1 text-sm capitalize text-slate-500">{invoice.status}</p>
+      </div>
+    </div>
+
+    <div className="invoice-print-no-break mb-8 grid grid-cols-2 gap-8 text-sm">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bill To</p>
+        <p className="mt-2 text-lg font-bold text-slate-950">{invoice.clientName}</p>
+        {invoice.clientEmail && <p className="text-slate-600">{invoice.clientEmail}</p>}
+      </div>
+      <div className="text-right">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Dates</p>
+        <p className="mt-2 text-slate-700">Issued {fullDateLabel(invoice.issueDate)}</p>
+        <p className="text-slate-700">Due {fullDateLabel(invoice.dueDate)}</p>
+      </div>
+    </div>
+
+    <table className="mb-8 w-full border-collapse text-sm">
+      <thead>
+        <tr className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <th className="py-3 pl-3 text-left font-bold">Service</th>
+          <th className="py-3 text-right font-bold">Hours</th>
+          <th className="py-3 text-right font-bold">Rate</th>
+          <th className="py-3 pr-3 text-right font-bold">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {invoice.items.map((item, idx) => (
+          <tr key={idx} className="invoice-print-no-break border-b border-slate-100">
+            <td className="py-3 pl-3 font-medium">{item.description || 'Care services'}</td>
+            <td className="py-3 text-right">{(item.hours || 0).toFixed(1)}</td>
+            <td className="py-3 text-right">${(item.rate || 0).toFixed(2)}</td>
+            <td className="py-3 pr-3 text-right font-semibold">${(item.amount || 0).toFixed(2)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {invoice.notes && (
+      <div className="invoice-print-no-break mb-8 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Notes</p>
+        {invoice.notes}
+      </div>
+    )}
+
+    <div className="invoice-print-no-break flex justify-end">
+      <div className="w-56 border-t-2 border-slate-950 pt-4 text-right">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Total Due</p>
+        <p className="mt-1 text-3xl font-black text-slate-950">${invoice.total.toFixed(2)}</p>
+      </div>
+    </div>
+  </div>
+)
+
 export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading }) => {
   const [view, setView] = useState<'workspace' | 'invoices' | 'tax'>('workspace')
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
@@ -147,6 +217,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [showCreate, setShowCreate] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null)
   const [sendNotice, setSendNotice] = useState('')
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
   const [privateClients, setPrivateClients] = useState<any[]>([])
@@ -175,6 +246,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       }
     }
     loadCloud()
+  }, [])
+
+  useEffect(() => {
+    const clearPrintInvoice = () => setPrintInvoice(null)
+    window.addEventListener('afterprint', clearPrintInvoice)
+    return () => window.removeEventListener('afterprint', clearPrintInvoice)
   }, [])
 
   const now = new Date()
@@ -235,14 +312,28 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   const maxDaily = Math.max(...dailyEarnings.map(d => d.amount), 1)
 
-  const ytdLocal = allEntries.filter(e => new Date(e.date) >= yearStart)
-  const ytdLocalEarnings = ytdLocal.reduce((sum, e) => sum + entryAmount(e), 0)
-  const ytdApiEarnings = timesheets.filter(t => new Date(t.date) >= yearStart).reduce((sum, t) => sum + (t.totalPay || 0), 0)
-  const ytdTotal = ytdLocalEarnings + ytdApiEarnings
+  const yearStartMs = yearStart.getTime()
+  const invoiceYtdDate = (invoice: Invoice, paidOnly = false) => dateValue(
+    paidOnly
+      ? invoice.paidAt || invoice.lastSentAt || invoice.sentAt || invoice.issueDate || invoice.createdAt || invoice.dueDate
+      : invoice.lastSentAt || invoice.sentAt || invoice.issueDate || invoice.createdAt || invoice.dueDate
+  )
+  const ytdPaidInvoices = paidInvoices.filter(inv => invoiceYtdDate(inv, true) >= yearStartMs)
+  const ytdPendingInvoices = sentInvoices.filter(inv => invoiceYtdDate(inv) >= yearStartMs)
+  const ytdDraftInvoices = draftInvoices.filter(inv => invoiceYtdDate(inv) >= yearStartMs)
+  const ytdUnbilledEntries = allEntries.filter(e => !e.isInvoiced && dateValue(e.date) >= yearStartMs)
+  const ytdPaidInvoiceIncome = ytdPaidInvoices.reduce((sum, inv) => sum + inv.total, 0)
+  const ytdPendingInvoiceIncome = ytdPendingInvoices.reduce((sum, inv) => sum + inv.total, 0)
+  const ytdDraftInvoiceIncome = ytdDraftInvoices.reduce((sum, inv) => sum + inv.total, 0)
+  const ytdUnbilledIncome = ytdUnbilledEntries.reduce((sum, e) => sum + entryAmount(e), 0)
+  const ytdPaidPlatformIncome = timesheets
+    .filter(t => t.status === 'paid' && dateValue(t.date) >= yearStartMs)
+    .reduce((sum, t) => sum + (t.totalPay || 0), 0)
+  const ytdCollectedIncome = ytdPaidInvoiceIncome + ytdPaidPlatformIncome
   const ytdMiles = getMileageEntries().filter(m => new Date(m.date) >= yearStart).reduce((sum, m) => sum + m.miles, 0)
   const mileageDeduction = ytdMiles * 0.67
-  const estSelfEmploymentTax = ytdTotal * 0.153
-  const estIncomeTax = Math.max(0, ytdTotal - mileageDeduction) * 0.22
+  const estSelfEmploymentTax = ytdCollectedIncome * 0.153
+  const estIncomeTax = Math.max(0, ytdCollectedIncome - mileageDeduction) * 0.22
 
   const resetInvoiceForm = () => {
     setEditingInvoiceId(null)
@@ -388,7 +479,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   const handleCreateInvoice = async () => {
     if (!invClient.trim() || invoiceTotal <= 0) return
-    const payload = getInvoicePayload('draft')
+    const existingInvoice = editingInvoiceId ? invoices.find(inv => inv.id === editingInvoiceId) : null
+    const payload = getInvoicePayload(existingInvoice?.status || 'draft')
     if (editingInvoiceId) {
       updateInvoice(editingInvoiceId, payload)
       if (editingInvoiceId.startsWith('cloud_')) cloudUpdateInvoice(editingInvoiceId.replace('cloud_', ''), payload)
@@ -415,9 +507,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const changeInvoiceStatus = (id: string, status: Invoice['status']) => {
-    updateInvoice(id, { status })
-    if (id.startsWith('cloud_')) cloudUpdateInvoiceStatus(id.replace('cloud_', ''), status)
-    syncInvoiceInView(id, { status })
+    const updates: Partial<Invoice> = status === 'paid'
+      ? { status, paidAt: new Date().toISOString() }
+      : { status }
+    updateInvoice(id, updates)
+    if (id.startsWith('cloud_')) cloudUpdateInvoice(id.replace('cloud_', ''), updates)
+    syncInvoiceInView(id, updates)
   }
 
   const handleSendInvoice = async (invoice: Invoice) => {
@@ -459,6 +554,11 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setInvoices(prev => prev.filter(inv => inv.id !== id))
   }
 
+  const handlePrintInvoice = (invoice: Invoice) => {
+    setPrintInvoice(invoice)
+    window.setTimeout(() => window.print(), 50)
+  }
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
@@ -470,6 +570,34 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
 
   return (
     <div className="pb-4">
+      <style>{`
+        .invoice-print-sheet { display: none; }
+        @media print {
+          @page { size: letter; margin: 0.5in; }
+          html, body, #root { background: #fff !important; }
+          body * { visibility: hidden !important; }
+          .invoice-print-sheet, .invoice-print-sheet * { visibility: visible !important; }
+          .invoice-print-sheet {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+            color: #0f172a !important;
+          }
+          .invoice-print-page {
+            max-width: 7.5in !important;
+            margin: 0 auto !important;
+            box-shadow: none !important;
+          }
+          .invoice-print-no-break { break-inside: avoid; }
+        }
+      `}</style>
+      {printInvoice && (
+        <div className="invoice-print-sheet">
+          <InvoicePrintDocument invoice={printInvoice} />
+        </div>
+      )}
       <div className="px-4 pt-4 pb-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Money</p>
         <h1 className="text-2xl font-bold text-base-content">Get paid clearly</h1>
@@ -754,6 +882,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                     <button onClick={() => setPreviewInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
                       <FileText size={12} /> Preview
                     </button>
+                    <button onClick={() => handlePrintInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                      <Printer size={12} /> Print
+                    </button>
                     <button onClick={() => openEditInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
                       <Edit3 size={12} /> Edit
                     </button>
@@ -859,6 +990,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 <button onClick={() => { openEditInvoice(previewInvoice); setPreviewInvoice(null) }} className="btn btn-outline btn-sm flex-1 gap-1 rounded-xl">
                   <Edit3 size={14} /> Edit
                 </button>
+                <button onClick={() => handlePrintInvoice(previewInvoice)} className="btn btn-outline btn-sm flex-1 gap-1 rounded-xl">
+                  <Printer size={14} /> Print
+                </button>
                 <button onClick={() => handleSendInvoice(previewInvoice)} disabled={sendingInvoiceId === previewInvoice.id} className="btn btn-primary btn-sm flex-1 gap-1 rounded-xl">
                   <Send size={14} /> {sendingInvoiceId === previewInvoice.id ? 'Sending' : previewInvoice.status === 'draft' ? 'Send' : 'Resend'}
                 </button>
@@ -878,8 +1012,30 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             <p className="mb-4 text-xs text-base-content/60">Estimated figures only. A tax professional should confirm final numbers.</p>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-base-content/65">YTD gross income</span>
-                <strong>{money(ytdTotal)}</strong>
+                <span className="text-base-content/65">Collected income</span>
+                <strong>{money(ytdCollectedIncome)}</strong>
+              </div>
+              <div className="rounded-xl bg-base-100/70 p-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-base-content/55">Paid private invoices</span>
+                  <strong>{money(ytdPaidInvoiceIncome)}</strong>
+                </div>
+                <div className="mt-2 flex justify-between">
+                  <span className="text-base-content/55">Paid platform shifts</span>
+                  <strong>{money(ytdPaidPlatformIncome)}</strong>
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-base-content/65">Pending invoices not counted</span>
+                <strong className="text-warning">{money(ytdPendingInvoiceIncome)}</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-base-content/65">Draft invoices excluded</span>
+                <strong className="text-base-content/60">{money(ytdDraftInvoiceIncome)}</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-base-content/65">Unbilled tracked work</span>
+                <strong className="text-base-content/60">{money(ytdUnbilledIncome)}</strong>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-base-content/65">Mileage deduction ({ytdMiles.toFixed(0)} mi)</span>
@@ -897,7 +1053,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <div className="h-px bg-base-300" />
               <div className="flex justify-between">
                 <span className="font-semibold text-base-content">Estimated net after tax</span>
-                <strong className="text-lg">{money(ytdTotal - estSelfEmploymentTax - estIncomeTax)}</strong>
+                <strong className="text-lg">{money(ytdCollectedIncome - estSelfEmploymentTax - estIncomeTax)}</strong>
               </div>
             </div>
           </div>
@@ -908,7 +1064,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <p className="font-semibold text-base-content">Quarterly planning</p>
             </div>
             <p className="text-sm text-base-content/60">
-              Set aside about {Math.round(((estSelfEmploymentTax + estIncomeTax) / Math.max(ytdTotal, 1)) * 100)}% of each private payment for taxes.
+              Set aside about {Math.round(((estSelfEmploymentTax + estIncomeTax) / Math.max(ytdCollectedIncome, 1)) * 100)}% of each collected private payment. Sent and draft invoices stay out of the estimate until they are paid.
             </p>
           </div>
 

@@ -26,6 +26,7 @@ import {
   setActiveTimer,
   updateTimeEntry,
 } from '../utils/storage'
+import { cloudAddTimeEntry, cloudSetActiveTimer } from '../utils/cloud-api'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
 const VAPID_PUBLIC_KEY = 'BOtlZWOtOu_PS_Bdkvvyw_ctpyeQvW2OlMrhidaXqbNcYbpXONe-3PaJdlj3X0CB2zU-S46PWHvnyuUI9k0jFDA'
@@ -390,6 +391,15 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     const saved = addTimeEntry(entry)
     setActiveTimer(saved)
     setActiveTimerState(saved)
+    cloudSetActiveTimer({
+      clientName: saved.clientName,
+      startTime: saved.startTime,
+      hourlyRate: saved.hourlyRate,
+      billingType: saved.billingType || 'hourly',
+      otAfterHrs: saved.overtimeAfterHours || 8,
+      otMultiplier: saved.overtimeMultiplier || 1.5,
+      notes: saved.notes || '',
+    })
     setShowQuickTimer(false)
     setQuickClient('')
     onTimerUpdate()
@@ -408,6 +418,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     setActiveTimerState(null)
     setElapsed(0)
     setTimeEntries(getTimeEntries())
+    cloudSetActiveTimer(null)
+    const completedEntry = getTimeEntries().find(e => e.id === activeTimer.id)
+    if (completedEntry) cloudAddTimeEntry(completedEntry)
     onTimerUpdate()
   }
 

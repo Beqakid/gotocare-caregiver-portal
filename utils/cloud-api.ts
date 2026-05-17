@@ -84,6 +84,10 @@ export async function cloudGetInvoices(): Promise<any[]> {
       issueDate: invoice.issueDate || invoice.issuedDate || invoice.issued_date || '',
       dueDate: invoice.dueDate || invoice.due_date || '',
       notes: invoice.notes || '',
+      paidAt: invoice.paidAt || invoice.paid_at || '',
+      sentAt: invoice.sentAt || invoice.sent_at || '',
+      lastSentAt: invoice.lastSentAt || invoice.last_sent_at || '',
+      sendCount: Number(invoice.sendCount || invoice.send_count || 0),
     })) : []
   } catch { return [] }
 }

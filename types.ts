@@ -143,6 +143,7 @@ export interface Invoice {
   dueDate: string
   notes?: string
   createdAt: string
+  paidAt?: string
   sentAt?: string
   lastSentAt?: string
   sendCount?: number

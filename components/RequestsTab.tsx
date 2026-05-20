@@ -748,7 +748,7 @@ export function RequestsTab({
       <div className="px-4 pb-0">
         <div className="flex gap-1 rounded-2xl bg-base-200 p-1">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveSection(tab.id)} className={`flex-1 rounded-xl py-2 text-xs font-semibold transition ${activeSection === tab.id ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}>
+            <button key={tab.id} onClick={() => setActiveSection(tab.id)} className={`flex-1 rounded-xl py-2 text-xs font-semibold transition ${activeSection === tab.id ? 'bg-primary text-primary-content shadow-sm' : 'bg-base-200 text-base-content/70'}`}>
               {tab.label}
             </button>
           ))}

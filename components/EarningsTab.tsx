@@ -759,7 +759,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
           <div className="rounded-2xl bg-base-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <SectionLabel>Invoice Pipeline</SectionLabel>
-              <button onClick={() => setView('invoices')} className="btn btn-ghost btn-xs">View all</button>
+              <button onClick={() => setView('invoices')} className="btn btn-outline btn-xs border-primary/30 text-primary">View all</button>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-base-100 p-3">
@@ -990,13 +990,13 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                     <p className="text-xl font-bold text-base-content">${inv.total.toFixed(2)}</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => setPreviewInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                    <button onClick={() => setPreviewInvoice(inv)} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
                       <FileText size={12} /> Preview
                     </button>
-                    <button onClick={() => handlePrintInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                    <button onClick={() => handlePrintInvoice(inv)} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
                       <Printer size={12} /> Print
                     </button>
-                    <button onClick={() => openEditInvoice(inv)} className="btn btn-ghost btn-xs gap-1">
+                    <button onClick={() => openEditInvoice(inv)} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
                       <Edit3 size={12} /> Edit
                     </button>
                     {inv.status === 'draft' && (
@@ -1014,7 +1014,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                         <CreditCard size={12} /> Paid
                       </button>
                     )}
-                    <button onClick={() => handleDeleteInvoice(inv.id)} className="btn btn-ghost btn-xs ml-auto">
+                    <button onClick={() => handleDeleteInvoice(inv.id)} className="btn btn-outline btn-xs ml-auto border-error/30 text-error">
                       <Trash2 size={13} />
                     </button>
                   </div>

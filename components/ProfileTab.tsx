@@ -633,7 +633,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           <div id="section-bio" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="font-semibold text-sm text-base-content">About</p>
-              <button onClick={() => setEditing(!editing)} className="btn btn-ghost btn-xs gap-1"><Edit3 size={12} /> Edit</button>
+              <button onClick={() => setEditing(!editing)} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary"><Edit3 size={12} /> Edit</button>
             </div>
             {editing ? (
               <div className="space-y-3">
@@ -660,7 +660,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           <div id="section-contact" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-sm text-base-content">Contact</p>
-              <button onClick={() => { setEditPhone(profile.phone || ''); setEditCity(profile.location?.city || ''); setEditState(profile.location?.state || ''); setEditingContact(!editingContact) }} className="btn btn-ghost btn-xs gap-1"><Edit3 size={12} /> Edit</button>
+              <button onClick={() => { setEditPhone(profile.phone || ''); setEditCity(profile.location?.city || ''); setEditState(profile.location?.state || ''); setEditingContact(!editingContact) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary"><Edit3 size={12} /> Edit</button>
             </div>
             {editingContact ? (
               <div className="space-y-2">
@@ -845,7 +845,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-sm text-base-content">Skills &amp; Specializations</p>
-              <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-ghost btn-xs gap-1">
+              <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
                 <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
               </button>
             </div>
@@ -887,7 +887,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 <Globe size={14} className="text-primary" />
                 <p className="font-semibold text-sm text-base-content">Languages</p>
               </div>
-              <button onClick={() => setShowLangInput(true)} className="btn btn-ghost btn-xs gap-1">
+              <button onClick={() => setShowLangInput(true)} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
                 <Plus size={12} /> Add
               </button>
             </div>
@@ -1133,7 +1133,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                         )}
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
+                    <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-outline btn-xs btn-circle border-error/30 text-error">
                       <Trash2 size={12} />
                     </button>
                   </div>

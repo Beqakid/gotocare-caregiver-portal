@@ -366,7 +366,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         ))}
       </div>
 
-      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50px', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.82)', padding: '8px 13px', fontWeight: 600 }}>
         Agency caregiver? Use agency login
       </button>
     </div>

@@ -1140,12 +1140,12 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                             </div>
                             <button
                               onClick={() => openEditEntry(entry)}
-                              className="btn btn-ghost btn-xs btn-circle opacity-65 hover:opacity-100"
+                              className="btn btn-outline btn-xs btn-circle border-primary/30 text-primary"
                               title="Edit times"
                             >
                               <Edit2 size={12} />
                             </button>
-                            <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
+                            <button onClick={() => handleDeleteTimeEntry(entry.id)} className="btn btn-outline btn-xs btn-circle border-error/30 text-error">
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -1460,7 +1460,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                         >
                           <Play size={12} /> Track
                         </button>
-                        <button onClick={() => handleDeleteClient(client.id)} className="btn btn-ghost btn-xs btn-circle opacity-60">
+                        <button onClick={() => handleDeleteClient(client.id)} className="btn btn-outline btn-xs btn-circle border-error/30 text-error">
                           <Trash2 size={12} />
                         </button>
                       </div>

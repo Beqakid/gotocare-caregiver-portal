@@ -29,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 relative transition-all ${isActive ? 'active' : 'text-base-content/40'}`}
+              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 relative transition-all ${isActive ? 'active' : 'text-base-content/70'}`}
               style={{ minWidth: 56, padding: '8px 4px' }}
             >
               {/* Active background pill */}
@@ -37,7 +37,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, re
                 <div className="absolute inset-0 rounded-2xl bg-primary/10" style={{ margin: '4px 2px' }} />
               )}
               <div className="relative z-10">
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                 {tab.id === 'requests' && requestCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 bg-error text-error-content text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {requestCount > 9 ? '9+' : requestCount}

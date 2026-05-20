@@ -61,7 +61,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ caregiverI
   }
 
   const handleRequestCare = () => {
-    window.location.href = `https://app.carehia.com?book=${caregiverId}`
+    window.location.href = `https://app.carehia.com/?book=${encodeURIComponent(caregiverId)}#findcare`
   }
 
   if (loading) {

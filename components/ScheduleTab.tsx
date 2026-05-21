@@ -411,7 +411,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     })
     setActiveTimer(entry)
     setActiveTimerState(entry)
-    cloudSetActiveTimer({ clientName: entry.clientName, startTime: entry.startTime, hourlyRate: entry.hourlyRate, billingType: entry.billingType || 'hourly', otAfterHrs: entry.overtimeAfterHours || 8, otMultiplier: entry.overtimeMultiplier || 1.5, notes: entry.notes || '' })
+    cloudSetActiveTimer({ clientName: entry.clientName, clientEmail: client?.email || '', startTime: entry.startTime, hourlyRate: entry.hourlyRate, billingType: entry.billingType || 'hourly', otAfterHrs: entry.overtimeAfterHours || 8, otMultiplier: entry.overtimeMultiplier || 1.5, notes: entry.notes || '' })
     setShowStartTimer(false)
     setTimerClient('')
     setTimerClientObj(null)

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TabType, CaregiverDocument } from './types'
 import { login, fetchCaregiverProfile, fetchShifts, fetchTimesheets, fetchBookings, updateBookingStatus, clockIn, clockOut, updateProfile, clearAuth } from './utils/api'
+import { cloudSetActiveTimer } from './utils/cloud-api'
 import { getDocuments, refreshDocumentStatuses } from './utils/storage'
 import { LoginScreen } from './components/LoginScreen'
 import { BottomNav } from './components/BottomNav'
@@ -60,6 +61,24 @@ const PublicProfileView = React.lazy(() => import('./components/PublicProfileVie
 const ReviewLinkView = React.lazy(() => import('./components/ReviewLinkView'))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
+
+function shiftClientName(shift?: Shift): string {
+  const client = shift?.client
+  if (!client) return 'Client'
+  if (typeof client === 'object') {
+    return `${client.firstName || client.first_name || ''} ${client.lastName || client.last_name || ''}`.trim()
+      || client.name
+      || client.email
+      || 'Client'
+  }
+  return `Client #${client}`
+}
+
+function shiftClientEmail(shift?: Shift): string {
+  const client = shift?.client
+  if (!client || typeof client !== 'object') return ''
+  return client.email || client.clientEmail || client.client_email || ''
+}
 
 const TabSpinner = () => (
   <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'60vh'}}>
@@ -410,7 +429,18 @@ const App: React.FC<{}> = () => {
 
   const handleClockIn = async (shiftId: number) => {
     try {
+      const shift = shifts.find(s => Number(s.id) === Number(shiftId))
+      const startedAt = new Date().toISOString()
       await clockIn(shiftId)
+      await cloudSetActiveTimer({
+        clientName: shiftClientName(shift),
+        clientEmail: shiftClientEmail(shift),
+        startTime: startedAt,
+        hourlyRate: profile?.hourlyRate || 25,
+        billingType: 'hourly',
+        notes: shift?.notes || 'Scheduled shift',
+        shiftId,
+      })
       if (profile) await loadData(profile.id)
     } catch (e) {
       console.error('Clock in failed:', e)
@@ -420,6 +450,7 @@ const App: React.FC<{}> = () => {
   const handleClockOut = async (timesheetId: number) => {
     try {
       await clockOut(timesheetId, profile?.hourlyRate || 25)
+      await cloudSetActiveTimer(null)
       if (profile) await loadData(profile.id)
     } catch (e) {
       console.error('Clock out failed:', e)

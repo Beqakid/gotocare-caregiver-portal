@@ -1,0 +1,9 @@
+# SECURITY (RISK-04): HTTP security headers for Cloudflare Pages
+# Applied to all responses from work.carehia.com
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+  X-XSS-Protection: 1; mode=block

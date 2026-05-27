@@ -11,6 +11,21 @@ import { BottomNav } from './components/BottomNav'
 // Module-level API base URL (used in useEffect hooks below)
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 
+// SECURITY (RISK-02 + RISK-06): Authenticated fetch wrapper
+// - Sends Authorization: Bearer <token> header on every call
+// - Triggers auto-logout when backend returns 401
+let _autoLogout: (() => void) | null = null
+function authFetch(url: string, init?: RequestInit): Promise<Response> {
+  const token = (typeof localStorage !== 'undefined' ? localStorage.getItem('cgp_token') : '') || ''
+  const existingHeaders = (init?.headers as Record<string, string>) || {}
+  const headers: Record<string, string> = { ...existingHeaders }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return fetch(url, { ...init, headers }).then(res => {
+    if (res.status === 401 && _autoLogout) { _autoLogout(); }
+    return res
+  })
+}
+
 // ── Push Notification Helpers ───────────────────────────────────────────────
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -329,9 +344,9 @@ const App: React.FC<{}> = () => {
   // Phase 3 fix: Re-fetch bookings when home tab becomes active so counts stay in sync with RequestsTab
   useEffect(() => {
     if (activeTab !== 'home') return
-    const token = localStorage.getItem('cgp_token')
-    if (!token) return
-    fetch(`${API_BASE}/api/caregiver-bookings?token=${encodeURIComponent(token)}`)
+    if (!localStorage.getItem('cgp_token')) return
+    // SECURITY (RISK-02): use authFetch — Bearer header, no token in URL
+    authFetch(`${API_BASE}/api/caregiver-bookings`)
       .then(r => r.json())
       .then(d => { if (d?.bookings) { setRequests(d.bookings.map(mapBookingToRequest)); setUsingDemoRequests(false) } })
       .catch(() => {})
@@ -352,9 +367,9 @@ const App: React.FC<{}> = () => {
   // Fetch real rating + jobs stats after login/session restore
   useEffect(() => {
     if (!loggedIn) return
-    const token = localStorage.getItem('cgp_token')
-    if (!token) return
-    fetch(`${API_BASE}/api/caregiver-account?token=${encodeURIComponent(token)}`)
+    if (!localStorage.getItem('cgp_token')) return
+    // SECURITY (RISK-02): use authFetch — Bearer header, no token in URL
+    authFetch(`${API_BASE}/api/caregiver-account`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.account) {
@@ -437,6 +452,8 @@ const App: React.FC<{}> = () => {
     setActiveTab('home')
     try { window.history.replaceState({}, '', window.location.pathname) } catch {}
   }
+  // SECURITY (RISK-06): Register auto-logout handler for authFetch 401 responses
+  React.useEffect(() => { _autoLogout = handleLogout; return () => { _autoLogout = null } }, [])
 
   const handleClockIn = async (shiftId: number) => {
     try {

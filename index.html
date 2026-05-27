@@ -2,6 +2,10 @@
 <html data-theme="alfred-light">
   <head>
     <meta charset="utf-8" />
+    <!-- SECURITY (RISK-04): Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://gotocare-original.jjioji.workers.dev https://carehia-admin.jjioji.workers.dev https://api.resend.com https://fcm.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self';" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -113,7 +117,7 @@
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
     <!-- App bundle (ESM code-split, built by GitHub Actions) — v20260515a busts stale browser cache -->
-    <script type="module" src="dist/app.js?v=20260527c"></script>
+    <script type="module" src="dist/app.js?v=20260527d"></script>
 
     <!-- Service Worker Registration -->
     <script>

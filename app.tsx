@@ -326,6 +326,17 @@ const App: React.FC<{}> = () => {
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
 
+  // Phase 3 fix: Re-fetch bookings when home tab becomes active so counts stay in sync with RequestsTab
+  useEffect(() => {
+    if (activeTab !== 'home') return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`${API_BASE}/api/caregiver-bookings?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => { if (d?.bookings) { setRequests(d.bookings.map(mapBookingToRequest)); setUsingDemoRequests(false) } })
+      .catch(() => {})
+  }, [activeTab])
+
   // Listen for push notification messages from SW → update in-app inbox
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return

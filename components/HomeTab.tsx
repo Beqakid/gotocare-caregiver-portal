@@ -221,6 +221,20 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const nextShift = todayShifts[0]
   const activeTimesheets = timesheets.filter(t => t.status === 'clocked_in')
   const pendingRequests = requests.filter(r => r.status === 'pending')
+
+  // Phase 3 fix: fetch live dispatch count so Home "Live Jobs" matches RequestsTab activeLiveCount
+  const [liveJobCount, setLiveJobCount] = React.useState(0)
+  useEffect(() => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`https://gotocare-original.jjioji.workers.dev/api/caregiver-live-requests?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => {
+        const active = (d.requests || []).filter((r: any) => !r.is_expired && r.request_status !== 'taken')
+        setLiveJobCount(active.length)
+      })
+      .catch(() => {})
+  }, [])
   const pendingInvoices = getInvoices().filter(i => i.status === 'sent' || i.status === 'overdue')
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents)
   const missingProfileItems = completenessItems.filter((i: any) => !i.done)
@@ -636,8 +650,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <div className="grid grid-cols-3 gap-2">
           <button onClick={onNavigateToRequests} className="rounded-xl bg-base-100 border border-base-300 p-3 text-left">
             <Bell size={16} className="text-warning mb-2" />
-            <p className="text-lg font-black text-base-content">{pendingRequests.length}</p>
-            <p className="text-[11px] text-base-content/55">Live</p>
+            <p className="text-lg font-black text-base-content">{liveJobCount}</p>
+            <p className="text-[11px] text-base-content/55">Live Jobs</p>
           </button>
           <button onClick={onNavigateToRequests} className="rounded-xl bg-base-100 border border-base-300 p-3 text-left">
             <Users size={16} className="text-primary mb-2" />

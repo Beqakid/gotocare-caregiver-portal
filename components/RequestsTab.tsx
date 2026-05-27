@@ -627,6 +627,9 @@ export function RequestsTab({
   // Also fetch offers count on mount (for badge)
   useEffect(() => { fetchHireOffers() }, [fetchHireOffers])
 
+  // Phase 3 fix: fetch bookings on mount so Interviews badge is always populated (not just when sub-tab is active)
+  useEffect(() => { fetchBookings() }, [fetchBookings])
+
   // Handle caregiver signing
   const handleSign = async (signature: string) => {
     if (!signingOffer || signature.length < 3) return

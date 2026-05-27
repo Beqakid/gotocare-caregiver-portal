@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html data-theme="alfred-light">
   <head>
     <meta charset="utf-8" />
@@ -20,15 +20,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!-- DaisyUI v5 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" type="text/css" />
-
-    <!-- Google Sign-In SDK -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- DaisyUI v5 + Tailwind v4 (browser build) -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <style>
-/* ══ Carehia Light Theme ══ */
-[data-theme='alfred-light'] {
+      [data-theme='alfred-light'] {
   color-scheme: light;
   --radius-selector: 1.5rem;
   --radius-field: 0.875rem;
@@ -38,8 +36,8 @@
   --border: 1px;
   --depth: 0;
   --noise: 0;
-  /* Page bg — very light purple tint; cards are white */
-  --color-base-100: #f5f3ff;
+  /* Page bg — pure white; cards are white */
+  --color-base-100: #ffffff;
   --color-base-200: #ffffff;
   --color-base-300: #ede9fe;
   --color-base-content: #1a1a2e;
@@ -63,7 +61,6 @@
   --color-error-content: #ffffff;
 }
 
-/* ══ Carehia Dark Theme ══ */
 [data-theme='alfred-dark'] {
   color-scheme: dark;
   --radius-selector: 1.5rem;
@@ -74,76 +71,56 @@
   --border: 1px;
   --depth: 0;
   --noise: 0;
-  --color-base-100: #0d0d1a;
-  --color-base-200: #161628;
-  --color-base-300: #1e1e38;
-  --color-base-content: #f0ecff;
-  --color-primary: #8b5cf6;
+  --color-base-100: #0f0f23;
+  --color-base-200: #1a1a2e;
+  --color-base-300: #16213e;
+  --color-base-content: #e2e8f0;
+  --color-primary: #7c3aed;
   --color-primary-content: #ffffff;
-  --color-secondary: #60a5fa;
-  --color-secondary-content: #0d0d1a;
-  --color-accent: #8b5cf6;
+  --color-secondary: #3b82f6;
+  --color-secondary-content: #ffffff;
+  --color-accent: #7c3aed;
   --color-accent-content: #ffffff;
-  --color-neutral: #d1d5db;
-  --color-neutral-content: #0d0d1a;
-  --color-info: #60a5fa;
-  --color-info-content: #0d0d1a;
-  --color-success: #34d399;
-  --color-success-content: #0d0d1a;
-  --color-warning: #fbbf24;
-  --color-warning-content: #0d0d1a;
-  --color-error: #f87171;
-  --color-error-content: #0d0d1a;
+  --color-neutral: #374151;
+  --color-neutral-content: #ffffff;
+  --color-info: #3b82f6;
+  --color-info-content: #ffffff;
+  --color-success: #10b981;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #ffffff;
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
 }
+
+body { font-family: 'Inter', sans-serif; }
+* { -webkit-tap-highlight-color: transparent; }
     </style>
-
-    <!-- Custom styles -->
-    <link rel="stylesheet" href="styles.css" />
-
-    <!-- Tailwind v4 browser -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <div id="root"></div>
 
     <!-- Auto dark/light theme detection -->
     <script>
-      (function() {
         var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'alfred-dark' : 'alfred-light';
         document.documentElement.setAttribute('data-theme', theme);
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
           document.documentElement.setAttribute('data-theme', e.matches ? 'alfred-dark' : 'alfred-light');
         });
-      })();
     </script>
-  </head>
-  <body class="bg-base-100 text-base-content">
-    <div id="root"></div>
-    <!-- App bundle (ESM code-split, built by GitHub Actions) — v20260515a busts stale browser cache -->
-    <script type="module" src="dist/app.js?v=20260527d"></script>
 
-    <!-- Service Worker Registration -->
+    <!-- App bundle -->
+    <script type="module" src="dist/app.js"></script>
+
+    <!-- Service Worker registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(function(reg) {
-              console.log('[SW] Registered:', reg.scope);
-              // Listen for messages from SW (e.g. notification click)
-              navigator.serviceWorker.addEventListener('message', function(event) {
-                const data = event.data;
-                if (data && data.type === 'NOTIFICATION_CLICK') {
-                  const url = data.url || '/?tab=requests';
-                  const tab = new URLSearchParams(url).get('tab');
-                  if (tab) {
-                    // Signal the app to switch tab
-                    window.__carehia_notification_tab = tab;
-                    const ev = new CustomEvent('carehia:notification-click', { detail: { tab } });
-                    window.dispatchEvent(ev);
-                  }
-                }
-              });
-            })
-            .catch(function(err) {
-              console.log('[SW] Registration failed:', err);
-            });
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            console.log('SW registered:', reg.scope);
+          }).catch(function(err) {
+            console.log('SW registration failed:', err);
+          });
         });
       }
     </script>

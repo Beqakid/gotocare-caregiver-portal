@@ -71,6 +71,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients' | 'trust'>(initialSection || 'profile')
   const [myClients, setMyClients] = useState<any[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
+  const [clientsError, setClientsError] = useState(false)
   const [cgSub, setCgSub] = useState<{subscribed: boolean, plan: string, expiresAt?: string, createdAt?: string} | null>(null)
   const [cgSubLoading, setCgSubLoading] = useState(true)
   const [subUpgrading, setSubUpgrading] = useState(false)
@@ -93,16 +94,23 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     }
   }, [deepLink, initialSection])
 
+  // Phase 2 fix: fetchMyClients with AbortController timeout and explicit error state
+  const fetchMyClients = () => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 8000)
+    setClientsLoading(true)
+    setClientsError(false)
+    fetch(`${API_BASE}/api/my-clients?token=${encodeURIComponent(token)}`, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then(d => { setMyClients(d.success ? (d.clients || []) : []) })
+      .catch(() => { setClientsError(true) })
+      .finally(() => { clearTimeout(tid); setClientsLoading(false) })
+  }
   useEffect(() => {
     if (section !== 'clients') return
-    const token = localStorage.getItem('cgp_token')
-    if (!token || clientsLoading) return
-    setClientsLoading(true)
-    fetch(`${API_BASE}/api/my-clients?token=${encodeURIComponent(token)}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setMyClients(d.clients || []) })
-      .catch(() => {})
-      .finally(() => setClientsLoading(false))
+    fetchMyClients()
   }, [section])
 
   useEffect(() => {
@@ -1153,7 +1161,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           {clientsLoading && (
             <div className="text-center py-8 text-base-content/60 text-sm">Loading your clients…</div>
           )}
-          {!clientsLoading && myClients.length === 0 && (
+          {!clientsLoading && clientsError && (
+            <div className="bg-base-200 rounded-2xl p-6 text-center">
+              <div className="text-4xl mb-3">⚠️</div>
+              <p className="font-semibold text-sm text-base-content">Couldn{"'"}t load clients</p>
+              <p className="text-xs text-base-content/60 mt-1 mb-3">Check your connection and try again.</p>
+              <button onClick={fetchMyClients} className="btn btn-primary btn-sm">Try again</button>
+            </div>
+          )}
+          {!clientsLoading && !clientsError && myClients.length === 0 && (
             <div className="bg-base-200 rounded-2xl p-6 text-center">
               <div className="text-4xl mb-3">👤</div>
               <p className="font-semibold text-sm text-base-content">No clients yet</p>

@@ -295,7 +295,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       </div>
                     )}
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.caregiverName}</div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(() => { const p = (review.caregiverName || "").trim().split(" "); return p.length >= 2 ? `${p[0]} ${p[1][0]}.` : (p[0] || "Caregiver"); })()}</div>
                       <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.skill}</div>
                     </div>
                   </div>

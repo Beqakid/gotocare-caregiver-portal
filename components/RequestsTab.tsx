@@ -171,14 +171,14 @@ function LiveRequestCard({
         </div>
         <p className="text-sm text-base-content/60 italic mb-3 leading-relaxed">{getQuote(req.care_type)}</p>
         <div className="flex items-center gap-3 flex-wrap text-xs text-base-content/60 mb-3">
-          <span>pin {req.city || req.zip_code} &middot; {req.distance_miles} mi away</span>
-          {req.start_date && <span>cal {req.start_date}</span>}
-          {req.start_time && <span>clock {req.start_time}</span>}
+          <span>📍 {req.city || req.zip_code} &middot; {req.distance_miles} mi away</span>
+          {req.start_date && <span>📅 {safeFmtDate(req.start_date)}</span>}
+          {req.start_time && <span>🕐 {req.start_time}</span>}
         </div>
         <div className="flex items-center gap-2 text-xs text-base-content/50 mb-3 py-2 border-t border-base-300">
-          <span>shield Client verified</span>
+          <span>🛡️ Client verified</span>
           <span>&middot;</span>
-          <span>lock Booking protected</span>
+          <span>🔒 Booking protected</span>
           {!isExpired && <span>&middot;</span>}
           {!isExpired && <CountdownRing countdown={countdown} expiresAt={req.expires_at} />}
         </div>
@@ -225,10 +225,10 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
         </div>
       </div>
       {req.scheduledDate && (
-        <p className="text-xs text-base-content/65">cal {req.scheduledDate} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
+        <p className="text-xs text-base-content/65">📅 {safeFmtDate(req.scheduledDate)} {req.scheduledTime && `· ${req.scheduledTime}`}</p>
       )}
       <div className="text-xs text-base-content/60 flex items-center gap-2 pt-1 border-t border-base-300">
-        <span>shield Client verified</span><span>&middot;</span><span>lock Secure Contact Unlock</span>
+        <span>🛡️ Client verified</span><span>&middot;</span><span>🔒 Secure Contact Unlock</span>
       </div>
       {unlocked ? (
         <div className="rounded-xl bg-success/10 border border-success/20 p-3 space-y-1">
@@ -241,7 +241,7 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
       ) : (
         <div className="space-y-2">
           <div className="rounded-xl bg-base-300/50 p-3">
-            <p className="text-xs text-base-content/50 mb-2">lock Client contact info is locked</p>
+            <p className="text-xs text-base-content/50 mb-2">🔒 Client contact info is locked</p>
             <div className="h-3 rounded bg-base-300 mb-1 w-3/4" />
             <div className="h-3 rounded bg-base-300 w-1/2" />
           </div>

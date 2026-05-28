@@ -171,13 +171,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   // Softer, warmer gradient — deep indigo-to-navy, less harsh than pure black
   const bgStyle: React.CSSProperties = {
     minHeight: '100vh',
-    background: 'linear-gradient(160deg, #1e1b4b 0%, #2d1b69 40%, #0f2a5e 100%)',
+    background: '#F0F4FF',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '24px 20px', position: 'relative', overflow: 'hidden',
   }
 
   // Softer, lighter orbs
-  const orb = (top: string, right?: string, left?: string, color: string = 'rgba(124,92,255,0.18)'): React.CSSProperties => ({
+  const orb = (top: string, right?: string, left?: string, color: string = 'rgba(124,92,255,0.10)'): React.CSSProperties => ({
     position: 'absolute', top, right, left,
     width: '300px', height: '300px', borderRadius: '50%',
     background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
@@ -186,19 +186,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   const glassCard: React.CSSProperties = {
     width: '100%', maxWidth: '400px',
-    background: 'rgba(255,255,255,0.09)',
-    backdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.14)',
+    background: '#ffffff',
+    border: '1px solid #E2E8F0',
     borderRadius: '28px',
     padding: '28px 24px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+    boxShadow: '0 4px 24px rgba(124,92,255,0.08)',
   }
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '13px 16px', borderRadius: '14px',
-    background: 'rgba(255,255,255,0.09)',
-    border: '1px solid rgba(255,255,255,0.16)',
-    color: '#ffffff', fontSize: '15px', outline: 'none',
+    background: '#F8FAFC',
+    border: '1px solid #CBD5E1',
+    color: '#0F172A', fontSize: '15px', outline: 'none',
     marginBottom: '12px',
   }
 
@@ -207,15 +206,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)',
     border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-    fontSize: '15px', fontWeight: 600, color: '#ffffff',
+    fontSize: '15px', fontWeight: 600, color: '#0F172A',
     marginBottom: '12px', boxShadow: '0 4px 16px rgba(124,92,255,0.35)',
     opacity: loading ? 0.7 : 1,
   }
 
   const btnOutline: React.CSSProperties = {
     width: '100%', padding: '13px', borderRadius: '50px',
-    background: 'transparent', border: '1px solid rgba(255,255,255,0.18)',
-    cursor: 'pointer', fontSize: '15px', fontWeight: 500, color: 'rgba(255,255,255,0.75)',
+    background: 'transparent', border: '1px solid #CBD5E1',
+    cursor: 'pointer', fontSize: '15px', fontWeight: 500, color: '#475569',
     marginBottom: '12px',
   }
 
@@ -232,8 +231,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   if (screen === 'choose') return (
     <div style={bgStyle}>
       {/* Softer orbs */}
-      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
-      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.15)')} />
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.10)')} />
+      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.08)')} />
       <div style={{ position: 'absolute', top: '40%', right: '10%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Logo */}
@@ -249,15 +248,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="white"/>
           </svg>
         </div>
-        <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '4px' }}>Carehia</h1>
-        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>Your free professional caregiving office</p>
+        <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px', marginBottom: '4px' }}>Carehia</h1>
+        <p style={{ fontSize: '14px', color: '#64748B', fontWeight: 400 }}>Your free professional caregiving office</p>
       </div>
 
       {/* Social proof */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'rgba(255,255,255,0.09)', backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.14)', borderRadius: '50px',
+        background: 'rgba(124,92,255,0.07)',
+        border: '1px solid rgba(124,92,255,0.18)', borderRadius: '50px',
         padding: '6px 16px', marginBottom: '24px',
       }}>
         <div style={{ display: 'flex' }}>
@@ -265,7 +264,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <div key={i} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: '2px solid rgba(255,255,255,0.25)', marginLeft: i > 0 ? '-6px' : '0' }} />
           ))}
         </div>
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.80)', fontWeight: 500 }}>Join trusted caregivers in your area</span>
+        <span style={{ fontSize: '12px', color: '#334155', fontWeight: 500 }}>Join trusted caregivers in your area</span>
       </div>
 
       {reviewCards.length > 0 && (
@@ -277,11 +276,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 href={`?caregiver=${review.caregiverId}`}
                 style={{
                   minWidth: '250px',
-                  background: 'rgba(255,255,255,0.09)',
-                  border: '1px solid rgba(255,255,255,0.14)',
+                  background: '#ffffff',
+                  border: '1px solid #E2E8F0',
                   borderRadius: '18px',
                   padding: '13px',
-                  color: '#fff',
+                  color: '#0F172A',
                   textDecoration: 'none',
                 }}
               >
@@ -296,7 +295,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     )}
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(() => { const p = (review.caregiverName || "").trim().split(" "); return p.length >= 2 ? `${p[0]} ${p[1][0]}.` : (p[0] || "Caregiver"); })()}</div>
-                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.skill}</div>
+                      <div style={{ fontSize: '10px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.skill}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
@@ -304,7 +303,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     <span style={{ fontSize: '11px', fontWeight: 800 }}>{review.rating}</span>
                   </div>
                 </div>
-                <p style={{ fontSize: '12px', lineHeight: 1.45, color: 'rgba(255,255,255,0.72)', margin: 0 }}>
+                <p style={{ fontSize: '12px', lineHeight: 1.45, color: '#475569', margin: 0 }}>
                   "{String(review.reviewText || '').slice(0, 115)}{String(review.reviewText || '').length > 115 ? '...' : ''}"
                 </p>
               </a>
@@ -315,8 +314,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
       {/* Glass card */}
       <div style={glassCard}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', textAlign: 'center', marginBottom: '5px' }}>Create your free account</h2>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency fees. Your data stays private.</p>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', textAlign: 'center', marginBottom: '5px' }}>Create your free account</h2>
+        <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', marginBottom: '22px' }}>No credit card. No agency fees. Your data stays private.</p>
 
         {/* Google button */}
         {GOOGLE_ENABLED ? (
@@ -330,17 +329,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         )}
 
         {/* Apple (disabled) */}
-        <button disabled style={{ width: '100%', padding: '13px', borderRadius: '50px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.25)', marginBottom: '20px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.25)"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        <button disabled style={{ width: '100%', padding: '13px', borderRadius: '50px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: '#CBD5E1', marginBottom: '20px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#CBD5E1"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           Continue with Apple
-          <span style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '50px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.30)' }}>Soon</span>
+          <span style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '50px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>Soon</span>
         </button>
 
         {/* Divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.09)' }} />
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.30)', fontWeight: 500 }}>or</span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.09)' }} />
+          <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
+          <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500 }}>or</span>
+          <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
         </div>
 
         {/* Email buttons */}
@@ -360,13 +359,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           { icon: <Heart size={11} />, label: 'Find care opportunities' },
           { icon: <Star size={11} />, label: 'Build your reputation' },
         ].map(({ icon, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: '50px', padding: '5px 12px', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: '50px', padding: '5px 12px', fontSize: '11px', color: '#64748B', fontWeight: 500 }}>
             <span style={{ color: 'rgba(124,92,255,0.9)' }}>{icon}</span>{label}
           </div>
         ))}
       </div>
 
-      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50px', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.82)', padding: '8px 13px', fontWeight: 600 }}>
+      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50px', cursor: 'pointer', fontSize: '12px', color: '#334155', padding: '8px 13px', fontWeight: 600 }}>
         Agency caregiver? Use agency login
       </button>
     </div>
@@ -377,12 +376,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Create your account</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Free forever. No credit card needed.</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px' }}>Create your account</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px' }}>Free forever. No credit card needed.</p>
 
           {GOOGLE_ENABLED && (
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
@@ -396,7 +395,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password (6+ characters)" value={password} onChange={e => setPassword(e.target.value)} />
             {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Creating account…' : 'Create free account'}</button>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: '10px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '11px', color: '#94A3B8', textAlign: 'center', marginTop: '10px', lineHeight: 1.6 }}>
               By creating an account you agree to our{' '}
               <a href="https://carehia.com/terms" target="_blank" rel="noreferrer" style={{ color: 'rgba(124,92,255,0.8)', textDecoration: 'underline' }}>Terms of Service</a>{' '}and{' '}
               <a href="https://carehia.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'rgba(124,92,255,0.8)', textDecoration: 'underline' }}>Privacy Policy</a>
@@ -413,12 +412,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Welcome back</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Sign in to your caregiver account</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px' }}>Welcome back</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px' }}>Sign in to your caregiver account</p>
 
           {GOOGLE_ENABLED && (
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
@@ -447,8 +446,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   // ── VERIFY PENDING SCREEN ──────────────────────────────────────────
   if (screen === 'verify-pending') return (
     <div style={bgStyle}>
-      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
-      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.15)')} />
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.10)')} />
+      <div style={orb('60%', undefined, '-80px', 'rgba(74,144,226,0.08)')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
         <div style={glassCard}>
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -459,14 +458,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 16px', fontSize: '32px',
             }}>✉️</div>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Check your email</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>Check your email</h2>
+            <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.6 }}>
               We sent a verification link to<br />
               <span style={{ color: '#7C5CFF', fontWeight: 600 }}>{pendingEmail}</span>
             </p>
           </div>
-          <div style={{ background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.25)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
+          <div style={{ background: 'rgba(124,92,255,0.06)', border: '1px solid rgba(124,92,255,0.18)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
+            <p style={{ color: '#475569', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
               Click the link in the email to verify your account. Check your spam folder if you don't see it within a minute.
             </p>
           </div>
@@ -480,7 +479,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 {resendLoading ? 'Sending…' : 'Resend verification email'}
               </button>
           }
-          <button onClick={() => { setScreen('signin') }} style={{ ...btnOutline, fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+          <button onClick={() => { setScreen('signin') }} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8' }}>
             Already verified? Sign in
           </button>
         </div>
@@ -509,12 +508,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       <div style={bgStyle}>
         <div style={orb('-80px', '-80px')} />
         <div style={{ width: '100%', maxWidth: '400px' }}>
-          <button onClick={() => { setScreen('signin'); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => { setScreen('signin'); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             ← Back
           </button>
           <div style={glassCard}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Reset password</h2>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Enter your email and we'll send you a reset link.</p>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px' }}>Reset password</h2>
+            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px' }}>Enter your email and we'll send you a reset link.</p>
             <form onSubmit={handleForgot}>
               <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
               {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
@@ -529,18 +528,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   // ── RESET SENT SCREEN ──────────────────────────────────────
   if (screen === 'reset-sent') return (
     <div style={bgStyle}>
-      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.20)')} />
+      <div style={orb('-60px', '-60px', undefined, 'rgba(124,92,255,0.10)')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
         <div style={glassCard}>
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(124,92,255,0.15), rgba(74,144,226,0.15))', border: '2px solid rgba(124,92,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '32px' }}>✉️</div>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Check your email</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.6 }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>Check your email</h2>
+            <p style={{ color: '#64748B', fontSize: '14px', lineHeight: 1.6 }}>
               If an account exists for <span style={{ color: '#7C5CFF', fontWeight: 600 }}>{email}</span>, you'll receive a reset link shortly.
             </p>
           </div>
-          <div style={{ background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.25)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
+          <div style={{ background: 'rgba(124,92,255,0.06)', border: '1px solid rgba(124,92,255,0.18)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
+            <p style={{ color: '#475569', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>
               The link expires in 1 hour. Check your spam folder if you don't see it.
             </p>
           </div>
@@ -580,19 +579,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {resetDone ? (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Password updated!</h2>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Redirecting you to sign in…</p>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>Password updated!</h2>
+                <p style={{ color: '#64748B', fontSize: '14px' }}>Redirecting you to sign in…</p>
               </div>
             ) : (
               <>
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Create new password</h2>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Must be at least 8 characters.</p>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px' }}>Create new password</h2>
+                <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px' }}>Must be at least 8 characters.</p>
                 <form onSubmit={handleReset}>
                   <input style={inputStyle} type="password" placeholder="New password (8+ characters)" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                   {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
                   <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Updating…' : 'Set new password'}</button>
                 </form>
-                <button onClick={() => setScreen('forgot')} style={{ ...btnOutline, fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>Request a new link</button>
+                <button onClick={() => setScreen('forgot')} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8', marginBottom: 0 }}>Request a new link</button>
               </>
             )}
           </div>
@@ -606,12 +605,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '20px' }}>
+        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px' }}>
           ← Back
         </button>
         <div style={glassCard}>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '5px' }}>Agency Login</h2>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '22px' }}>Sign in with your agency credentials</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px' }}>Agency Login</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px' }}>Sign in with your agency credentials</p>
           <form onSubmit={handleAgencySubmit}>
             <input style={inputStyle} type="email" placeholder="Agency email" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '16px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />

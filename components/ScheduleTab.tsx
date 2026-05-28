@@ -835,7 +835,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <button onClick={() => setShowStartTimer(true)} className="btn btn-primary flex-1 gap-1.5 rounded-2xl">
                 <Play size={16} /> Live Timer
               </button>
-              <button onClick={() => setShowLogHours(true)} className="btn btn-outline flex-1 gap-1.5 rounded-2xl border-primary/40 text-primary">
+              <button onClick={() => setShowLogHours(true)} className="btn btn-outline flex-1 gap-1.5 rounded-2xl border-primary/65 text-primary">
                 <Calendar size={16} /> Log Hours
               </button>
             </div>
@@ -1071,7 +1071,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
           )}
 
           {/* Log mileage */}
-          <button onClick={() => setShowMileage(!showMileage)} className="btn btn-ghost btn-sm gap-1 w-full">
+          <button onClick={() => setShowMileage(!showMileage)} className="btn btn-ghost btn-sm gap-1 w-full text-primary">
             <Car size={14} /> Log Mileage
           </button>
           {showMileage && (

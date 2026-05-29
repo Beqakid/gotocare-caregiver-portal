@@ -383,7 +383,7 @@ function HireOfferCard({ offer, onSign, onDecline }: {
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
               {careTypes.map((t: string) => (
-                <span key={t} style={{ background: 'rgba(124,92,255,0.28)', color: '#ddd6fe', border: '1px solid rgba(167,139,250,0.5)', borderRadius: 20, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>{t}</span>
+                <span key={t} style={{ background: 'rgba(124,92,255,0.14)', color: '#6d28d9', border: '1.5px solid rgba(124,92,255,0.55)', borderRadius: 20, padding: '3px 9px', fontSize: 11, fontWeight: 700 }}>{t}</span>
               ))}
             </div>
           </div>

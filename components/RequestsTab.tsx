@@ -249,7 +249,7 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
             <button onClick={() => onUnlock(req, 'single')} disabled={unlockLoading} className="flex-1 btn btn-primary btn-sm text-white font-bold">
               {unlockLoading ? <span className="loading loading-spinner loading-xs" /> : 'Unlock $4.99'}
             </button>
-            <button onClick={() => onUnlock(req, 'unlimited')} disabled={unlockLoading} className="btn btn-outline btn-sm border-primary text-primary">
+            <button onClick={() => onUnlock(req, 'unlimited')} disabled={unlockLoading} className="btn btn-sm border-2 border-primary/70 bg-primary/10 text-primary font-bold">
               $19.99/mo
             </button>
           </div>
@@ -383,7 +383,7 @@ function HireOfferCard({ offer, onSign, onDecline }: {
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
               {careTypes.map((t: string) => (
-                <span key={t} style={{ background: 'rgba(124,92,255,0.2)', color: '#a78bfa', borderRadius: 20, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>{t}</span>
+                <span key={t} style={{ background: 'rgba(124,92,255,0.28)', color: '#ddd6fe', border: '1px solid rgba(167,139,250,0.5)', borderRadius: 20, padding: '3px 9px', fontSize: 11, fontWeight: 600 }}>{t}</span>
               ))}
             </div>
           </div>
@@ -417,7 +417,7 @@ function HireOfferCard({ offer, onSign, onDecline }: {
             </button>
             <button
               onClick={() => onDecline(offer.agreement_token)}
-              style={{ padding: '13px 16px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: 'rgba(239,68,68,0.75)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              style={{ padding: '13px 16px', borderRadius: 12, border: '1.5px solid rgba(239,68,68,0.65)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
             >
               Decline
             </button>

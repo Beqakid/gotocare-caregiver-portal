@@ -517,7 +517,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             }}
           >{t.label}</button>
         ))}
-        <div className="shrink-0 w-2" />
+        <div className="shrink-0 w-8" />
       </div>
 
       {/* ---- PROFILE SECTION ---- */}

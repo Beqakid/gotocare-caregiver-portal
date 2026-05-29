@@ -44,7 +44,7 @@ const ScoreRow = ({ label, value, max, earned }: { label: string; value: number;
         : <div className="w-3.5 h-3.5 rounded-full border-2 border-base-300 flex-shrink-0" />}
       <span className={`text-sm ${earned ? 'text-base-content' : 'text-base-content/60'}`}>{label}</span>
     </div>
-    <span className={`text-xs font-bold ${earned ? 'text-success' : 'text-base-content/20'}`}>+{value}</span>
+    <span className={`text-xs font-bold ${earned ? 'text-success' : 'text-base-content/55'}`}>+{value}</span>
   </div>
 )
 

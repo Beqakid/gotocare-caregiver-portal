@@ -835,7 +835,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <button onClick={() => setShowStartTimer(true)} className="btn btn-primary flex-1 gap-1.5 rounded-2xl">
                 <Play size={16} /> Live Timer
               </button>
-              <button onClick={() => setShowLogHours(true)} className="btn btn-outline flex-1 gap-1.5 rounded-2xl border-primary/65 text-primary">
+              <button onClick={() => setShowLogHours(true)} className="btn btn-outline flex-1 gap-1.5 rounded-2xl border-primary/65 text-primary bg-primary/10">
                 <Calendar size={16} /> Log Hours
               </button>
             </div>
@@ -1242,7 +1242,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               <button
                 key={b.preset}
                 onClick={() => quickSet(b.preset)}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-primary/10 text-primary border border-primary/20 press-card"
+                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-primary/15 text-primary border-2 border-primary/45 press-card"
               >
                 {b.label}
               </button>
@@ -1256,7 +1256,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
               return (
                 <div
                   key={key}
-                  className={`rounded-2xl border transition-all ${day.available ? 'bg-success/5 border-success/25' : 'bg-base-200 border-transparent'}`}
+                  className={`rounded-2xl border transition-all ${day.available ? 'bg-success/5 border-success/25' : 'bg-base-200 border-base-300/70'}`}
                 >
                   <div className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3">

@@ -355,7 +355,7 @@ function HireOfferCard({ offer, onSign, onDecline }: {
   const s = statusConfig[offer.status] || statusConfig.pending_caregiver
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${s.border}`, borderRadius: 18, overflow: 'hidden' }}>
+    <div style={{ background: '#ffffff', border: `1.5px solid ${s.border}`, borderRadius: 18, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
       <div style={{ background: s.bg, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</span>
         {offer.status === 'pending_caregiver' && <span style={{ fontSize: 11, color: s.color }}>Expires in 72 hrs</span>}
@@ -366,10 +366,10 @@ function HireOfferCard({ offer, onSign, onDecline }: {
       <div style={{ padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>
               Hire Offer from {firstName} {lastInitial}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>
               {safeFmtDate(offer.created_at)}
             </div>
           </div>
@@ -390,19 +390,19 @@ function HireOfferCard({ offer, onSign, onDecline }: {
         )}
 
         {offer.start_date && (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>
             Start date: {offer.start_date}
           </div>
         )}
 
         {offer.schedule_notes && (
-          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+          <div style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 10, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
             {offer.schedule_notes}
           </div>
         )}
 
         {offer.created_at && (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: 10, marginTop: 10 }}>
             Offer received {safeFmtDate(offer.created_at)}
           </div>
         )}
@@ -427,13 +427,13 @@ function HireOfferCard({ offer, onSign, onDecline }: {
         {offer.status === 'pending_client' && (
           <div style={{ marginTop: 14, background: 'rgba(74,144,226,0.1)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(74,144,226,0.3)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#4A90E2' }}>You signed! Waiting for client.</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>The client has been notified by email. Once they countersign, the agreement activates and you both receive a copy.</div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 4, lineHeight: 1.5 }}>The client has been notified by email. Once they countersign, the agreement activates and you both receive a copy.</div>
           </div>
         )}
         {offer.status === 'active' && (
           <div style={{ marginTop: 14, background: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: '10px 14px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>Agreement Active</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Both parties have signed. You are on their care team.</div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Both parties have signed. You are on their care team.</div>
           </div>
         )}
       </div>

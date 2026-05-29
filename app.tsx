@@ -237,6 +237,7 @@ const App: React.FC<{}> = () => {
     navigateToTab('profile')
   }
   const [returnedSubscription, setReturnedSubscription] = useState(false)
+  const [returnedBookingId, setReturnedBookingId] = useState<string | null>(null)
   const [profile, setProfile] = useState<CaregiverProfile | null>(() => {
     try {
       const saved = localStorage.getItem('cgp_account')
@@ -328,13 +329,14 @@ const App: React.FC<{}> = () => {
     const unlockedBookingId = params.get('booking_unlocked')
     const subscriptionSuccess = params.get('subscription')
     if (unlockedBookingId) {
+      setReturnedBookingId(unlockedBookingId)   // pass to RequestsTab to highlight card
       navigateToTab('requests')
       loadData(profile.id)
       window.history.replaceState({ tab: 'requests' }, '', '#requests')
     } else if (subscriptionSuccess === 'success') {
       setReturnedSubscription(true)
-      navigateToTab('profile')
-      window.history.replaceState({ tab: 'profile' }, '', '#profile')
+      navigateToTab('requests')                 // go to requests, not profile — they paid to see requests
+      window.history.replaceState({ tab: 'requests' }, '', '#requests')
     }
   }, [loggedIn, profile, loadData])
 
@@ -711,6 +713,8 @@ const App: React.FC<{}> = () => {
               loading={loading}
               onAccept={handleAcceptRequest}
               onDecline={handleDeclineRequest}
+              returnedBookingId={returnedBookingId}
+              returnedSubscription={returnedSubscription}
             />
           )}
           {activeTab === 'earnings' && (

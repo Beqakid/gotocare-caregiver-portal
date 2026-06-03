@@ -12,6 +12,18 @@ import { TrustCenter } from './TrustCenter'
 import { VerificationTab } from './VerificationTab'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
+const PROFILE_SECTION_KEY = 'cgp_profile_section'
+const PROFILE_VERIFICATION_OPEN_KEY = 'cgp_profile_verification_open'
+type ProfileSection = 'profile' | 'documents' | 'badges' | 'clients' | 'trust'
+
+function getSavedProfileSection(initialSection?: ProfileSection): ProfileSection {
+  if (initialSection) return initialSection
+  try {
+    const saved = localStorage.getItem(PROFILE_SECTION_KEY) as ProfileSection | null
+    if (saved === 'profile' || saved === 'documents' || saved === 'badges' || saved === 'clients' || saved === 'trust') return saved
+  } catch {}
+  return 'profile'
+}
 
 interface ProfileTabProps {
   profile: CaregiverProfile | null
@@ -68,7 +80,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [showLangInput, setShowLangInput] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [section, setSection] = useState<'profile' | 'documents' | 'badges' | 'clients' | 'trust'>(initialSection || 'profile')
+  const [section, setSection] = useState<ProfileSection>(() => getSavedProfileSection(initialSection))
   const [myClients, setMyClients] = useState<any[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
   const [clientsError, setClientsError] = useState(false)
@@ -77,11 +89,26 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [subUpgrading, setSubUpgrading] = useState(false)
   const [showSubBanner, setShowSubBanner] = useState(!!returnedSubscription)
   // NEW: Verification Center state
-  const [showVerification, setShowVerification] = useState(false)
+  const [showVerification, setShowVerification] = useState(() => {
+    try { return localStorage.getItem(PROFILE_VERIFICATION_OPEN_KEY) === '1' } catch { return false }
+  })
   const [verifBadgeCount, setVerifBadgeCount] = useState(0)
 
+  const navigateToSection = (nextSection: ProfileSection) => {
+    setSection(nextSection)
+    try { localStorage.setItem(PROFILE_SECTION_KEY, nextSection) } catch {}
+  }
+
+  const setVerificationOpen = (open: boolean) => {
+    setShowVerification(open)
+    try {
+      if (open) localStorage.setItem(PROFILE_VERIFICATION_OPEN_KEY, '1')
+      else localStorage.removeItem(PROFILE_VERIFICATION_OPEN_KEY)
+    } catch {}
+  }
+
   useEffect(() => {
-    if (initialSection) setSection(initialSection)
+    if (initialSection) navigateToSection(initialSection)
     if (deepLink) {
       setTimeout(() => {
         const el = document.getElementById(deepLink)
@@ -169,20 +196,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   }
 
   const openBioEditor = (focusRate = false) => {
-    setSection('profile')
+    navigateToSection('profile')
     setEditing(true)
     scrollToProfileSection('section-bio', focusRate ? 'input[type="number"]' : 'textarea')
   }
 
   const openSkillsEditor = () => {
-    setSection('profile')
+    navigateToSection('profile')
     setSelectedSkills(profile?.skills || [])
     setEditingSkills(true)
     scrollToProfileSection('section-skills')
   }
 
   const openContactEditor = () => {
-    setSection('profile')
+    navigateToSection('profile')
     setEditPhone(profile?.phone || '')
     setEditCity(profile?.location?.city || '')
     setEditState(profile?.location?.state || '')
@@ -413,7 +440,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       title: 'Upload at least 1 trust document',
       detail: 'Certifications, licenses, and background checks build confidence.',
       action: 'Add document',
-      run: () => { setSection('documents'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
+      run: () => { navigateToSection('documents'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
     },
   ]
   const nextReadinessTasks = readinessTasks.filter(t => !t.done).slice(0, 3)
@@ -512,7 +539,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             role="tab"
             aria-selected={section === t.key}
             onClick={(e) => {
-              setSection(t.key)
+              navigateToSection(t.key)
               e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
             }}
           >{t.label}</button>
@@ -612,7 +639,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
           {/* ═══ VERIFICATION CENTER CARD (NEW — additive) ═══ */}
           <button
-            onClick={() => setShowVerification(true)}
+            onClick={() => setVerificationOpen(true)}
             className="w-full bg-base-200 rounded-2xl p-4 text-left"
             style={{ border: verifBadgeCount > 0 ? '1.5px solid rgba(34,197,94,0.35)' : '1.5px solid rgba(124,92,255,0.2)' }}
           >
@@ -1354,7 +1381,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {showVerification && profile?.id && (
         <VerificationTab
           caregiverId={profile.id}
-          onClose={() => setShowVerification(false)}
+          onClose={() => setVerificationOpen(false)}
         />
       )}
     </div>

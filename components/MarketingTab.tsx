@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
+const MARKETING_VIEW_KEY = 'cgp_marketing_view'
+type MarketingView = 'compose' | 'history'
+
+function getSavedMarketingView(): MarketingView {
+  try {
+    const saved = localStorage.getItem(MARKETING_VIEW_KEY) as MarketingView | null
+    if (saved === 'compose' || saved === 'history') return saved
+  } catch {}
+  return 'compose'
+}
 
 interface MetaPage {
   id: number
@@ -35,7 +45,12 @@ export default function MarketingTab({ userEmail }: MarketingTabProps) {
   const [generating, setGenerating] = useState(false)
   const [posting, setPosting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [view, setView] = useState<'compose' | 'history'>('compose')
+  const [view, setView] = useState<MarketingView>(getSavedMarketingView)
+
+  const navigateToView = (nextView: MarketingView) => {
+    setView(nextView)
+    try { localStorage.setItem(MARKETING_VIEW_KEY, nextView) } catch {}
+  }
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -118,7 +133,7 @@ export default function MarketingTab({ userEmail }: MarketingTabProps) {
         setPostText('')
         setTopic('')
         loadPosts()
-        setView('history')
+        navigateToView('history')
       } else {
         showToast(data.error || 'Post failed', 'error')
       }
@@ -201,7 +216,7 @@ export default function MarketingTab({ userEmail }: MarketingTabProps) {
         <>
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4 }}>
             {(['compose', 'history'] as const).map(v => (
-              <button key={v} onClick={() => setView(v)} style={{
+              <button key={v} onClick={() => navigateToView(v)} style={{
                 flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
                 background: view === v ? 'linear-gradient(135deg,#7C5CFF,#4A90E2)' : 'transparent',
                 color: view === v ? '#fff' : 'rgba(255,255,255,0.5)',

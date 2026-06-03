@@ -12,6 +12,18 @@ interface ScheduleTabProps {
   onTimerUpdate: () => void
 }
 
+const SCHEDULE_VIEW_KEY = 'cgp_schedule_view'
+const SCHEDULE_MONTH_KEY = 'cgp_schedule_month'
+type ScheduleViewMode = 'schedule' | 'timesheet' | 'clients' | 'availability'
+
+function getSavedScheduleView(): ScheduleViewMode {
+  try {
+    const saved = localStorage.getItem(SCHEDULE_VIEW_KEY) as ScheduleViewMode | null
+    if (saved === 'schedule' || saved === 'timesheet' || saved === 'clients' || saved === 'availability') return saved
+  } catch {}
+  return 'schedule'
+}
+
 // ---- Billing calculation helper ----
 function calcEarnings(
   durationMins: number,
@@ -58,6 +70,16 @@ interface MiniCalendarProps {
 }
 const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate }) => {
   const [viewDate, setViewDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SCHEDULE_MONTH_KEY)
+      if (saved) {
+        const parsed = new Date(saved)
+        if (!Number.isNaN(parsed.getTime())) {
+          parsed.setDate(1)
+          return parsed
+        }
+      }
+    } catch {}
     const d = new Date(); d.setDate(1); return d
   })
 
@@ -76,8 +98,12 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
   const toStr = (day: number) =>
     `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
-  const prevMonth = () => { const d = new Date(year, month - 1, 1); setViewDate(d) }
-  const nextMonth = () => { const d = new Date(year, month + 1, 1); setViewDate(d) }
+  const setCalendarMonth = (date: Date) => {
+    setViewDate(date)
+    try { localStorage.setItem(SCHEDULE_MONTH_KEY, date.toISOString()) } catch {}
+  }
+  const prevMonth = () => { const d = new Date(year, month - 1, 1); setCalendarMonth(d) }
+  const nextMonth = () => { const d = new Date(year, month + 1, 1); setCalendarMonth(d) }
 
   return (
     <div className="bg-base-100 rounded-2xl p-3 border border-base-300">
@@ -127,7 +153,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
 }
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate }) => {
-  const [viewMode, setViewMode] = useState<'schedule' | 'timesheet' | 'clients' | 'availability'>('schedule')
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>(getSavedScheduleView)
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [schedulesLoading, setSchedulesLoading] = useState(false)
 
@@ -194,6 +220,11 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     { key: 'sat', label: 'Saturday' },
     { key: 'sun', label: 'Sunday' },
   ]
+
+  const navigateToViewMode = (mode: ScheduleViewMode) => {
+    setViewMode(mode)
+    try { localStorage.setItem(SCHEDULE_VIEW_KEY, mode) } catch {}
+  }
 
   const toggleDay = (key: string) => {
     setAvailability(prev => ({
@@ -657,7 +688,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             <button
               key={t.key}
               className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-semibold transition-all ${viewMode === t.key ? 'bg-primary text-primary-content shadow-md' : 'bg-base-200/60 text-base-content/70 hover:bg-base-200'}`}
-              onClick={() => setViewMode(t.key)}
+              onClick={() => navigateToViewMode(t.key)}
             >
               <span className="text-base leading-none">{t.icon}</span>
               <span className="leading-tight">{t.label}</span>
@@ -1454,7 +1485,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                             setTimerRate(String(client.hourlyRate))
                             setTimerClientObj(client)
                             setShowStartTimer(true)
-                            setViewMode('timesheet')
+                            navigateToViewMode('timesheet')
                           }}
                           className="btn btn-primary btn-xs gap-1"
                         >

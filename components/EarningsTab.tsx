@@ -38,6 +38,26 @@ import {
 } from '../utils/cloud-api'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
+const EARNINGS_VIEW_KEY = 'cgp_earnings_view'
+const EARNINGS_PERIOD_KEY = 'cgp_earnings_period'
+type EarningsView = 'workspace' | 'invoices' | 'tax'
+type EarningsPeriod = 'week' | 'month' | 'all'
+
+function getSavedEarningsView(): EarningsView {
+  try {
+    const saved = localStorage.getItem(EARNINGS_VIEW_KEY) as EarningsView | null
+    if (saved === 'workspace' || saved === 'invoices' || saved === 'tax') return saved
+  } catch {}
+  return 'workspace'
+}
+
+function getSavedEarningsPeriod(): EarningsPeriod {
+  try {
+    const saved = localStorage.getItem(EARNINGS_PERIOD_KEY) as EarningsPeriod | null
+    if (saved === 'week' || saved === 'month' || saved === 'all') return saved
+  } catch {}
+  return 'week'
+}
 
 const cloudMarkEntriesInvoiced = async (cloudIds: string[]) => {
   if (!cloudIds.length) return
@@ -326,8 +346,8 @@ const InvoiceStatusBadge = ({ status }: { status: Invoice['status'] }) => {
 }
 
 export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading }) => {
-  const [view, setView] = useState<'workspace' | 'invoices' | 'tax'>('workspace')
-  const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week')
+  const [view, setView] = useState<EarningsView>(getSavedEarningsView)
+  const [period, setPeriod] = useState<EarningsPeriod>(getSavedEarningsPeriod)
   const [invoices, setInvoices] = useState<Invoice[]>(getInvoices())
   const [showCreate, setShowCreate] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
@@ -344,6 +364,16 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [usedEntryIds, setUsedEntryIds] = useState<string[]>([])
   const [usedCloudIds, setUsedCloudIds] = useState<string[]>([])
   const [autoFilledNote, setAutoFilledNote] = useState('')
+
+  const navigateToView = (nextView: EarningsView) => {
+    setView(nextView)
+    try { localStorage.setItem(EARNINGS_VIEW_KEY, nextView) } catch {}
+  }
+
+  const navigateToPeriod = (nextPeriod: EarningsPeriod) => {
+    setPeriod(nextPeriod)
+    try { localStorage.setItem(EARNINGS_PERIOD_KEY, nextPeriod) } catch {}
+  }
 
   useEffect(() => {
     const loadCloud = async () => {
@@ -459,7 +489,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const openCreate = () => {
-    setView('invoices')
+    navigateToView('invoices')
     setEditingInvoiceId(null)
     setSendNotice('')
     setShowCreate(true)
@@ -485,7 +515,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const openEditInvoice = (invoice: Invoice) => {
-    setView('invoices')
+    navigateToView('invoices')
     setShowCreate(true)
     setEditingInvoiceId(invoice.id)
     setInvClient(invoice.clientName)
@@ -737,7 +767,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
           <button
             key={tab.key}
             className={`btn btn-sm rounded-full whitespace-nowrap ${view === tab.key ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setView(tab.key)}
+            onClick={() => navigateToView(tab.key)}
           >
             {tab.label}
           </button>
@@ -772,7 +802,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
           <div className="rounded-2xl bg-base-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <SectionLabel>Invoice Pipeline</SectionLabel>
-              <button onClick={() => setView('invoices')} className="btn btn-outline btn-xs border-primary/55 text-primary bg-primary/6">View all</button>
+              <button onClick={() => navigateToView('invoices')} className="btn btn-outline btn-xs border-primary/55 text-primary bg-primary/6">View all</button>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-base-100 p-3">
@@ -839,7 +869,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 {(['week', 'month', 'all'] as const).map(key => (
                   <button
                     key={key}
-                    onClick={() => setPeriod(key)}
+                    onClick={() => navigateToPeriod(key)}
                     className={`btn btn-xs rounded-full ${period === key ? 'btn-primary' : 'btn-ghost'}`}
                   >
                     {key === 'week' ? 'Week' : key === 'month' ? 'Month' : 'All'}

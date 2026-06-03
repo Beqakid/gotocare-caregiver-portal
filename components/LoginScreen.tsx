@@ -7,6 +7,16 @@ const GOOGLE_CLIENT_ID = typeof document !== 'undefined'
   ? document.querySelector('meta[name="google-client-id"]')?.getAttribute('content') || ''
   : ''
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'CONFIGURE_ME'
+const LOGIN_SCREEN_KEY = 'cgp_login_screen'
+type LoginScreenMode = 'choose' | 'register' | 'signin' | 'agency' | 'verify-pending' | 'forgot' | 'reset-sent' | 'reset'
+
+function getSavedLoginScreen(): LoginScreenMode {
+  try {
+    const saved = localStorage.getItem(LOGIN_SCREEN_KEY) as LoginScreenMode | null
+    if (saved && ['choose', 'register', 'signin', 'agency', 'verify-pending', 'forgot', 'reset-sent', 'reset'].includes(saved)) return saved
+  } catch {}
+  return 'choose'
+}
 
 interface LoginScreenProps {
   onMarketplaceAuth: (token: string, account: any) => void
@@ -21,7 +31,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   agencyError,
   agencyLoading,
 }) => {
-  const [screen, setScreen] = useState<'choose' | 'register' | 'signin' | 'agency' | 'verify-pending' | 'forgot' | 'reset-sent' | 'reset'>('choose')
+  const [screen, setScreen] = useState<LoginScreenMode>(getSavedLoginScreen)
   const [resetToken, setResetToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [resetDone, setResetDone] = useState(false)
@@ -36,13 +46,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [reviewCards, setReviewCards] = useState<any[]>([])
   const googleBtnRef = useRef<HTMLDivElement>(null)
 
+  const navigateToScreen = (nextScreen: LoginScreenMode) => {
+    setScreen(nextScreen)
+    try { localStorage.setItem(LOGIN_SCREEN_KEY, nextScreen) } catch {}
+  }
+
   // Check for ?reset=TOKEN URL param on mount (handles password reset link clicks)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const rt = params.get('reset')
     if (rt) {
       setResetToken(rt)
-      setScreen('reset')
+      navigateToScreen('reset')
       // Clean URL without reload
       const url = new URL(window.location.href)
       url.searchParams.delete('reset')
@@ -122,7 +137,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       const data = await res.json()
       if (data.success && data.emailVerificationRequired) {
         setPendingEmail(email.trim().toLowerCase())
-        setScreen('verify-pending')
+        navigateToScreen('verify-pending')
       } else if (data.success && data.token) {
         onMarketplaceAuth(data.token, data.account)
       } else {
@@ -343,10 +358,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
 
         {/* Email buttons */}
-        <button onClick={() => setScreen('register')} style={btnPrimary}>
+        <button onClick={() => navigateToScreen('register')} style={btnPrimary}>
           Sign up with email <ArrowRight size={16} />
         </button>
-        <button onClick={() => setScreen('signin')} style={btnOutline}>
+        <button onClick={() => navigateToScreen('signin')} style={btnOutline}>
           Already have an account? Sign in
         </button>
       </div>
@@ -365,7 +380,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         ))}
       </div>
 
-      <button onClick={() => setScreen('agency')} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50px', cursor: 'pointer', fontSize: '12px', color: '#334155', padding: '8px 13px', fontWeight: 600 }}>
+      <button onClick={() => navigateToScreen('agency')} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '50px', cursor: 'pointer', fontSize: '12px', color: '#334155', padding: '8px 13px', fontWeight: 600 }}>
         Agency caregiver? Use agency login
       </button>
     </div>
@@ -376,7 +391,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={() => navigateToScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           ← Back
         </button>
         <div style={glassCard}>
@@ -401,7 +416,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <a href="https://carehia.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'rgba(124,92,255,0.8)', textDecoration: 'underline' }}>Privacy Policy</a>
             </p>
           </form>
-          <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Sign in instead</button>
+          <button onClick={() => navigateToScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Sign in instead</button>
         </div>
       </div>
     </div>
@@ -412,7 +427,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={() => navigateToScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           ← Back
         </button>
         <div style={glassCard}>
@@ -429,14 +444,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={{ ...inputStyle, marginBottom: '4px' }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
             <div style={{ textAlign: 'right', marginBottom: '16px' }}>
-              <button type="button" onClick={() => { setError(''); setScreen('forgot') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(124,92,255,0.8)', fontSize: '13px', fontWeight: 500, padding: 0 }}>
+              <button type="button" onClick={() => { setError(''); navigateToScreen('forgot') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(124,92,255,0.8)', fontSize: '13px', fontWeight: 500, padding: 0 }}>
                 Forgot password?
               </button>
             </div>
             {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
             <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Signing in…' : 'Sign in'}</button>
           </form>
-          <button onClick={() => setScreen('register')} style={{ ...btnOutline, marginBottom: 0 }}>Create an account instead</button>
+          <button onClick={() => navigateToScreen('register')} style={{ ...btnOutline, marginBottom: 0 }}>Create an account instead</button>
         </div>
       </div>
     </div>
@@ -479,7 +494,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 {resendLoading ? 'Sending…' : 'Resend verification email'}
               </button>
           }
-          <button onClick={() => { setScreen('signin') }} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8' }}>
+          <button onClick={() => { navigateToScreen('signin') }} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8' }}>
             Already verified? Sign in
           </button>
         </div>
@@ -500,7 +515,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           body: JSON.stringify({ email: email.trim().toLowerCase() }),
         })
         // Always show success (backend doesn't reveal if email exists)
-        setScreen('reset-sent')
+        navigateToScreen('reset-sent')
       } catch { setError('Connection error. Please try again.') }
       finally { setLoading(false) }
     }
@@ -508,7 +523,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       <div style={bgStyle}>
         <div style={orb('-80px', '-80px')} />
         <div style={{ width: '100%', maxWidth: '400px' }}>
-          <button onClick={() => { setScreen('signin'); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => { navigateToScreen('signin'); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             ← Back
           </button>
           <div style={glassCard}>
@@ -543,7 +558,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               The link expires in 1 hour. Check your spam folder if you don't see it.
             </p>
           </div>
-          <button onClick={() => setScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Back to sign in</button>
+          <button onClick={() => navigateToScreen('signin')} style={{ ...btnOutline, marginBottom: 0 }}>Back to sign in</button>
         </div>
       </div>
     </div>
@@ -564,7 +579,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         const data = await res.json()
         if (data.success) {
           setResetDone(true)
-          setTimeout(() => setScreen('signin'), 2500)
+          setTimeout(() => navigateToScreen('signin'), 2500)
         } else {
           setError(data.error || 'Reset failed. The link may have expired — please request a new one.')
         }
@@ -591,7 +606,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   {error && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
                   <button type="submit" disabled={loading} style={btnPrimary}>{loading ? 'Updating…' : 'Set new password'}</button>
                 </form>
-                <button onClick={() => setScreen('forgot')} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8', marginBottom: 0 }}>Request a new link</button>
+                <button onClick={() => navigateToScreen('forgot')} style={{ ...btnOutline, fontSize: '13px', color: '#94A3B8', marginBottom: 0 }}>Request a new link</button>
               </>
             )}
           </div>
@@ -605,7 +620,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     <div style={bgStyle}>
       <div style={orb('-80px', '-80px')} />
       <div style={{ width: '100%', maxWidth: '400px' }}>
-        <button onClick={() => setScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px' }}>
+        <button onClick={() => navigateToScreen('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px' }}>
           ← Back
         </button>
         <div style={glassCard}>

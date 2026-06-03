@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
+const VERIFICATION_STEP_KEY = 'cgp_verification_step'
 
 const DOC_TYPES = {
   government_id: { label: 'Government ID', icon: '🪪', desc: 'Passport, driver\'s license, or state ID. We verify your identity to protect families.', badge: 'ID Verified', allowsFile: true },
@@ -16,6 +17,14 @@ const STATUS_CONFIG = {
   rejected: { color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   label: 'Needs Revision', icon: '❌' },
 }
 
+function getSavedVerificationStep(): string | null {
+  try {
+    const saved = localStorage.getItem(VERIFICATION_STEP_KEY)
+    return saved && DOC_TYPES[saved] ? saved : null
+  } catch {}
+  return null
+}
+
 interface VerificationTabProps {
   caregiverId: number
   onClose: () => void
@@ -25,7 +34,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
   const [verifications, setVerifications] = useState<any[]>([])
   const [trust, setTrust] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [activeStep, setActiveStep] = useState<string | null>(null)
+  const [activeStep, setActiveStep] = useState<string | null>(getSavedVerificationStep)
   const [uploading, setUploading] = useState(false)
   const [consentChecked, setConsentChecked] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -34,6 +43,14 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const token = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
+
+  const navigateToStep = (step: string | null) => {
+    setActiveStep(step)
+    try {
+      if (step) localStorage.setItem(VERIFICATION_STEP_KEY, step)
+      else localStorage.removeItem(VERIFICATION_STEP_KEY)
+    } catch {}
+  }
 
   const loadStatus = async () => {
     setLoading(true)
@@ -73,7 +90,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
         setUploadSuccess('Submitted! We\'ll review within 1–3 business days.')
         setSelectedFile(null)
         setConsentChecked(false)
-        setActiveStep(null)
+        navigateToStep(null)
         await loadStatus()
       } else {
         setUploadError(d.error || 'Submission failed. Please try again.')
@@ -166,7 +183,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
                   <div key={docType} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, overflow: 'hidden', border: `1px solid ${statusCfg ? statusCfg.color + '40' : 'rgba(255,255,255,0.08)'}` }}>
                     {/* Card header */}
                     <button
-                      onClick={() => setActiveStep(isOpen ? null : docType)}
+                      onClick={() => navigateToStep(isOpen ? null : docType)}
                       style={{ width: '100%', background: 'none', border: 'none', padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
                     >
                       <span style={{ fontSize: 24, flexShrink: 0 }}>{config.icon}</span>

@@ -3,6 +3,16 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Shield, CheckCircle2, AlertTriangle, Clock, Star, Upload, X, ChevronRight, Award, Zap, RefreshCw, User, FileText, Eye } from 'lucide-react'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
+const TRUST_MODULE_KEY = 'cgp_trust_module'
+type TrustModule = 'id' | 'bg' | 'certs'
+
+function getSavedTrustModule(): TrustModule | null {
+  try {
+    const saved = localStorage.getItem(TRUST_MODULE_KEY) as TrustModule | null
+    if (saved === 'id' || saved === 'bg' || saved === 'certs') return saved
+  } catch {}
+  return null
+}
 
 // Animated circular progress ring
 const TrustRing = ({ score }: { score: number }) => {
@@ -88,7 +98,7 @@ const CERT_TYPES = [
 export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
   const [trust, setTrust] = useState<TrustData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeModule, setActiveModule] = useState<string | null>(null)
+  const [activeModule, setActiveModule] = useState<TrustModule | null>(getSavedTrustModule)
   const [bgLoading, setBgLoading] = useState(false)
   const [idFile, setIdFile] = useState<File | null>(null)
   const [idDocType, setIdDocType] = useState('drivers_license')
@@ -100,6 +110,14 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
   const idFileRef = useRef<HTMLInputElement>(null)
   const certFileRef = useRef<HTMLInputElement>(null)
   const token = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
+
+  const navigateToModule = (module: TrustModule | null) => {
+    setActiveModule(module)
+    try {
+      if (module) localStorage.setItem(TRUST_MODULE_KEY, module)
+      else localStorage.removeItem(TRUST_MODULE_KEY)
+    } catch {}
+  }
 
   useEffect(() => { loadTrustData() }, [])
 
@@ -120,7 +138,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       await loadTrustData()
     } catch (e) {}
     setBgLoading(false)
-    setActiveModule(null)
+    navigateToModule(null)
   }
 
   const handleIdUpload = async () => {
@@ -135,7 +153,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       await fetch(`${API_BASE}/api/trust-id-upload`, { method: 'POST', body: formData })
       await loadTrustData()
       setIdFile(null)
-      setActiveModule(null)
+      navigateToModule(null)
     } catch (e) {}
     setIdUploading(false)
   }
@@ -153,7 +171,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       await loadTrustData()
       setCertFile(null)
       setCertExpiry('')
-      setActiveModule(null)
+      navigateToModule(null)
     } catch (e) {}
     setCertUploading(false)
   }
@@ -217,7 +235,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
         <button
           className="w-full flex items-center justify-between p-4"
-          onClick={() => setActiveModule(activeModule === 'id' ? null : 'id')}
+          onClick={() => navigateToModule(activeModule === 'id' ? null : 'id')}
         >
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bd.id_verified ? 'bg-success/10' : 'bg-blue-50'}`}>
@@ -280,7 +298,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
         <button
           className="w-full flex items-center justify-between p-4"
-          onClick={() => setActiveModule(activeModule === 'bg' ? null : 'bg')}
+          onClick={() => navigateToModule(activeModule === 'bg' ? null : 'bg')}
         >
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bd.background_checked ? 'bg-success/10' : 'bg-slate-50'}`}>
@@ -340,7 +358,7 @@ export const TrustCenter: React.FC<{ profile: any }> = ({ profile }) => {
       <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
         <button
           className="w-full flex items-center justify-between p-4"
-          onClick={() => setActiveModule(activeModule === 'certs' ? null : 'certs')}
+          onClick={() => navigateToModule(activeModule === 'certs' ? null : 'certs')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">

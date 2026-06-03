@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { Trash2 } from 'lucide-react'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
 
@@ -46,6 +47,7 @@ interface CareRequest {
   payRate?: number
   notes?: string
   is_unlocked?: boolean | number
+  caregiver_hidden?: boolean | number
 }
 
 interface HireOffer {
@@ -60,8 +62,22 @@ interface HireOffer {
   care_types: string
   start_date: string | null
   schedule_notes: string | null
-  status: 'pending_caregiver' | 'pending_client' | 'active' | 'declined'
+  status: 'pending_caregiver' | 'pending_client' | 'pending' | 'accepted' | 'active' | 'declined' | 'expired' | 'cancelled' | 'rejected'
   created_at: string
+  caregiver_hidden?: boolean | number
+}
+
+type HideTarget = { id: number; itemType: 'hire_offer' | 'interview'; label: string }
+
+const HIDEABLE_HIRE_OFFER_STATUSES = new Set(['declined', 'expired', 'cancelled', 'rejected'])
+const HIDEABLE_INTERVIEW_STATUSES = new Set(['completed', 'cancelled', 'declined', 'expired', 'no_show'])
+
+function canHideHireOffer(status: string) {
+  return HIDEABLE_HIRE_OFFER_STATUSES.has((status || '').toLowerCase())
+}
+
+function canHideInterview(status: string) {
+  return HIDEABLE_INTERVIEW_STATUSES.has((status || '').toLowerCase())
 }
 
 interface CountdownInfo {
@@ -199,13 +215,34 @@ function LiveRequestCard({
   )
 }
 
-function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlocked }: {
-  req: CareRequest; onUnlock: (req: CareRequest, plan: 'single' | 'unlimited') => void
-  unlocked: boolean; unlockLoading: boolean; justUnlocked?: boolean
+function InterviewRequestCard({
+  req,
+  onUnlock,
+  unlocked,
+  unlockLoading,
+  justUnlocked,
+  onHide,
+}: {
+  req: CareRequest
+  onUnlock: (req: CareRequest, plan: 'single' | 'unlimited') => void
+  unlocked: boolean
+  unlockLoading: boolean
+  justUnlocked?: boolean
+  onHide: (target: HideTarget) => void
 }) {
   const statusLabel: Record<string, string> = {
-    pending: 'Pending Review', accepted: 'Accepted', declined: 'Declined', completed: 'Completed', cancelled: 'Cancelled',
+    pending: 'Pending Review',
+    accepted: 'Accepted',
+    confirmed: 'Confirmed',
+    upcoming: 'Upcoming',
+    declined: 'Declined',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    expired: 'Expired',
+    no_show: 'No show',
   }
+  const showDelete = canHideInterview(req.status)
+
   return (
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
       {justUnlocked && (
@@ -255,6 +292,16 @@ function InterviewRequestCard({ req, onUnlock, unlocked, unlockLoading, justUnlo
           </div>
           <p className="text-xs text-center text-base-content/50">One-time unlock · Unlimited plan unlocks all future requests</p>
         </div>
+      )}
+      {showDelete && (
+        <button
+          onClick={() => onHide({ id: req.id, itemType: 'interview', label: req.careType || 'interview request' })}
+          title="Remove from my view"
+          className="btn btn-ghost btn-sm mt-3 w-full rounded-xl text-error"
+        >
+          <Trash2 size={14} />
+          Delete
+        </button>
       )}
     </div>
   )
@@ -336,8 +383,8 @@ function SignAgreementModal({ offer, onSign, onClose, signing }: {
   )
 }
 
-function HireOfferCard({ offer, onSign, onDecline }: {
-  offer: HireOffer; onSign: (offer: HireOffer) => void; onDecline: (token: string) => void
+function HireOfferCard({ offer, onSign, onDecline, onHide }: {
+  offer: HireOffer; onSign: (offer: HireOffer) => void; onDecline: (token: string) => void; onHide: (target: HideTarget) => void
 }) {
   let careTypes: string[] = []
   try { careTypes = JSON.parse(offer.care_types || '[]') } catch { careTypes = [] }
@@ -351,8 +398,12 @@ function HireOfferCard({ offer, onSign, onDecline }: {
     pending_client: { label: 'Signed ✓ — Waiting for Client', color: '#4A90E2', bg: 'rgba(74,144,226,0.1)', border: 'rgba(74,144,226,0.3)' },
     active: { label: 'Agreement Active ✔', color: '#22C55E', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' },
     declined: { label: 'Declined', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+    expired: { label: 'Expired', color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
+    cancelled: { label: 'Cancelled', color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
+    rejected: { label: 'Rejected', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
   }
   const s = statusConfig[offer.status] || statusConfig.pending_caregiver
+  const showDelete = canHideHireOffer(offer.status)
 
   return (
     <div style={{ background: '#ffffff', border: `1.5px solid ${s.border}`, borderRadius: 18, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -436,6 +487,16 @@ function HireOfferCard({ offer, onSign, onDecline }: {
             <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Both parties have signed. You are on their care team.</div>
           </div>
         )}
+        {showDelete && (
+          <button
+            onClick={() => onHide({ id: offer.id, itemType: 'hire_offer', label: `hire offer from ${firstName}` })}
+            title="Remove from my view"
+            style={{ width: '100%', marginTop: 14, padding: '11px 13px', borderRadius: 12, border: '1.5px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            <Trash2 size={14} />
+            Delete
+          </button>
+        )}
       </div>
     </div>
   )
@@ -486,6 +547,9 @@ export function RequestsTab({
   const [signingOffer, setSigningOffer] = useState<HireOffer | null>(null)
   const [isSigning, setIsSigning] = useState(false)
   const [signSuccess, setSignSuccess] = useState<string | null>(null)
+  const [hideTarget, setHideTarget] = useState<HideTarget | null>(null)
+  const [hideLoading, setHideLoading] = useState(false)
+  const [toast, setToast] = useState('')
 
   // Fetch Live Requests
   const fetchLiveRequests = useCallback(async () => {
@@ -568,8 +632,9 @@ export function RequestsTab({
       .then(r => r.json())
       .then(data => {
         const raw: any[] = data.bookings || data.requests || []
-        setBookings(raw.map((b: any) => ({
-          id: b.id, status: b.status || 'pending',
+        setBookings(raw.filter((b: any) => Number(b.caregiver_hidden || b.caregiverHidden || 0) !== 1).map((b: any) => ({
+          id: b.id,
+          status: b.status || 'pending',
           careType: b.care_type || b.careType || b.careNeeds,
           scheduledDate: b.scheduled_date || b.scheduledDate || b.preferredDate,
           scheduledTime: b.scheduled_time || b.scheduledTime || b.preferredTime,
@@ -614,9 +679,11 @@ export function RequestsTab({
     try {
       const r = await fetch(`${API}/pending-hire-offers?token=${token}`)
       const data = await r.json()
-      if (data.success) setHireOffers(data.offers || [])
-    } catch { }
-    finally { setIsLoadingOffers(false) }
+      if (data.success) setHireOffers((data.offers || []).filter((offer: any) => Number(offer.caregiver_hidden || offer.caregiverHidden || 0) !== 1))
+    } catch {
+    } finally {
+      setIsLoadingOffers(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -667,6 +734,43 @@ export function RequestsTab({
     } catch { alert('Could not decline. Please try again.') }
   }
 
+  const showToast = (message: string) => {
+    setToast(message)
+    window.setTimeout(() => setToast(''), 2600)
+  }
+
+  const handleHideRequest = async () => {
+    if (!hideTarget) return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setHideLoading(true)
+    try {
+      const r = await fetch(`${API}/caregiver-requests/hide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-caregiver-token': token },
+        body: JSON.stringify({
+          token,
+          itemId: hideTarget.id,
+          itemType: hideTarget.itemType,
+          reason: 'user_removed',
+        }),
+      })
+      const data = await r.json()
+      if (!r.ok || !data.success) throw new Error(data.error || 'hide failed')
+      if (hideTarget.itemType === 'interview') {
+        setBookings(prev => prev.filter(item => item.id !== hideTarget.id))
+      } else {
+        setHireOffers(prev => prev.filter(item => item.id !== hideTarget.id))
+      }
+      setHideTarget(null)
+      showToast('Removed from your view')
+    } catch {
+      showToast('Could not remove this item. Please try again.')
+    } finally {
+      setHideLoading(false)
+    }
+  }
+
   const isUnlocked = (req: CareRequest) =>
     !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) || (returnedSubscription === true)
 
@@ -706,6 +810,11 @@ export function RequestsTab({
 
   return (
     <div className="flex flex-col h-full">
+      {toast && (
+        <div className="fixed left-1/2 top-4 z-[10000] w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-2xl bg-base-content px-4 py-3 text-center text-sm font-semibold text-base-100 shadow-xl">
+          {toast}
+        </div>
+      )}
       {/* Section Switcher */}
       <div className="px-4 pt-4 pb-0">
         <div className="flex rounded-2xl bg-base-200 p-1 gap-1">
@@ -860,7 +969,7 @@ export function RequestsTab({
             )}
 
             {hireOffers.map(offer => (
-              <HireOfferCard key={offer.id} offer={offer} onSign={setSigningOffer} onDecline={handleDeclineOffer} />
+              <HireOfferCard key={offer.id} offer={offer} onSign={setSigningOffer} onDecline={handleDeclineOffer} onHide={setHideTarget} />
             ))}
 
             {signingOffer && (
@@ -897,11 +1006,37 @@ export function RequestsTab({
               <InterviewRequestCard key={req.id} req={req} onUnlock={handleUnlock}
                 unlocked={isUnlocked(req)} unlockLoading={unlockLoading === req.id}
                 justUnlocked={returnedBookingId ? Number(returnedBookingId) === req.id : false}
+                onHide={setHideTarget}
               />
             ))}
           </>
         )}
       </div>
+      {hideTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 px-4 pb-4">
+          <div className="w-full max-w-md rounded-3xl bg-base-100 p-5 shadow-2xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-error/10 text-error">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-base-content">Remove this from your view?</h2>
+                <p className="mt-1 text-sm leading-relaxed text-base-content/60">
+                  This will only hide it from your Requests list. It will not delete the booking record.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setHideTarget(null)} disabled={hideLoading} className="btn btn-ghost flex-1 rounded-2xl">
+                Cancel
+              </button>
+              <button onClick={handleHideRequest} disabled={hideLoading} className="btn btn-error flex-1 rounded-2xl text-white">
+                {hideLoading ? <span className="loading loading-spinner loading-xs" /> : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

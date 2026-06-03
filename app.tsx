@@ -76,6 +76,7 @@ const PublicProfileView = React.lazy(() => import('./components/PublicProfileVie
 const ReviewLinkView = React.lazy(() => import('./components/ReviewLinkView'))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
+const LAST_TAB_KEY = 'cgp_last_tab'
 
 function shiftClientName(shift?: Shift): string {
   const client = shift?.client
@@ -169,6 +170,10 @@ function getTabFromLocation(): TabType {
     if (queryTab && VALID_TABS.includes(queryTab)) return queryTab
     const hash = window.location.hash.replace('#', '') as TabType
     if (VALID_TABS.includes(hash)) return hash
+    if (localStorage.getItem('cgp_token')) {
+      const savedTab = localStorage.getItem(LAST_TAB_KEY) as TabType | null
+      if (savedTab && VALID_TABS.includes(savedTab)) return savedTab
+    }
     return 'home'
   } catch { return 'home' }
 }
@@ -201,23 +206,39 @@ const App: React.FC<{}> = () => {
 
   const navigateToTab = useCallback((tab: TabType) => {
     setActiveTab(tab)
-    try { window.history.pushState({ tab }, '', '#' + tab) } catch {}
+    try {
+      localStorage.setItem(LAST_TAB_KEY, tab)
+      window.history.pushState({ tab }, '', '#' + tab)
+    } catch {}
   }, [])
 
   useEffect(() => {
-    const onPop = (e: PopStateEvent) => {
+    const syncTabFromLocation = (stateTab?: TabType) => {
       try {
-        const tab = e.state?.tab as TabType
-        if (tab && VALID_TABS.includes(tab)) {
-          setActiveTab(tab)
+        if (stateTab && VALID_TABS.includes(stateTab)) {
+          setActiveTab(stateTab)
+          localStorage.setItem(LAST_TAB_KEY, stateTab)
         } else {
-          setActiveTab(getTabFromLocation())
+          const nextTab = getTabFromLocation()
+          setActiveTab(nextTab)
+          localStorage.setItem(LAST_TAB_KEY, nextTab)
         }
       } catch {}
     }
+    const onPop = (e: PopStateEvent) => syncTabFromLocation(e.state?.tab as TabType | undefined)
+    const onHashChange = () => syncTabFromLocation()
     window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
+    window.addEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('hashchange', onHashChange)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!loggedIn) return
+    try { localStorage.setItem(LAST_TAB_KEY, activeTab) } catch {}
+  }, [loggedIn, activeTab])
 
   useEffect(() => {
     const onNotificationClick = (event: Event) => {
@@ -392,7 +413,10 @@ const App: React.FC<{}> = () => {
         sessionRestored.current = false
         return
       }
-      try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
+      try {
+        localStorage.setItem(LAST_TAB_KEY, 'home')
+        window.history.replaceState({ tab: 'home' }, '', '#home')
+      } catch {}
       setActiveTab('home')
     }
   }, [loggedIn])
@@ -452,7 +476,10 @@ const App: React.FC<{}> = () => {
     setRequests([])
     setUsingDemoRequests(false)
     setActiveTab('home')
-    try { window.history.replaceState({}, '', window.location.pathname) } catch {}
+    try {
+      localStorage.removeItem(LAST_TAB_KEY)
+      window.history.replaceState({}, '', window.location.pathname)
+    } catch {}
   }
   // SECURITY (RISK-06): Register auto-logout handler for authFetch 401 responses
   React.useEffect(() => { _autoLogout = handleLogout; return () => { _autoLogout = null } }, [])

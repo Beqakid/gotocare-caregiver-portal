@@ -131,14 +131,14 @@ export async function cloudUpdateInvoice(cloudId: string, updates: any): Promise
   } catch {}
 }
 
-export async function cloudSendInvoice(invoice: any): Promise<any> {
+export async function cloudSendInvoice(invoice: any, caregiverInfo?: any): Promise<any> {
   const token = getToken()
   if (!token) throw new Error('Sign in before sending invoices.')
   const cloudId = invoice.cloudId || (String(invoice.id || '').startsWith('cloud_') ? String(invoice.id).replace(/^cloud_/, '') : '')
   const res = await fetch(`${BASE}/caregiver-invoice-send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, cloudId, invoice })
+    body: JSON.stringify({ token, cloudId, invoice, caregiverInfo })
   })
   const data = await res.json()
   if (!res.ok || !data.success) throw new Error(data.error || 'Invoice email could not be sent.')

@@ -210,6 +210,7 @@ const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => 
             </div>
             <div class="right">
               <p class="eyebrow">Invoice</p>
+              const [invoiceSentTo, setInvoiceSentTo] = useState<string | null>(null)
               <p class="invoice-no">${escapeHtml(invoice.invoiceNumber)}</p>
               <p class="status">${escapeHtml(invoice.status)}</p>
             </div>
@@ -624,37 +625,49 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 
   const handleSendInvoice = async (invoice: Invoice) => {
-    if (!invoice.clientEmail) {
-      setSendNotice('Add a client email before sending this invoice.')
-      openEditInvoice(invoice)
-      return
-    }
-    setSendingInvoiceId(invoice.id)
-    setSendNotice('Sending invoice email...')
-    try {
-      const result = await cloudSendInvoice(invoice)
-      const sentUpdates: Partial<Invoice> = {
-        status: 'sent',
-        sentAt: result.invoice?.sentAt || invoice.sentAt || new Date().toISOString(),
-        lastSentAt: result.invoice?.lastSentAt || new Date().toISOString(),
-        sendCount: result.invoice?.sendCount || (invoice.sendCount || 0) + 1,
-        emailId: result.emailId || result.invoice?.emailId,
-      }
-      updateInvoice(invoice.id, sentUpdates)
-      if (result.invoice?.id && result.invoice.id !== invoice.id) {
-        setInvoices(prev => prev.map(inv => inv.id === invoice.id ? result.invoice : inv))
-        if (previewInvoice?.id === invoice.id) setPreviewInvoice(result.invoice)
-      } else {
-        syncInvoiceInView(invoice.id, sentUpdates)
-        if (previewInvoice?.id === invoice.id) setPreviewInvoice({ ...previewInvoice, ...sentUpdates })
-      }
-      setSendNotice(`Sent invoice to ${invoice.clientEmail}.`)
-    } catch (error) {
-      setSendNotice(error instanceof Error ? error.message : 'Invoice email could not be sent.')
-    } finally {
-      setSendingInvoiceId(null)
-    }
+  if (!invoice.clientEmail) {
+    setSendNotice('Add a client email before sending this invoice.')
+    openEditInvoice(invoice)
+    return
   }
+  setSendingInvoiceId(invoice.id)
+  setSendNotice('Sending invoice email...')
+  try {
+    // Ensure invoice is cloud-synced before sending
+    let sendableInvoice = { ...invoice }
+    if (!sendableInvoice.cloudId && !String(sendableInvoice.id).startsWith('cloud_')) {
+      const newCloudId = await cloudAddInvoice(sendableInvoice)
+      if (newCloudId) {
+        sendableInvoice = { ...sendableInvoice, cloudId: newCloudId, id: `cloud_${newCloudId}` }
+        syncInvoiceInView(invoice.id, { cloudId: newCloudId, id: `cloud_${newCloudId}` })
+      }
+    }
+    const caregiver = getInvoiceCaregiverInfo()
+    const result = await cloudSendInvoice(sendableInvoice, caregiver)
+    const sentUpdates: Partial<Invoice> = {
+      status: 'sent',
+      sentAt: result.invoice?.sentAt || invoice.sentAt || new Date().toISOString(),
+      lastSentAt: result.invoice?.lastSentAt || new Date().toISOString(),
+      sendCount: result.invoice?.sendCount || (invoice.sendCount || 0) + 1,
+      emailId: result.emailId || result.invoice?.emailId,
+    }
+    updateInvoice(invoice.id, sentUpdates)
+    if (result.invoice?.id && result.invoice.id !== invoice.id) {
+      setInvoices(prev => prev.map(inv => inv.id === invoice.id ? result.invoice : inv))
+      if (previewInvoice?.id === invoice.id) setPreviewInvoice(result.invoice)
+    } else {
+      syncInvoiceInView(invoice.id, sentUpdates)
+      if (previewInvoice?.id === invoice.id) setPreviewInvoice({ ...previewInvoice, ...sentUpdates })
+    }
+    setSendNotice('')
+    setPreviewInvoice(null)
+    setInvoiceSentTo(invoice.clientEmail) // ← triggers success dialog
+  } catch (error) {
+    setSendNotice(error instanceof Error ? error.message : 'Invoice email could not be sent.')
+  } finally {
+    setSendingInvoiceId(null)
+  }
+}
 
   const handleDeleteInvoice = (id: string) => {
     deleteInvoice(id)
@@ -1086,6 +1099,26 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                       <span className="text-right">${(item.rate || 0).toFixed(2)}</span>
                       <span className="text-right font-semibold">${(item.amount || 0).toFixed(2)}</span>
                     </div>
+                  {invoiceSentTo && (
+                    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
+                    <div className="w-full max-w-sm rounded-3xl bg-base-100 p-6 shadow-2xl text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+                    <CheckCircle2 size={32} className="text-success" />
+                  </div>
+                  <h3 className="text-xl font-bold text-base-content">Invoice Sent!</h3>
+                  <p className="mt-2 text-sm text-base-content/60">
+                    Your invoice was emailed to
+                  </p>
+                  <p className="mt-1 font-semibold text-base-content">{invoiceSentTo}</p>
+                  <button
+                    onClick={() => setInvoiceSentTo(null)}
+                    className="btn btn-primary mt-6 w-full rounded-2xl"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
                   ))}
                 </div>
 

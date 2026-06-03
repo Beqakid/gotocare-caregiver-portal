@@ -2,6 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Trash2 } from 'lucide-react'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
+const REQUESTS_SECTION_KEY = 'cgp_requests_section'
+type RequestsSection = 'live' | 'interviews' | 'offers'
+
+function getInitialRequestsSection(returnedBookingId?: string | null, returnedSubscription?: boolean): RequestsSection {
+  if (returnedBookingId || returnedSubscription) return 'interviews'
+  try {
+    const saved = localStorage.getItem(REQUESTS_SECTION_KEY) as RequestsSection | null
+    if (saved === 'live' || saved === 'interviews' || saved === 'offers') return saved
+  } catch {}
+  return 'live'
+}
 
 /** Safely parse a date string — handles SQLite "YYYY-MM-DD HH:MM:SS" and ISO formats.
  *  Returns formatted string like "May 15" or the fallback if date is invalid/missing. */
@@ -515,9 +526,14 @@ export function RequestsTab({
   onAccept?: (id: number) => void
   onDecline?: (id: number) => void
 }) {
-  const [activeSection, setActiveSection] = useState<'live' | 'interviews' | 'offers'>(
-    (returnedBookingId || returnedSubscription) ? 'interviews' : 'live'
+  const [activeSection, setActiveSection] = useState<RequestsSection>(
+    () => getInitialRequestsSection(returnedBookingId, returnedSubscription)
   )
+
+  const navigateToSection = useCallback((section: RequestsSection) => {
+    setActiveSection(section)
+    try { localStorage.setItem(REQUESTS_SECTION_KEY, section) } catch {}
+  }, [])
 
   // Live Dispatch
   const [liveRequests, setLiveRequests] = useState<LiveRequest[]>([])
@@ -659,7 +675,7 @@ export function RequestsTab({
 
   useEffect(() => {
     if (returnedBookingId || returnedSubscription) {
-      setActiveSection('interviews')
+      navigateToSection('interviews')
       fetchBookings()
       if (returnedBookingId) {
         const newSet = new Set([...optimisticUnlocked, Number(returnedBookingId)])
@@ -669,7 +685,7 @@ export function RequestsTab({
         localStorage.setItem('cgp_unlocked', JSON.stringify([...newPersisted]))
       }
     }
-  }, [returnedBookingId, returnedSubscription])
+  }, [returnedBookingId, returnedSubscription, navigateToSection])
 
   // Fetch Hire Offers
   const fetchHireOffers = useCallback(async () => {
@@ -819,7 +835,7 @@ export function RequestsTab({
       <div className="px-4 pt-4 pb-0">
         <div className="flex rounded-2xl bg-base-200 p-1 gap-1">
           <button
-            onClick={() => setActiveSection('live')}
+            onClick={() => navigateToSection('live')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'live' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
             <span>Live</span>
@@ -828,7 +844,7 @@ export function RequestsTab({
             )}
           </button>
           <button
-            onClick={() => setActiveSection('offers')}
+            onClick={() => navigateToSection('offers')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'offers' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
             <span>Hire Offers</span>
@@ -837,7 +853,7 @@ export function RequestsTab({
             )}
           </button>
           <button
-            onClick={() => setActiveSection('interviews')}
+            onClick={() => navigateToSection('interviews')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'interviews' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
             <span>Interviews</span>

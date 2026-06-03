@@ -1099,6 +1099,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                       <span className="text-right">${(item.rate || 0).toFixed(2)}</span>
                       <span className="text-right font-semibold">${(item.amount || 0).toFixed(2)}</span>
                     </div>
+                  ))}
                   {invoiceSentTo && (
                     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
                     <div className="w-full max-w-sm rounded-3xl bg-base-100 p-6 shadow-2xl text-center">
@@ -1119,7 +1120,6 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 </div>
               </div>
             )}
-                  ))}
                 </div>
 
                 {previewInvoice.notes && (

@@ -80,17 +80,6 @@ interface HireOffer {
 
 type HideTarget = { id: number; itemType: 'hire_offer' | 'interview'; label: string }
 
-const HIDEABLE_HIRE_OFFER_STATUSES = new Set(['declined', 'expired', 'cancelled', 'rejected'])
-const HIDEABLE_INTERVIEW_STATUSES = new Set(['completed', 'cancelled', 'declined', 'expired', 'no_show'])
-
-function canHideHireOffer(status: string) {
-  return HIDEABLE_HIRE_OFFER_STATUSES.has((status || '').toLowerCase())
-}
-
-function canHideInterview(status: string) {
-  return HIDEABLE_INTERVIEW_STATUSES.has((status || '').toLowerCase())
-}
-
 interface CountdownInfo {
   text: string
   urgent: boolean
@@ -252,7 +241,7 @@ function InterviewRequestCard({
     expired: 'Expired',
     no_show: 'No show',
   }
-  const showDelete = canHideInterview(req.status)
+  const showDelete = true
 
   return (
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
@@ -414,7 +403,7 @@ function HireOfferCard({ offer, onSign, onDecline, onHide }: {
     rejected: { label: 'Rejected', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
   }
   const s = statusConfig[offer.status] || statusConfig.pending_caregiver
-  const showDelete = canHideHireOffer(offer.status)
+  const showDelete = true
 
   return (
     <div style={{ background: '#ffffff', border: `1.5px solid ${s.border}`, borderRadius: 18, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -780,8 +769,8 @@ export function RequestsTab({
       }
       setHideTarget(null)
       showToast('Removed from your view')
-    } catch {
-      showToast('Could not remove this item. Please try again.')
+    } catch (error: any) {
+      showToast(error?.message && error.message !== 'hide failed' ? error.message : 'Could not remove this item. Please try again.')
     } finally {
       setHideLoading(false)
     }

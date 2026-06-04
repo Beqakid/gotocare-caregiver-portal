@@ -975,7 +975,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             ))}
           </div>
         )}
-        <button onClick={() => onNavigateToSection('verification', 'section-verification')} className="btn btn-primary btn-sm w-full rounded-2xl mt-3 text-white">
+        <button onClick={() => onNavigateToSection('trust-passport', '')} className="btn btn-primary btn-sm w-full rounded-2xl mt-3 text-white">
           Continue Trust Passport
         </button>
         <p className="text-xs text-center text-base-content/50 mt-2">You can complete this step by step.</p>

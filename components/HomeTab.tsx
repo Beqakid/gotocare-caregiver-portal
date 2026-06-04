@@ -811,28 +811,49 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       )}
 
       {/* ── 6. Money card ── */}
-      <section className="rounded-2xl earnings-card p-4 text-white" onClick={onNavigateToEarnings}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-white/70 text-[11px] font-bold uppercase tracking-wide">Money</p>
-            <p className="text-3xl font-black mt-1">${(weekEarnings + activeTimerAmount).toFixed(0)}</p>
-            <p className="text-xs text-white/75">{(weekHours + (activeTimer ? elapsed / 3600 : 0)).toFixed(1)} hours this week</p>
+      {uninvoicedAmount > 0 ? (
+        /* Invoice-ready state: lead with the actionable amount */
+        <section className="rounded-2xl earnings-card p-4 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-white/70 text-[11px] font-bold uppercase tracking-wide">Invoice Ready</p>
+              <p className="text-3xl font-black mt-1">${uninvoicedAmount.toFixed(0)}</p>
+              <p className="text-xs text-white/75">{uninvoicedHours.toFixed(1)} hrs ready to invoice</p>
+            </div>
+            <div className="text-right">
+              <p className="text-white/70 text-[11px]">Earned this week</p>
+              <p className="text-lg font-bold">${(weekEarnings + activeTimerAmount).toFixed(0)}</p>
+              <p className="text-[11px] text-white/70">{(weekHours + (activeTimer ? elapsed / 3600 : 0)).toFixed(1)} hrs</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-white/70 text-[11px]">Ready to invoice</p>
-            <p className="text-lg font-bold">${uninvoicedAmount.toFixed(0)}</p>
-            <p className="text-[11px] text-white/70">{uninvoicedHours.toFixed(1)} hrs</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button onClick={(e) => { e.stopPropagation(); onNavigateToEarnings() }} className="btn btn-sm border-0 bg-white text-primary rounded-xl font-bold">
+              <FileText size={15} /> Create Invoice
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onNavigateToEarnings() }} className="btn btn-sm border-white/30 bg-white/15 text-white rounded-xl">
+              View Money
+            </button>
           </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button onClick={onNavigateToEarnings} className="btn btn-sm border-0 bg-white text-primary rounded-xl">
-            <FileText size={15} /> Create invoice
-          </button>
-          <button onClick={onNavigateToEarnings} className="btn btn-sm border-white/30 bg-white/15 text-white rounded-xl">
-            View money
-          </button>
-        </div>
-      </section>
+        </section>
+      ) : (
+        /* Zero state: compact, no big $0 emphasis */
+        <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <DollarSign size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-base-content">No invoice ready yet</p>
+                <p className="text-xs text-base-content/55 mt-0.5">Track time to prepare your next invoice.</p>
+              </div>
+            </div>
+            <button onClick={onNavigateToEarnings} className="btn btn-ghost btn-sm text-primary shrink-0">
+              View Money
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── 7. Today's Work (simplified — active timer / next shift display only) ── */}
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
@@ -882,17 +903,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )}
       </section>
 
-      {/* ── 8. New Opportunities ── */}
+      {/* ── 8. Opportunities ── */}
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className={sectionTitle}>New Opportunities</p>
+          <p className={sectionTitle}>Opportunities</p>
           <button onClick={onNavigateToRequests} className="text-xs font-semibold text-primary">Review</button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <button onClick={onNavigateToRequests} className="rounded-xl bg-base-100 border border-base-300 p-3 text-left">
             <Bell size={16} className="text-warning mb-2" />
             <p className="text-lg font-black text-base-content">{liveJobCount}</p>
-            <p className="text-[11px] text-base-content/55">Live Jobs</p>
+            <p className="text-[11px] text-base-content/55">Care Requests</p>
           </button>
           <button onClick={onNavigateToRequests} className="rounded-xl bg-base-100 border border-base-300 p-3 text-left">
             <Users size={16} className="text-primary mb-2" />
@@ -902,7 +923,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <button onClick={onNavigateToProfile} className="rounded-xl bg-base-100 border border-base-300 p-3 text-left">
             <TrendingUp size={16} className="text-success mb-2" />
             <p className="text-lg font-black text-base-content">{completeness}%</p>
-            <p className="text-[11px] text-base-content/55">Search</p>
+            <p className="text-[11px] text-base-content/55">Search Ready</p>
           </button>
         </div>
       </section>

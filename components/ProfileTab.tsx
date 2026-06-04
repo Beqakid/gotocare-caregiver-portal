@@ -85,6 +85,41 @@ function getDocReviewStatus(doc?: CaregiverDocument) {
   return { label: 'Pending Review', tone: 'bg-warning/15 text-warning', state: 'pending' }
 }
 
+function getVerificationDocType(docType: string, docName: string): string | null {
+  const value = `${docType || ''} ${docName || ''}`.toLowerCase()
+  if (docType === 'license' || /driver|license|state id|passport|identity|id document/.test(value)) {
+    if (/passport/.test(value)) return 'passport'
+    if (/state id/.test(value)) return 'state_id'
+    return 'drivers_license'
+  }
+  if (docType === 'background_check' || /background/.test(value)) return 'background_check'
+  if (docType === 'certification' || docType === 'training' || docType === 'health') {
+    if (/first aid|first-aid/.test(value)) return 'first_aid'
+    if (/\bcpr\b/.test(value)) return 'cpr'
+    if (/\bcna\b/.test(value)) return 'cna'
+    if (/\bhha\b|home health/.test(value)) return 'hha'
+    if (/\blvn\b|\blpn\b/.test(value)) return 'lvn'
+    if (/\brn\b|registered nurse/.test(value)) return 'rn'
+    if (/dementia/.test(value)) return 'dementia'
+    if (/hospice/.test(value)) return 'hospice'
+    if (/\btb\b|tuberculosis/.test(value)) return 'tb'
+    return 'other_certification'
+  }
+  return null
+}
+
+async function submitVerificationCopy(token: string, docType: string, docName: string, expiry: string, file: File | null) {
+  const verificationDocType = getVerificationDocType(docType, docName)
+  if (!verificationDocType) return
+  const fd = new FormData()
+  fd.append('token', token)
+  fd.append('doc_type', verificationDocType)
+  fd.append('consent_given', 'true')
+  if (expiry) fd.append('expiry', expiry)
+  if (file) fd.append('file', file)
+  await fetch(`${API_BASE}/api/verification-upload`, { method: 'POST', body: fd })
+}
+
 function getVerificationModel(profile: any, docs: CaregiverDocument[], trust: any, completeness: number) {
   const idDoc = docs.find(d => d.type === 'license' || /driver|state id|passport|identity|id\b/i.test(d.name || ''))
   const bgDoc = docs.find(d => d.type === 'background_check')
@@ -409,6 +444,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         const res = await fetch(`${API_BASE}/api/caregiver-documents`, { method: 'POST', body: fd })
         const data = await res.json()
         if (data.success) {
+          try { await submitVerificationCopy(cgToken, docType, docName.trim(), docExpiry, docFile) } catch (e) { console.warn('Verification review submission failed', e) }
           await loadApiDocs()
           setShowAddDoc(false)
           setDocName(''); setDocType('certification'); setDocExpiry(''); setDocFile(null)

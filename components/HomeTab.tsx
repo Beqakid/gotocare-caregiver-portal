@@ -3,12 +3,14 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   Bell,
+  Briefcase,
   Calendar,
   CheckCircle2,
   ChevronRight,
   Clock,
   DollarSign,
   FileText,
+  Inbox,
   Play,
   Shield,
   Square,
@@ -278,6 +280,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       })
       .catch(() => {})
   }, [])
+
   const pendingInvoices = getInvoices().filter(i => i.status === 'sent' || i.status === 'overdue')
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents)
   const missingProfileItems = completenessItems.filter((i: any) => !i.done)
@@ -296,6 +299,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const weekEarnings = completedWeekEntries.reduce((sum, entry) => sum + (entry.totalPay || hoursFromEntry(entry) * entry.hourlyRate), 0)
   const activeTimerAmount = activeTimer ? (elapsed / 3600) * (activeTimer.hourlyRate || 0) : 0
 
+  // ── existing priorityTasks (unchanged — still used for secondary task rows) ──
   const priorityTasks = useMemo(() => {
     const tasks: any[] = []
 
@@ -407,6 +411,127 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     return tasks.slice(0, 4)
   }, [activeTimer, elapsed, pendingRequests.length, uninvoicedHours, uninvoicedAmount, pendingInvoices.length, nextShift, expiringDocs.length, completeness, missingProfileItems.length])
 
+  // ── Phase 2: heroAction — rich card data for the top-priority Next Best Action ──
+  const heroAction = useMemo(() => {
+    // 1. Active timer running
+    if (activeTimer) {
+      return {
+        icon: Timer,
+        iconBg: 'bg-success/15',
+        iconColor: 'text-success',
+        badge: 'Live',
+        badgeClass: 'bg-success/15 text-success',
+        title: "You're clocked in",
+        subtitle: `${activeTimer.clientName} — ${formatElapsed(elapsed)} tracked so far.`,
+        primaryLabel: 'View Timer',
+        primaryAction: onNavigateToSchedule,
+        secondaryLabel: 'Stop Timer',
+        secondaryAction: stopTimer,
+        note: null,
+      }
+    }
+    // 2. Scheduled visit today
+    if (nextShift) {
+      return {
+        icon: Calendar,
+        iconBg: 'bg-info/15',
+        iconColor: 'text-info',
+        badge: 'Today',
+        badgeClass: 'bg-info/15 text-info',
+        title: "Today's Visit",
+        subtitle: `Your next visit is scheduled for ${nextShift.startTime || 'today'}.`,
+        primaryLabel: 'Start Timer',
+        primaryAction: () => onClockIn(nextShift.id),
+        secondaryLabel: 'View Work',
+        secondaryAction: onNavigateToSchedule,
+        note: null,
+      }
+    }
+    // 3. Invoice ready
+    if (uninvoicedHours > 0) {
+      return {
+        icon: FileText,
+        iconBg: 'bg-primary/15',
+        iconColor: 'text-primary',
+        badge: 'Money',
+        badgeClass: 'bg-primary/15 text-primary',
+        title: 'Invoice Ready',
+        subtitle: `$${uninvoicedAmount.toFixed(0)} ready to bill from ${uninvoicedHours.toFixed(1)} tracked hours.`,
+        primaryLabel: 'Create Invoice',
+        primaryAction: onNavigateToEarnings,
+        secondaryLabel: 'View Money',
+        secondaryAction: onNavigateToEarnings,
+        note: null,
+      }
+    }
+    // 4. Open care requests
+    if (pendingRequests.length > 0) {
+      return {
+        icon: Inbox,
+        iconBg: 'bg-warning/15',
+        iconColor: 'text-warning',
+        badge: 'New',
+        badgeClass: 'bg-warning/15 text-warning',
+        title: 'Review Care Requests',
+        subtitle: `You have ${pendingRequests.length} care request${pendingRequests.length > 1 ? 's' : ''} waiting for your response.`,
+        primaryLabel: 'Review Requests',
+        primaryAction: onNavigateToRequests,
+        secondaryLabel: null,
+        secondaryAction: null,
+        note: 'Respond quickly so families know whether you are available.',
+      }
+    }
+    // 5. Expiring documents
+    if (expiringDocs.length > 0) {
+      return {
+        icon: AlertTriangle,
+        iconBg: 'bg-error/15',
+        iconColor: 'text-error',
+        badge: 'Urgent',
+        badgeClass: 'bg-error/15 text-error',
+        title: expiringDocs.some(d => d.status === 'expired') ? 'Update Expired Documents' : 'Documents Expiring Soon',
+        subtitle: expiringDocs.map(d => d.name).slice(0, 2).join(', '),
+        primaryLabel: 'Update Documents',
+        primaryAction: onNavigateToProfile,
+        secondaryLabel: null,
+        secondaryAction: null,
+        note: null,
+      }
+    }
+    // 6. New caregiver / incomplete profile
+    if (completeness < 70 && missingProfileItems.length > 0) {
+      return {
+        icon: User,
+        iconBg: 'bg-primary/15',
+        iconColor: 'text-primary',
+        badge: 'Setup',
+        badgeClass: 'bg-primary/15 text-primary',
+        title: 'Finish Setting Up Your Profile',
+        subtitle: 'Complete a few steps to improve your profile and client trust.',
+        primaryLabel: 'Continue Setup',
+        primaryAction: onNavigateToProfile,
+        secondaryLabel: null,
+        secondaryAction: null,
+        note: null,
+      }
+    }
+    // 7. Default caught-up state
+    return {
+      icon: CheckCircle2,
+      iconBg: 'bg-success/15',
+      iconColor: 'text-success',
+      badge: 'Ready',
+      badgeClass: 'bg-success/15 text-success',
+      title: "You're all caught up",
+      subtitle: "We'll show visits, requests, invoices, and profile steps here when they need your attention.",
+      primaryLabel: 'View Requests',
+      primaryAction: onNavigateToRequests,
+      secondaryLabel: 'Update Availability',
+      secondaryAction: onNavigateToSchedule,
+      note: null,
+    }
+  }, [activeTimer, elapsed, nextShift, uninvoicedHours, uninvoicedAmount, pendingRequests.length, expiringDocs.length, completeness, missingProfileItems.length])
+
   const toggleOnline = async () => {
     const next = !isOnline
     setIsOnline(next)
@@ -496,8 +621,13 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     )
   }
 
+  // ── Hero Card icon component helper ──
+  const HeroIcon = heroAction.icon
+
   return (
     <div className="p-4 space-y-4 pb-4">
+
+      {/* ── 1. Header ── */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={sectionTitle}>Today</p>
@@ -533,6 +663,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </div>
 
+      {/* ── 2. Online toggle ── */}
       <button
         onClick={toggleOnline}
         className={`w-full rounded-2xl p-3.5 flex items-center justify-between text-left press-card ${isOnline ? 'bg-success/10 border border-success/25' : 'bg-base-200 border border-base-300'}`}
@@ -553,6 +684,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </button>
 
+      {/* ── Notification permission prompt (conditional) ── */}
       {showNotifPrompt && notifPermission === 'default' && (
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
           <div>
@@ -568,14 +700,117 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       )}
 
-      <section className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <p className={sectionTitle}>Priority Tasks</p>
-          <span className="text-[11px] text-base-content/45">{priorityTasks.length} open</span>
+      {/* ── 3. Dynamic Hero Card — Next Best Action ── */}
+      <section className="rounded-2xl bg-base-100 border-2 border-primary/12 p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${heroAction.iconBg}`}>
+            <HeroIcon size={24} className={heroAction.iconColor} />
+          </div>
+          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${heroAction.badgeClass}`}>
+            {heroAction.badge}
+          </span>
         </div>
-        {priorityTasks.map((task, index) => <TaskRow key={`${task.title}-${index}`} task={task} />)}
+        <h2 className="text-[17px] font-black text-base-content leading-snug">{heroAction.title}</h2>
+        <p className="text-sm text-base-content/60 mt-1 leading-relaxed">{heroAction.subtitle}</p>
+        {heroAction.note && (
+          <p className="text-xs text-base-content/40 mt-1">{heroAction.note}</p>
+        )}
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={heroAction.primaryAction}
+            className="btn btn-primary btn-sm flex-1 text-white rounded-xl"
+          >
+            {heroAction.primaryLabel}
+          </button>
+          {heroAction.secondaryLabel && (
+            <button
+              onClick={heroAction.secondaryAction}
+              className="btn btn-ghost btn-sm flex-1 rounded-xl border border-base-300"
+            >
+              {heroAction.secondaryLabel}
+            </button>
+          )}
+        </div>
       </section>
 
+      {/* ── 4. Compact Quick Actions ── */}
+      <section>
+        <div className="grid grid-cols-3 gap-2">
+          {activeTimer ? (
+            <button
+              onClick={stopTimer}
+              className="rounded-2xl bg-error/8 border border-error/20 px-3 py-3 text-left press-card"
+            >
+              <Square size={18} className="text-error mb-1.5" fill="currentColor" />
+              <p className="text-[12px] font-bold text-base-content">Stop Timer</p>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowQuickTimer(true)}
+              className="rounded-2xl bg-base-100 border border-base-300 px-3 py-3 text-left press-card"
+            >
+              <Timer size={18} className="text-success mb-1.5" />
+              <p className="text-[12px] font-bold text-base-content">Track Time</p>
+            </button>
+          )}
+          <button
+            onClick={onNavigateToSchedule}
+            className="rounded-2xl bg-base-100 border border-base-300 px-3 py-3 text-left press-card"
+          >
+            <Briefcase size={18} className="text-primary mb-1.5" />
+            <p className="text-[12px] font-bold text-base-content">Availability</p>
+          </button>
+          <button
+            onClick={onNavigateToEarnings}
+            className="rounded-2xl bg-base-100 border border-base-300 px-3 py-3 text-left press-card"
+          >
+            <FileText size={18} className="text-warning mb-1.5" />
+            <p className="text-[12px] font-bold text-base-content">Invoice</p>
+          </button>
+        </div>
+      </section>
+
+      {/* ── 5. Secondary tasks (overflow items after hero) ── */}
+      {priorityTasks.length > 1 && (
+        <section className="space-y-2">
+          <p className={sectionTitle}>Also needs attention</p>
+          {priorityTasks.slice(1, 3).map((task, index) => (
+            <TaskRow key={`${task.title}-${index}`} task={task} />
+          ))}
+        </section>
+      )}
+
+      {/* ── Quick Timer form (conditional) ── */}
+      {showQuickTimer && !activeTimer && (
+        <section className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
+          <p className="font-bold text-sm text-base-content mb-3">Start Time Tracker</p>
+          <div className="space-y-2">
+            <input
+              type="text"
+              className="input input-bordered input-sm w-full"
+              placeholder="Client name"
+              value={quickClient}
+              onChange={(e) => setQuickClient(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                className="input input-bordered input-sm flex-1"
+                placeholder="Rate/hr"
+                value={quickRate}
+                onChange={(e) => setQuickRate(e.target.value)}
+              />
+              <button onClick={startTimer} className="btn btn-primary btn-sm flex-1 text-white">
+                <Play size={14} /> Start
+              </button>
+            </div>
+            <button onClick={() => setShowQuickTimer(false)} className="btn btn-ghost btn-xs w-full">Cancel</button>
+          </div>
+        </section>
+      )}
+
+      {/* ── 6. Money card ── */}
       <section className="rounded-2xl earnings-card p-4 text-white" onClick={onNavigateToEarnings}>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -599,10 +834,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </section>
 
+      {/* ── 7. Today's Work (simplified — active timer / next shift display only) ── */}
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
         <div className="flex items-center justify-between mb-3">
           <p className={sectionTitle}>Today's Work</p>
-          <button onClick={onNavigateToSchedule} className="text-xs font-semibold text-primary">Schedule</button>
+          <button onClick={onNavigateToSchedule} className="text-xs font-semibold text-primary">Work tab</button>
         </div>
 
         {activeTimer ? (
@@ -644,52 +880,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </button>
           </div>
         )}
-
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button onClick={() => setShowQuickTimer(true)} className="rounded-xl bg-base-100 border border-base-300 px-2.5 py-2 text-left">
-            <Timer size={16} className="text-success mb-1" />
-            <p className="text-[11px] font-bold text-base-content">Track time</p>
-          </button>
-          <button onClick={onNavigateToSchedule} className="rounded-xl bg-base-100 border border-base-300 px-2.5 py-2 text-left">
-            <Calendar size={16} className="text-primary mb-1" />
-            <p className="text-[11px] font-bold text-base-content">Availability</p>
-          </button>
-          <button onClick={onNavigateToEarnings} className="rounded-xl bg-base-100 border border-base-300 px-2.5 py-2 text-left">
-            <FileText size={16} className="text-warning mb-1" />
-            <p className="text-[11px] font-bold text-base-content">Invoice</p>
-          </button>
-        </div>
       </section>
 
-      {showQuickTimer && !activeTimer && (
-        <section className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
-          <p className="font-bold text-sm text-base-content mb-3">Start Time Tracker</p>
-          <div className="space-y-2">
-            <input
-              type="text"
-              className="input input-bordered input-sm w-full"
-              placeholder="Client name"
-              value={quickClient}
-              onChange={(e) => setQuickClient(e.target.value)}
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <input
-                type="number"
-                className="input input-bordered input-sm flex-1"
-                placeholder="Rate/hr"
-                value={quickRate}
-                onChange={(e) => setQuickRate(e.target.value)}
-              />
-              <button onClick={startTimer} className="btn btn-primary btn-sm flex-1 text-white">
-                <Play size={14} /> Start
-              </button>
-            </div>
-            <button onClick={() => setShowQuickTimer(false)} className="btn btn-ghost btn-xs w-full">Cancel</button>
-          </div>
-        </section>
-      )}
-
+      {/* ── 8. New Opportunities ── */}
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
         <div className="flex items-center justify-between mb-3">
           <p className={sectionTitle}>New Opportunities</p>
@@ -714,6 +907,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </section>
 
+      {/* ── 9. Trust & Verification ── */}
       <section className="rounded-2xl bg-base-200 border border-primary/20 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -749,6 +943,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </button>
       </section>
 
+      {/* ── 10. Profile Growth ── */}
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -781,6 +976,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
         )}
       </section>
+
     </div>
   )
 }

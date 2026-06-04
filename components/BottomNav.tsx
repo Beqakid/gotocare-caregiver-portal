@@ -1,127 +1,56 @@
-<!DOCTYPE html>
-<html data-theme="alfred-light">
-  <head>
-    <meta charset="utf-8" />
-    <!-- SECURITY (RISK-04): Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://gotocare-original.jjioji.workers.dev https://carehia-admin.jjioji.workers.dev https://api.resend.com https://fcm.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self';" />
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#7c3aed" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="google-client-id" content="888877756290-t1chv8b5d5hg0kiosd4qcr34g6rpd33b.apps.googleusercontent.com" />
-    <title>Carehia — Caregiver Portal</title>
+// @ts-nocheck
+import React from 'react'
+import { CheckSquare, Briefcase, Inbox, DollarSign, User } from 'lucide-react'
+import { TabType } from '../types'
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-    <!-- App styles -->
-    <link rel="stylesheet" href="/styles.css" />
-
-    <!-- Google Identity Services (for Google Sign-In) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <!-- DaisyUI v5 + Tailwind v4 (browser build) -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
-    <style>
-      [data-theme='alfred-light'] {
-  color-scheme: light;
-  --radius-selector: 1.5rem;
-  --radius-field: 0.875rem;
-  --radius-box: 1.25rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
-  /* Page bg — light slate; cards are white */
-  --color-base-100: #F0F4FF;
-  --color-base-200: #ffffff;
-  --color-base-300: #ede9fe;
-  --color-base-content: #1a1a2e;
-  /* Carehia purple */
-  --color-primary: #7c3aed;
-  --color-primary-content: #ffffff;
-  /* Carehia blue */
-  --color-secondary: #3b82f6;
-  --color-secondary-content: #ffffff;
-  --color-accent: #7c3aed;
-  --color-accent-content: #ffffff;
-  --color-neutral: #374151;
-  --color-neutral-content: #ffffff;
-  --color-info: #3b82f6;
-  --color-info-content: #ffffff;
-  --color-success: #10b981;
-  --color-success-content: #ffffff;
-  --color-warning: #f59e0b;
-  --color-warning-content: #ffffff;
-  --color-error: #ef4444;
-  --color-error-content: #ffffff;
+interface BottomNavProps {
+  activeTab: TabType
+  onTabChange: (tab: TabType) => void
+  requestCount?: number
 }
 
-[data-theme='alfred-dark'] {
-  color-scheme: dark;
-  --radius-selector: 1.5rem;
-  --radius-field: 0.875rem;
-  --radius-box: 1.25rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
-  --color-base-100: #F0F4FF;
-  --color-base-200: #1a1a2e;
-  --color-base-300: #16213e;
-  --color-base-content: #e2e8f0;
-  --color-primary: #7c3aed;
-  --color-primary-content: #ffffff;
-  --color-secondary: #3b82f6;
-  --color-secondary-content: #ffffff;
-  --color-accent: #7c3aed;
-  --color-accent-content: #ffffff;
-  --color-neutral: #374151;
-  --color-neutral-content: #ffffff;
-  --color-info: #3b82f6;
-  --color-info-content: #ffffff;
-  --color-success: #10b981;
-  --color-success-content: #ffffff;
-  --color-warning: #f59e0b;
-  --color-warning-content: #ffffff;
-  --color-error: #ef4444;
-  --color-error-content: #ffffff;
+export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, requestCount = 0 }) => {
+  // Marketing tab is kept in TabType (app.tsx routes to it) but removed from display
+  const tabs: { id: TabType; label: string; icon: any }[] = [
+    { id: 'home',     label: 'Today',    icon: CheckSquare },
+    { id: 'schedule', label: 'Work',     icon: Briefcase   },
+    { id: 'requests', label: 'Requests', icon: Inbox       },
+    { id: 'earnings', label: 'Money',    icon: DollarSign  },
+    { id: 'profile',  label: 'Profile',  icon: User        },
+  ]
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 safe-bottom z-50">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`bottom-nav-item flex flex-col items-center justify-center gap-0.5 relative transition-all ${isActive ? 'active' : 'text-base-content/70'}`}
+              style={{ minWidth: 56, padding: '8px 4px' }}
+            >
+              {/* Active background pill */}
+              {isActive && (
+                <div className="absolute inset-0 rounded-2xl bg-primary/10" style={{ margin: '4px 2px' }} />
+              )}
+              <div className="relative z-10">
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                {tab.id === 'requests' && requestCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-error text-error-content text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {requestCount > 9 ? '9+' : requestCount}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-medium relative z-10 ${isActive ? 'text-primary' : ''}`}>
+                {tab.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
-
-body { font-family: 'Inter', sans-serif; }
-* { -webkit-tap-highlight-color: transparent; }
-    </style>
-  </head>
-  <body class="bg-base-100 text-base-content">
-    <div id="root"></div>
-
-    <!-- Theme: always alfred-light — app uses Periwinkle Mist #F0F4FF light design -->
-
-    <!-- App bundle -->
-    <script type="module" src="dist/app.js"></script>
-
-    <!-- Service Worker registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
-            console.log('SW registered:', reg.scope);
-          }).catch(function(err) {
-            console.log('SW registration failed:', err);
-          });
-        });
-      }
-    </script>
-  </body>
-</html>

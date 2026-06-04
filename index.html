@@ -106,14 +106,7 @@ body { font-family: 'Inter', sans-serif; }
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
 
-    <!-- Auto dark/light theme detection -->
-    <script>
-        var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'alfred-dark' : 'alfred-light';
-        document.documentElement.setAttribute('data-theme', theme);
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-          document.documentElement.setAttribute('data-theme', e.matches ? 'alfred-dark' : 'alfred-light');
-        });
-    </script>
+    <!-- Theme: always alfred-light — app uses Periwinkle Mist #F0F4FF light design -->
 
     <!-- App bundle -->
     <script type="module" src="dist/app.js"></script>

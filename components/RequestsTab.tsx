@@ -73,12 +73,23 @@ interface HireOffer {
   care_types: string
   start_date: string | null
   schedule_notes: string | null
-  status: 'pending_caregiver' | 'pending_client' | 'pending' | 'accepted' | 'active' | 'declined' | 'expired' | 'cancelled' | 'rejected'
+  status: 'pending_caregiver' | 'pending_client' | 'pending' | 'accepted' | 'active' | 'declined' | 'expired' | 'cancelled' | 'rejected' | 'completed'
   created_at: string
   caregiver_hidden?: boolean | number
 }
 
 type HideTarget = { id: number; itemType: 'hire_offer' | 'interview'; label: string }
+
+const HIDEABLE_INTERVIEW_STATUSES = new Set(['completed', 'cancelled', 'declined', 'expired', 'no_show'])
+const HIDEABLE_HIRE_OFFER_STATUSES = new Set(['declined', 'expired', 'cancelled', 'rejected', 'completed'])
+
+function canHideInterview(status?: string): boolean {
+  return HIDEABLE_INTERVIEW_STATUSES.has(String(status || '').toLowerCase())
+}
+
+function canHideHireOffer(status?: string): boolean {
+  return HIDEABLE_HIRE_OFFER_STATUSES.has(String(status || '').toLowerCase())
+}
 
 interface CountdownInfo {
   text: string
@@ -241,7 +252,7 @@ function InterviewRequestCard({
     expired: 'Expired',
     no_show: 'No show',
   }
-  const showDelete = true
+  const showDelete = canHideInterview(req.status)
 
   return (
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${justUnlocked ? 'bg-success/5 border-success/30 shadow-md' : 'bg-base-200 border-base-300'}`}>
@@ -403,7 +414,7 @@ function HireOfferCard({ offer, onSign, onDecline, onHide }: {
     rejected: { label: 'Rejected', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
   }
   const s = statusConfig[offer.status] || statusConfig.pending_caregiver
-  const showDelete = true
+  const showDelete = canHideHireOffer(offer.status)
 
   return (
     <div style={{ background: '#ffffff', border: `1.5px solid ${s.border}`, borderRadius: 18, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -750,7 +761,8 @@ export function RequestsTab({
     if (!token) return
     setHideLoading(true)
     try {
-      const r = await fetch(`${API}/caregiver-requests/hide`, {
+      const endpoint = `${API}/caregiver-requests/hide`
+      const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-caregiver-token': token },
         body: JSON.stringify({
@@ -760,7 +772,16 @@ export function RequestsTab({
           reason: 'user_removed',
         }),
       })
-      const data = await r.json()
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok || !data.success) {
+        console.error('Carehia remove request failed', {
+          endpoint,
+          status: r.status,
+          itemType: hideTarget.itemType,
+          itemId: hideTarget.id,
+          response: data,
+        })
+      }
       if (!r.ok || !data.success) throw new Error(data.error || 'hide failed')
       if (hideTarget.itemType === 'interview') {
         setBookings(prev => prev.filter(item => item.id !== hideTarget.id))
@@ -770,7 +791,13 @@ export function RequestsTab({
       setHideTarget(null)
       showToast('Removed from your view')
     } catch (error: any) {
-      showToast(error?.message && error.message !== 'hide failed' ? error.message : 'Could not remove this item. Please try again.')
+      console.error('Carehia remove request error', {
+        endpoint: `${API}/caregiver-requests/hide`,
+        itemType: hideTarget.itemType,
+        itemId: hideTarget.id,
+        error,
+      })
+      showToast('Could not remove this item. Please try again.')
     } finally {
       setHideLoading(false)
     }

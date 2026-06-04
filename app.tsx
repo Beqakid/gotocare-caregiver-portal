@@ -74,6 +74,7 @@ const EarningsTab = React.lazy(() => import('./components/EarningsTab').then(m =
 const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => ({ default: m.ProfileTab })))
 const PublicProfileView = React.lazy(() => import('./components/PublicProfileView'))
 const ReviewLinkView = React.lazy(() => import('./components/ReviewLinkView'))
+const TrustPassport = React.lazy(() => import('./components/TrustPassport').then(m => ({ default: m.TrustPassport })))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
 const LAST_TAB_KEY = 'cgp_last_tab'
@@ -252,7 +253,13 @@ const App: React.FC<{}> = () => {
   const [profileDeepLink, setProfileDeepLink] = useState<string | undefined>(undefined)
   const [profileInitialSection, setProfileInitialSection] = useState<'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | undefined>(undefined)
 
-  const handleNavigateToSection = (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'profile' | 'trust' | 'clients', scrollTo: string) => {
+  // Phase 5: Trust Passport overlay state
+  const [showTrustPassport, setShowTrustPassport] = useState(false)
+  const handleOpenTrustPassport = () => setShowTrustPassport(true)
+  const handleCloseTrustPassport = () => setShowTrustPassport(false)
+
+  const handleNavigateToSection = (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'profile' | 'trust' | 'clients' | 'trust-passport', scrollTo: string) => {
+    if (section === 'trust-passport') { setShowTrustPassport(true); return }
     const mappedSection = section === 'profile' || section === 'clients' ? 'overview' : section === 'trust' ? 'verification' : section
     setProfileInitialSection(mappedSection)
     setProfileDeepLink(scrollTo)
@@ -759,6 +766,7 @@ const App: React.FC<{}> = () => {
               initialSection={profileInitialSection}
               returnedSubscription={returnedSubscription}
               onNavigateHome={() => { navigateToTab('home'); setProfileDeepLink(undefined); setProfileInitialSection(undefined); }}
+              onOpenTrustPassport={handleOpenTrustPassport}
             />
           )}
           {activeTab === 'marketing' && (
@@ -775,6 +783,23 @@ const App: React.FC<{}> = () => {
         onTabChange={navigateToTab}
         requestCount={pendingRequestCount}
       />
+
+      {/* ── Phase 5: Trust Passport full-screen overlay ────────────────── */}
+      {showTrustPassport && (
+        <React.Suspense fallback={null}>
+          <TrustPassport
+            profile={profile}
+            documents={documents}
+            onClose={handleCloseTrustPassport}
+            onOpenDocUpload={() => {
+              setShowTrustPassport(false)
+              setProfileInitialSection('documents')
+              setProfileDeepLink('section-documents')
+              navigateToTab('profile')
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* ── In-App Notification Panel ──────────────────────────────────── */}
       {showNotifPanel && (

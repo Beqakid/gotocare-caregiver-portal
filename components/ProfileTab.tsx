@@ -34,6 +34,7 @@ interface ProfileTabProps {
   initialSection?: ProfileSection
   returnedSubscription?: boolean
   onNavigateHome?: () => void
+  onOpenTrustPassport?: () => void
 }
 
 const ALL_CARE_NEEDS = [
@@ -180,7 +181,7 @@ function getVerificationModel(profile: any, docs: CaregiverDocument[], trust: an
   }
 }
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome }) => {
+export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome, onOpenTrustPassport }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
@@ -744,6 +745,27 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
             <button onClick={() => navigateToSection('verification')} className="btn btn-primary btn-sm w-full mt-4 rounded-2xl">
               Continue Verification
+            </button>
+          </div>
+
+          {/* ── Carehia Trust Passport entry card (Phase 5 — additive) ── */}
+          <div className="rounded-3xl p-4 border border-primary/20" style={{ background: 'linear-gradient(135deg, rgba(124,92,255,0.07) 0%, rgba(74,144,226,0.07) 100%)' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Shield size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-base-content leading-tight">Carehia Trust Passport</p>
+                  <p className="text-xs text-base-content/55 mt-0.5">Build trust and unlock more opportunities</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => onOpenTrustPassport?.()}
+              className="btn btn-primary btn-sm w-full mt-4 rounded-2xl text-white"
+            >
+              View Trust Passport
             </button>
           </div>
 

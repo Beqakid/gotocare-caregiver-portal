@@ -126,6 +126,21 @@ function getHomeVerification(profile: CaregiverProfile | null, documents: Caregi
     progress: Math.round((items.filter(Boolean).length / items.length) * 100),
     trustScore: Math.min(100, Math.round(trustScore)),
     nextStep,
+    trustLevel: Math.round((items.filter(Boolean).length / items.length) * 100) >= 75 ? 4 :
+                Math.round((items.filter(Boolean).length / items.length) * 100) >= 50 ? 3 :
+                Math.round((items.filter(Boolean).length / items.length) * 100) >= 25 ? 2 : 1,
+    trustLevelName: Math.round((items.filter(Boolean).length / items.length) * 100) >= 75 ? 'Verified Pro' :
+                    Math.round((items.filter(Boolean).length / items.length) * 100) >= 50 ? 'Established' :
+                    Math.round((items.filter(Boolean).length / items.length) * 100) >= 25 ? 'Building Trust' : 'Getting Started',
+    unlockMessage:
+      !profile?.profilePhoto ? 'Better first impressions with families' :
+      !profile?.bio || profile.bio.trim().length < 40 ? 'Better profile visibility for families' :
+      (profile?.skills?.length || 0) < 3 ? 'Appear in more care search results' :
+      !idUploaded ? 'Verified badge + higher trust score' :
+      !certUploaded ? 'Show families your qualifications' :
+      !cprUploaded ? 'Required for many care placements' :
+      !bgUploaded ? 'Unlock client contact details + premium jobs' :
+      'Maintain your verified status',
   }
 }
 
@@ -928,7 +943,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         </div>
       </section>
 
-      {/* ── 9. Trust & Verification ── */}
+      {/* ── 9. Carehia Trust Passport ── */}
       <section className="rounded-2xl bg-base-200 border border-primary/20 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -936,12 +951,13 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               <Shield size={22} />
             </div>
             <div>
-              <p className={sectionTitle}>Trust &amp; Verification</p>
-              <p className="text-sm font-bold text-base-content mt-1">{homeVerification.progress}% complete</p>
+              <p className={sectionTitle}>Carehia Trust Passport</p>
+              <p className="text-sm font-bold text-base-content mt-1">{homeVerification.progress}% complete • Level {homeVerification.trustLevel}: {homeVerification.trustLevelName}</p>
               <p className="text-xs text-base-content/60 mt-0.5">Next step: {homeVerification.nextStep}</p>
+              <p className="text-xs text-primary/80 mt-0.5">Unlock: {homeVerification.unlockMessage}</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="text-2xl font-black text-base-content">{homeVerification.trustScore}</p>
             <p className="text-[10px] text-base-content/50">Trust score</p>
           </div>
@@ -960,8 +976,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
         )}
         <button onClick={() => onNavigateToSection('verification', 'section-verification')} className="btn btn-primary btn-sm w-full rounded-2xl mt-3 text-white">
-          Continue Verification
+          Continue Trust Passport
         </button>
+        <p className="text-xs text-center text-base-content/50 mt-2">You can complete this step by step.</p>
       </section>
 
       {/* ── 10. Profile Growth ── */}

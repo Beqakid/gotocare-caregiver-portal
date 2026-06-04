@@ -250,10 +250,11 @@ const App: React.FC<{}> = () => {
   }, [navigateToTab])
 
   const [profileDeepLink, setProfileDeepLink] = useState<string | undefined>(undefined)
-  const [profileInitialSection, setProfileInitialSection] = useState<'profile' | 'documents' | 'badges' | undefined>(undefined)
+  const [profileInitialSection, setProfileInitialSection] = useState<'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | undefined>(undefined)
 
-  const handleNavigateToSection = (section: 'profile' | 'documents', scrollTo: string) => {
-    setProfileInitialSection(section)
+  const handleNavigateToSection = (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'profile' | 'trust' | 'clients', scrollTo: string) => {
+    const mappedSection = section === 'profile' || section === 'clients' ? 'overview' : section === 'trust' ? 'verification' : section
+    setProfileInitialSection(mappedSection)
     setProfileDeepLink(scrollTo)
     navigateToTab('profile')
   }

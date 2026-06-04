@@ -1,11 +1,6 @@
-// ProfileTab-verification.tsx
-// This is the FULL updated ProfileTab.tsx with the Verification Center card added additively.
-// Added: import VerificationTab, showVerification state, and the "Verification Center" card in the profile section.
-// Nothing else changed.
-
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react'
-import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User } from 'lucide-react'
+import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User, Users, FileCheck2, BadgeCheck, Lock } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
 import { TrustCenter } from './TrustCenter'
@@ -14,15 +9,19 @@ import { VerificationTab } from './VerificationTab'
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 const PROFILE_SECTION_KEY = 'cgp_profile_section'
 const PROFILE_VERIFICATION_OPEN_KEY = 'cgp_profile_verification_open'
-type ProfileSection = 'profile' | 'documents' | 'badges' | 'clients' | 'trust'
+type ProfileSection = 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings'
 
 function getSavedProfileSection(initialSection?: ProfileSection): ProfileSection {
+  if ((initialSection as any) === 'profile' || (initialSection as any) === 'clients') return 'overview'
+  if ((initialSection as any) === 'trust') return 'verification'
   if (initialSection) return initialSection
   try {
-    const saved = localStorage.getItem(PROFILE_SECTION_KEY) as ProfileSection | null
-    if (saved === 'profile' || saved === 'documents' || saved === 'badges' || saved === 'clients' || saved === 'trust') return saved
+    const saved = localStorage.getItem(PROFILE_SECTION_KEY)
+    if (saved === 'profile' || saved === 'clients') return 'overview'
+    if (saved === 'trust') return 'verification'
+    if (saved === 'overview' || saved === 'verification' || saved === 'certifications' || saved === 'documents' || saved === 'badges' || saved === 'settings') return saved
   } catch {}
-  return 'profile'
+  return 'overview'
 }
 
 interface ProfileTabProps {
@@ -32,7 +31,7 @@ interface ProfileTabProps {
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
   deepLink?: string
-  initialSection?: 'profile' | 'documents' | 'badges' | 'clients' | 'trust'
+  initialSection?: ProfileSection
   returnedSubscription?: boolean
   onNavigateHome?: () => void
 }
@@ -57,13 +56,94 @@ const DOC_TYPES = [
 ]
 
 const BADGES = [
-  { id: 'verified', icon: Shield, label: 'Verified', desc: 'Background check + ID verified', color: 'text-success', earn: (p: any, d: CaregiverDocument[]) => d.some(x => x.type === 'background_check') },
+  { id: 'profile_complete', icon: Shield, label: 'Profile Complete', desc: 'Profile is 80%+ complete', color: 'text-success', earn: (p: any, d: CaregiverDocument[]) => calculateCompleteness(p, d).score >= 80 },
   { id: 'quick_responder', icon: Zap, label: 'Quick Responder', desc: 'Responds within 1 hour', color: 'text-warning', earn: (p: any) => (p?.totalJobs || 0) >= 5 },
   { id: 'top_rated', icon: Star, label: 'Top Rated', desc: '4.8+ rating with 10+ reviews', color: 'text-warning', earn: (p: any) => (p?.rating || 0) >= 4.8 && (p?.totalReviews || 0) >= 10 },
   { id: 'reliable', icon: ThumbsUp, label: 'Reliable', desc: '95%+ shift completion rate', color: 'text-primary', earn: (p: any) => (p?.totalJobs || 0) >= 20 },
   { id: 'experienced', icon: Award, label: 'Experienced', desc: '50+ jobs completed', color: 'text-primary', earn: (p: any) => (p?.totalJobs || 0) >= 50 },
-  { id: 'caregiver_pro', icon: Heart, label: 'Caregiver Pro', desc: 'Fully certified & insured', color: 'text-error', earn: (p: any, d: CaregiverDocument[]) => d.filter(x => x.type === 'certification' || x.type === 'license').length >= 2 && d.some(x => x.type === 'insurance') },
+  { id: 'early_adopter', icon: Heart, label: 'Early Adopter', desc: 'Building trust on Carehia', color: 'text-error', earn: (p: any) => !!p?.createdAt },
 ]
+
+const CERTIFICATION_TYPES = ['CPR', 'First Aid', 'CNA', 'HHA', 'LVN', 'RN', 'Dementia Care', 'Hospice Care', 'TB Clearance', 'Other']
+
+function docText(doc: any): string {
+  return `${doc?.name || ''} ${doc?.type || ''}`.toLowerCase()
+}
+
+function hasDoc(docs: CaregiverDocument[], test: (doc: CaregiverDocument) => boolean): boolean {
+  return docs.some(test)
+}
+
+function getCertificationDocs(docs: CaregiverDocument[]) {
+  return docs.filter(d => ['certification', 'license', 'training', 'health'].includes(d.type))
+}
+
+function getDocReviewStatus(doc?: CaregiverDocument) {
+  if (!doc) return { label: 'Missing', tone: 'bg-base-300 text-base-content/60', state: 'missing' }
+  if (doc.status === 'expired') return { label: 'Expired', tone: 'bg-error/10 text-error', state: 'expired' }
+  if (doc.status === 'expiring_soon') return { label: 'Expiring Soon', tone: 'bg-warning/15 text-warning', state: 'expiring' }
+  return { label: 'Pending Review', tone: 'bg-warning/15 text-warning', state: 'pending' }
+}
+
+function getVerificationModel(profile: any, docs: CaregiverDocument[], trust: any, completeness: number) {
+  const idDoc = docs.find(d => d.type === 'license' || /driver|state id|passport|identity|id\b/i.test(d.name || ''))
+  const bgDoc = docs.find(d => d.type === 'background_check')
+  const certDocs = getCertificationDocs(docs)
+  const cprDoc = docs.find(d => /cpr/i.test(docText(d)))
+  const firstAidDoc = docs.find(d => /first aid|first-aid/i.test(docText(d)))
+  const idVerified = !!trust?.id_verified
+  const backgroundVerified = !!trust?.background_checked
+  const cprVerified = !!trust?.cpr_certified
+  const certificationUploaded = certDocs.length > 0
+  const trustScore =
+    (completeness >= 70 ? 20 : Math.round(completeness * 0.2)) +
+    (idVerified ? 20 : idDoc ? 10 : 0) +
+    (certificationUploaded ? 15 : 0) +
+    ((cprDoc || firstAidDoc) ? 15 : 0) +
+    (backgroundVerified ? 20 : bgDoc ? 5 : 0) +
+    ((profile?.rating || 0) > 0 || (profile?.totalJobs || 0) > 0 ? 10 : 0)
+  const nextStep =
+    !profile?.profilePhoto ? 'Add a profile photo' :
+    !profile?.bio || profile.bio.trim().length < 40 ? 'Complete your bio' :
+    (profile?.skills?.length || 0) < 3 ? 'Add care specialties' :
+    !idDoc && !idVerified ? 'Upload ID' :
+    !certificationUploaded ? 'Upload a certification' :
+    !cprDoc && !firstAidDoc && !cprVerified ? 'Upload CPR or First Aid' :
+    !backgroundVerified ? 'Background check not started' :
+    'Keep documents current'
+  const progressItems = [
+    { key: 'photo', label: 'Add photo', status: profile?.profilePhoto ? 'Complete' : 'Missing', done: !!profile?.profilePhoto },
+    { key: 'bio', label: 'Complete bio', status: profile?.bio && profile.bio.trim().length >= 40 ? 'Complete' : 'Missing', done: !!profile?.bio && profile.bio.trim().length >= 40 },
+    { key: 'skills', label: 'Add care specialties', status: (profile?.skills?.length || 0) >= 3 ? 'Complete' : 'Missing', done: (profile?.skills?.length || 0) >= 3 },
+    { key: 'availability', label: 'Set availability', status: profile?.status === 'active' ? 'Complete' : 'Missing', done: profile?.status === 'active' },
+    { key: 'id', label: 'Upload ID', status: idVerified ? 'Complete' : idDoc ? getDocReviewStatus(idDoc).label : 'Missing', done: idVerified || !!idDoc },
+    { key: 'cert', label: 'Add certification', status: certificationUploaded ? 'Pending' : 'Missing', done: certificationUploaded },
+    { key: 'cpr', label: 'Add CPR/First Aid', status: cprVerified ? 'Complete' : (cprDoc || firstAidDoc) ? getDocReviewStatus(cprDoc || firstAidDoc).label : 'Missing', done: cprVerified || !!cprDoc || !!firstAidDoc },
+    { key: 'bg', label: 'Background check', status: backgroundVerified ? 'Complete' : bgDoc ? 'Pending' : 'Not Started', done: backgroundVerified || !!bgDoc },
+  ]
+  const statusAlerts = docs
+    .filter(d => d.status === 'expired' || d.status === 'expiring_soon')
+    .slice(0, 3)
+    .map(d => ({ label: d.status === 'expired' ? `${d.name} expired` : `${d.name} expires soon`, tone: d.status === 'expired' ? 'text-error' : 'text-warning' }))
+  if (!backgroundVerified) statusAlerts.push({ label: 'Background check not started', tone: 'text-info' })
+  if (idDoc && !idVerified) statusAlerts.push({ label: 'ID pending review', tone: 'text-warning' })
+  return {
+    idDoc,
+    bgDoc,
+    certDocs,
+    cprDoc,
+    firstAidDoc,
+    idVerified,
+    backgroundVerified,
+    cprVerified,
+    certificationUploaded,
+    trustScore: Math.min(100, Math.max(0, Math.round(trustScore))),
+    verificationProgress: Math.round((progressItems.filter(i => i.done).length / progressItems.length) * 100),
+    nextStep,
+    progressItems,
+    statusAlerts,
+  }
+}
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
@@ -93,6 +173,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     try { return localStorage.getItem(PROFILE_VERIFICATION_OPEN_KEY) === '1' } catch { return false }
   })
   const [verifBadgeCount, setVerifBadgeCount] = useState(0)
+  const [trustStatus, setTrustStatus] = useState<any>(null)
 
   const navigateToSection = (nextSection: ProfileSection) => {
     setSection(nextSection)
@@ -111,6 +192,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     if (initialSection) navigateToSection(initialSection)
     if (deepLink) {
       setTimeout(() => {
+        if (deepLink === 'section-verification') navigateToSection('verification')
+        if (deepLink === 'section-certifications') navigateToSection('certifications')
+        if (deepLink === 'section-settings') navigateToSection('settings')
         const el = document.getElementById(deepLink)
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
         if (deepLink === 'section-bio') setEditing(true)
@@ -136,7 +220,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .finally(() => { clearTimeout(tid); setClientsLoading(false) })
   }
   useEffect(() => {
-    if (section !== 'clients') return
+    if (section !== 'settings') return
     fetchMyClients()
   }, [section])
 
@@ -159,6 +243,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .then(d => {
         if (d.trust) {
           const t = d.trust
+          setTrustStatus(t)
           const count = [t.id_verified, t.background_checked, t.cna_verified, t.cpr_certified].filter(Boolean).length
           setVerifBadgeCount(count)
         }
@@ -196,20 +281,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   }
 
   const openBioEditor = (focusRate = false) => {
-    navigateToSection('profile')
+    navigateToSection('overview')
     setEditing(true)
     scrollToProfileSection('section-bio', focusRate ? 'input[type="number"]' : 'textarea')
   }
 
   const openSkillsEditor = () => {
-    navigateToSection('profile')
+    navigateToSection('overview')
     setSelectedSkills(profile?.skills || [])
     setEditingSkills(true)
     scrollToProfileSection('section-skills')
   }
 
   const openContactEditor = () => {
-    navigateToSection('profile')
+    navigateToSection('overview')
     setEditPhone(profile?.phone || '')
     setEditCity(profile?.location?.city || '')
     setEditState(profile?.location?.state || '')
@@ -399,6 +484,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const unearnedBadges = BADGES.filter(b => !b.earn(profile, docs))
   const validDocCount = docs.filter(d => d.status === 'valid' || d.status === 'no_expiry').length
   const expiringDocCount = docs.filter(d => d.status === 'expiring_soon' || d.status === 'expired').length
+  const verification = getVerificationModel(profile, docs, trustStatus, completeness)
+  const certificationDocs = verification.certDocs
+  const trustBadgeCards = [
+    { id: 'identity_verified', icon: Shield, label: 'Identity Verified', desc: 'ID has been reviewed and approved', earned: verification.idVerified, unlock: 'Upload a Driver License, State ID, or Passport.' },
+    { id: 'cpr_certified', icon: Award, label: 'CPR Certified', desc: 'CPR certification has been verified', earned: verification.cprVerified, unlock: 'Upload a CPR certificate for review.' },
+    { id: 'cna_certified', icon: BadgeCheck, label: 'CNA Certified', desc: 'CNA certification has been verified', earned: !!trustStatus?.cna_verified, unlock: 'Upload a CNA certificate for review.' },
+    { id: 'background_checked', icon: Shield, label: 'Background Checked', desc: 'Background check is verified', earned: verification.backgroundVerified, unlock: 'Start the background check when integration is available.' },
+  ]
+  const earnedTrustBadges = trustBadgeCards.filter(b => b.earned)
+  const lockedTrustBadges = trustBadgeCards.filter(b => !b.earned)
   const readinessTasks = [
     {
       done: !!profile.profilePhoto,
@@ -528,11 +623,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* Section tabs */}
       <div className="px-4 mt-4 mb-3 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist">
         {[
-          { key: 'profile' as const, label: 'Readiness' },
-          { key: 'documents' as const, label: `Docs (${docs.length})` },
+          { key: 'overview' as const, label: 'Overview' },
+          { key: 'verification' as const, label: 'Verification' },
+          { key: 'certifications' as const, label: `Certifications (${certificationDocs.length})` },
+          { key: 'documents' as const, label: `Documents (${docs.length})` },
           { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
-          { key: 'clients' as const, label: `Clients${myClients.length > 0 ? ' (' + myClients.length + ')' : ''}` },
-          { key: 'trust' as const, label: 'Trust' },
+          { key: 'settings' as const, label: 'Settings' },
         ].map(t => (
           <button key={t.key}
             className={`btn btn-sm rounded-full shrink-0 ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
@@ -547,16 +643,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         <div className="shrink-0 w-8" />
       </div>
 
-      {/* ---- PROFILE SECTION ---- */}
-      {section === 'profile' && (
+      {/* ---- OVERVIEW SECTION ---- */}
+      {section === 'overview' && (
         <div className="px-4 space-y-3">
-          <div className="bg-base-200 rounded-3xl p-4">
+          <div className="bg-base-200 rounded-3xl p-4 border border-base-300/70">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Profile Readiness</p>
-                <p className="text-lg font-bold text-base-content">Become discoverable</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Profile Summary</p>
+                <p className="text-lg font-bold text-base-content">{profile.firstName} {profile.lastName}</p>
                 <p className="text-sm text-base-content/55 mt-1">
-                  Complete the items families use to decide who to contact.
+                  {profile.location?.city ? `${profile.location.city}${profile.location.state ? ', ' + profile.location.state : ''}` : 'Service area missing'} · ${profile.hourlyRate || 25}/hr
                 </p>
               </div>
               <div className="relative h-16 w-16 shrink-0">
@@ -582,41 +678,65 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
             <div className="grid grid-cols-3 gap-2 mb-4">
               <div className="rounded-xl bg-base-100 p-3 text-center">
-                <p className="text-lg font-bold text-base-content">{profile.skills?.length || 0}</p>
-                <p className="text-[10px] text-base-content/50">Skills</p>
+                <p className="text-lg font-bold text-base-content">{completeness}%</p>
+                <p className="text-[10px] text-base-content/50">Complete</p>
               </div>
               <div className="rounded-xl bg-base-100 p-3 text-center">
-                <p className="text-lg font-bold text-base-content">{validDocCount}</p>
-                <p className="text-[10px] text-base-content/50">Valid Docs</p>
+                <p className="text-lg font-bold text-base-content">{verification.trustScore}</p>
+                <p className="text-[10px] text-base-content/50">Trust Score</p>
               </div>
               <div className="rounded-xl bg-base-100 p-3 text-center">
-                <p className="text-lg font-bold text-base-content">{earnedBadges.length}</p>
-                <p className="text-[10px] text-base-content/50">Badges</p>
+                <p className={`text-lg font-bold ${isAvailable ? 'text-success' : 'text-base-content/55'}`}>{isAvailable ? 'Online' : 'Off'}</p>
+                <p className="text-[10px] text-base-content/50">Status</p>
               </div>
             </div>
+          </div>
 
-            {nextReadinessTasks.length > 0 ? (
-              <div className="space-y-2">
-                {nextReadinessTasks.map(task => (
-                  <button key={task.title} onClick={task.run} className="w-full rounded-2xl bg-base-100 p-3 text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Zap size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-base-content">{task.title}</p>
-                        <p className="text-xs text-base-content/55">{task.detail}</p>
-                      </div>
-                      <span className="text-xs font-bold text-primary">{task.action}</span>
-                    </div>
-                  </button>
-                ))}
+          <div className="bg-base-200 rounded-3xl p-4 border border-primary/15">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Trust &amp; Verification</p>
+                <p className="text-lg font-bold text-base-content">{verification.verificationProgress}% complete</p>
+                <p className="text-sm text-base-content/60 mt-1">Next step: {verification.nextStep}</p>
               </div>
-            ) : (
-              <div className="rounded-2xl bg-success/10 p-3 text-sm font-semibold text-success">
-                Your profile has the core items families expect.
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Shield size={26} />
               </div>
-            )}
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-base-100 overflow-hidden">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${verification.verificationProgress}%` }} />
+            </div>
+            <button onClick={() => navigateToSection('verification')} className="btn btn-primary btn-sm w-full mt-4 rounded-2xl">
+              Continue Verification
+            </button>
+          </div>
+
+          <div className="bg-base-200 rounded-3xl p-4 border border-base-300/70">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-bold text-sm text-base-content">Profile Readiness Checklist</p>
+              <span className="text-xs font-bold text-primary">{verification.progressItems.filter(i => i.done).length}/{verification.progressItems.length}</span>
+            </div>
+            <div className="space-y-2">
+              {verification.progressItems.map(item => {
+                const tone = item.status === 'Complete' ? 'bg-success/10 text-success' : item.status === 'Pending' || item.status === 'Pending Review' || item.status === 'Expiring Soon' ? 'bg-warning/15 text-warning' : item.status === 'Expired' ? 'bg-error/10 text-error' : 'bg-base-100 text-base-content/60'
+                return (
+                  <div key={item.key} className="flex items-center gap-3 rounded-2xl bg-base-100 px-3 py-2.5">
+                    <span className={`h-8 w-8 rounded-xl flex items-center justify-center ${item.done ? 'bg-success/10 text-success' : 'bg-base-300 text-base-content/45'}`}>
+                      {item.done ? <CheckCircle2 size={16} /> : <Clock size={16} />}
+                    </span>
+                    <span className="flex-1 text-sm font-semibold text-base-content">{item.label}</span>
+                    <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${tone}`}>{item.status}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => openBioEditor()} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Edit3 size={15} /> Edit Bio</button>
+            <button onClick={() => { navigateToSection('certifications'); setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Award size={15} /> Add Certification</button>
+            <button onClick={() => { navigateToSection('documents'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Upload size={15} /> Upload Document</button>
+            <button onClick={() => setShowQR(true)} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Share2 size={15} /> Show QR Code</button>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -1065,9 +1185,195 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+      {/* ---- VERIFICATION SECTION ---- */}
+      {section === 'verification' && (
+        <div id="section-verification" className="px-4 space-y-4">
+          <div className="rounded-3xl bg-base-200 border border-primary/15 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Verification Center</p>
+                <h3 className="text-lg font-bold text-base-content mt-1">Strengthen your Carehia profile</h3>
+                <p className="text-sm text-base-content/60 mt-1">Complete your verification to help families feel confident choosing you.</p>
+              </div>
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <BadgeCheck size={26} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="rounded-2xl bg-base-100 p-3">
+                <p className="text-2xl font-black text-base-content">{verification.verificationProgress}%</p>
+                <p className="text-xs text-base-content/55">Verification progress</p>
+              </div>
+              <div className="rounded-2xl bg-base-100 p-3">
+                <p className="text-2xl font-black text-base-content">{verification.trustScore}</p>
+                <p className="text-xs text-base-content/55">Trust score</p>
+              </div>
+            </div>
+          </div>
+
+          {[
+            {
+              title: 'Identity Verification',
+              icon: User,
+              status: verification.idVerified ? 'Verified' : verification.idDoc ? getDocReviewStatus(verification.idDoc).label : 'Not Started',
+              body: 'Accepted documents: Driver License, State ID, or Passport.',
+              action: 'Upload ID',
+              disabled: false,
+              run: () => { navigateToSection('documents'); setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
+            },
+            {
+              title: 'Background Check',
+              icon: Shield,
+              status: verification.backgroundVerified ? 'Verified' : verification.bgDoc ? 'Pending' : 'Not Started',
+              body: verification.backgroundVerified ? 'Your background check is verified.' : 'Background check integration coming soon. You can store proof privately for review.',
+              action: verification.backgroundVerified ? 'Verified' : 'Coming soon',
+              disabled: true,
+              run: () => {},
+            },
+            {
+              title: 'References',
+              icon: Users,
+              status: 'Missing',
+              body: 'Professional references are planned for a future profile trust update.',
+              action: 'Coming soon',
+              disabled: true,
+              run: () => {},
+            },
+          ].map(card => {
+            const Icon = card.icon
+            const tone = card.status === 'Verified' ? 'bg-success/10 text-success' : card.status === 'Pending' || card.status === 'Pending Review' ? 'bg-warning/15 text-warning' : 'bg-base-100 text-base-content/60'
+            return (
+              <div key={card.title} className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Icon size={21} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-bold text-base-content">{card.title}</p>
+                      <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${tone}`}>{card.status}</span>
+                    </div>
+                    <p className="text-sm text-base-content/60 mt-1">{card.body}</p>
+                    <button onClick={card.run} disabled={card.disabled} className={`btn btn-sm mt-3 rounded-2xl ${card.disabled ? 'btn-disabled' : 'btn-primary'}`}>
+                      {card.action}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <p className="font-bold text-base-content mb-3">Verification Timeline</p>
+            {docs.length === 0 ? (
+              <div className="rounded-2xl bg-base-100 border border-base-300 p-4 text-sm text-base-content/60">
+                No verification activity yet. Upload an ID or certification to begin.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {docs.slice(0, 5).map(doc => (
+                  <div key={doc.id} className="flex items-start gap-3 rounded-2xl bg-base-100 p-3">
+                    <div className="mt-0.5 h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <FileCheck2 size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-base-content">{doc.name}</p>
+                      <p className="text-xs text-base-content/55">{DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type} submitted {doc.addedAt ? new Date(doc.addedAt).toLocaleDateString() : ''}</p>
+                    </div>
+                    <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${getDocReviewStatus(doc).tone}`}>{getDocReviewStatus(doc).label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <TrustCenter profile={profile} />
+        </div>
+      )}
+
+      {/* ---- CERTIFICATIONS SECTION ---- */}
+      {section === 'certifications' && (
+        <div id="section-certifications" className="px-4 space-y-4">
+          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications</p>
+                <h3 className="text-lg font-bold text-base-content mt-1">Show your care qualifications</h3>
+                <p className="text-sm text-base-content/60 mt-1">Verified certifications can help improve your visibility. Uploaded proof stays private during review.</p>
+              </div>
+              <button onClick={() => { setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-primary btn-sm rounded-2xl">
+                <Plus size={15} /> Add
+              </button>
+            </div>
+          </div>
+
+          {showAddDoc && (
+            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-semibold text-sm">Add Certification</p>
+                <button onClick={() => setShowAddDoc(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+              </div>
+              <div className="space-y-2">
+                <select className="select select-bordered select-sm w-full" value={CERTIFICATION_TYPES.includes(docName) ? docName : 'CPR'} onChange={e => setDocName(e.target.value)}>
+                  {CERTIFICATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input type="text" className="input input-bordered input-sm w-full" placeholder="Issuing organization (optional)" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="date" className="input input-bordered input-sm w-full" aria-label="Issue date" />
+                  <input type="date" className="input input-bordered input-sm w-full" aria-label="Expiration date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} />
+                </div>
+                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
+                  onChange={e => setDocFile(e.target.files?.[0] || null)} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-outline btn-sm w-full gap-1 border-dashed">
+                  <Upload size={14} />
+                  {docFile ? docFile.name : 'Upload proof document'}
+                </button>
+                <button onClick={() => { setDocType('certification'); if (!docName) setDocName('CPR'); handleAddDocument() }} className="btn btn-primary btn-sm w-full">
+                  Submit for Review
+                </button>
+                <p className="text-[11px] text-base-content/50">Issuing organization and issue date are UI-only for now. Proof is stored through the existing document vault.</p>
+              </div>
+            </div>
+          )}
+
+          {CERTIFICATION_TYPES.map(type => {
+            const doc = certificationDocs.find(d => type === 'Other' ? d.type === 'certification' : docText(d).includes(type.toLowerCase()))
+            const status = getDocReviewStatus(doc)
+            return (
+              <div key={type} className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+                <div className="flex items-start gap-3">
+                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${doc ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/45'}`}>
+                    <Award size={21} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-bold text-base-content">{type}</p>
+                      <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${status.tone}`}>{status.label}</span>
+                    </div>
+                    <p className="text-sm text-base-content/60 mt-1">
+                      {doc ? `${doc.name}${doc.expiryDate ? ' · Expires ' + new Date(doc.expiryDate).toLocaleDateString() : ''}` : `Upload ${type} proof to submit for review.`}
+                    </p>
+                    {doc?.r2Key ? <p className="text-xs text-success mt-1">Uploaded proof attached</p> : null}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* ---- DOCUMENTS SECTION ---- */}
       {section === 'documents' && (
         <div id="section-documents" className="px-4 space-y-4">
+          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <p className="text-lg font-bold text-base-content">Private Document Vault</p>
+            <p className="text-sm text-base-content/60 mt-1">Your documents are private and only used for verification unless you choose to share approved badges.</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {['Identity', 'Certification', 'Training', 'Medical clearance', 'Other'].map(label => (
+                <span key={label} className="rounded-full bg-base-100 border border-base-300 px-2.5 py-1 text-[11px] font-semibold text-base-content/60">{label}</span>
+              ))}
+            </div>
+          </div>
           <div className="text-xs text-base-content/60">
             Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
             <p className="text-xs text-base-content/60 mt-1">🔒 Documents are private unless you choose to share them.</p>
@@ -1181,11 +1487,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* ---- CLIENTS SECTION ---- */}
-      {section === 'clients' && (
+      {section === 'settings' && (
         <div className="px-4 space-y-3 pb-4">
-          <p className="text-xs text-base-content/60">
-            Families who have added you to their care team. You can coordinate schedules and communicate through the platform.
-          </p>
+          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <p className="text-lg font-bold text-base-content">Settings</p>
+            <p className="text-sm text-base-content/60 mt-1">Manage account access, support, subscription, and care team details.</p>
+            <button onClick={() => setShowSettings(true)} className="btn btn-primary btn-sm rounded-2xl mt-3">
+              Open Account Settings
+            </button>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-wide text-base-content/45">My Clients</p>
           {clientsLoading && (
             <div className="text-center py-8 text-base-content/60 text-sm">Loading your clients…</div>
           )}
@@ -1226,19 +1537,35 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* ---- BADGES SECTION ---- */}
-      {section === 'trust' && (
-        <TrustCenter profile={profile} />
-      )}
-
       {section === 'badges' && (
         <div className="px-4 space-y-4">
           <p className="text-xs text-base-content/60">
             Earn badges to build trust with clients. Badges appear on your public profile and in search results.
           </p>
 
+          {earnedTrustBadges.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Verified Trust Badges</p>
+              <div className="space-y-2">
+                {earnedTrustBadges.map(badge => (
+                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
+                    <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+                      <badge.icon size={24} className="text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
+                      <p className="text-xs text-base-content/60">{badge.desc}</p>
+                    </div>
+                    <CheckCircle2 size={20} className="text-success" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {earnedBadges.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Earned</p>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Profile Badges</p>
               <div className="space-y-2">
                 {earnedBadges.map(badge => (
                   <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
@@ -1250,6 +1577,25 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                       <p className="text-xs text-base-content/60">{badge.desc}</p>
                     </div>
                     <CheckCircle2 size={20} className="text-success" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lockedTrustBadges.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Locked Trust Badges</p>
+              <div className="space-y-2">
+                {lockedTrustBadges.map(badge => (
+                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
+                      <Lock size={22} className="text-base-content/50" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
+                      <p className="text-xs text-base-content/60">{badge.unlock}</p>
+                    </div>
                   </div>
                 ))}
               </div>

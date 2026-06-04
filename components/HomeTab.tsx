@@ -10,6 +10,7 @@ import {
   DollarSign,
   FileText,
   Play,
+  Shield,
   Square,
   Timer,
   TrendingUp,
@@ -77,12 +78,54 @@ interface HomeTabProps {
   onNavigateToSchedule: () => void
   onNavigateToEarnings: () => void
   onNavigateToProfile: () => void
-  onNavigateToSection: (section: 'profile' | 'documents', scrollTo: string) => void
+  onNavigateToSection: (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings', scrollTo: string) => void
   onClockIn: (shiftId: number) => void
   onTimerUpdate: () => void
 }
 
 const sectionTitle = 'text-[11px] font-bold uppercase tracking-wide text-base-content/45'
+
+function hasHomeDoc(docs: CaregiverDocument[], test: (doc: CaregiverDocument) => boolean): boolean {
+  return docs.some(test)
+}
+
+function getHomeVerification(profile: CaregiverProfile | null, documents: CaregiverDocument[], completeness: number) {
+  const idUploaded = hasHomeDoc(documents, d => d.type === 'license' || /driver|state id|passport|identity|id\b/i.test(`${d.name || ''}`))
+  const certUploaded = hasHomeDoc(documents, d => d.type === 'certification' || d.type === 'license')
+  const cprUploaded = hasHomeDoc(documents, d => /cpr|first aid|first-aid/i.test(`${d.name || ''} ${d.type || ''}`))
+  const bgUploaded = hasHomeDoc(documents, d => d.type === 'background_check')
+  const items = [
+    !!profile?.profilePhoto,
+    !!profile?.bio && profile.bio.trim().length >= 40,
+    (profile?.skills?.length || 0) >= 3,
+    !!profile?.phone,
+    idUploaded,
+    certUploaded,
+    cprUploaded,
+    bgUploaded,
+  ]
+  const nextStep =
+    !profile?.profilePhoto ? 'Add a profile photo' :
+    !profile?.bio || profile.bio.trim().length < 40 ? 'Complete your bio' :
+    (profile?.skills?.length || 0) < 3 ? 'Add care specialties' :
+    !idUploaded ? 'Upload ID' :
+    !certUploaded ? 'Upload a certification' :
+    !cprUploaded ? 'Upload CPR or First Aid' :
+    !bgUploaded ? 'Background check not started' :
+    'Keep documents current'
+  const trustScore =
+    (completeness >= 70 ? 20 : Math.round(completeness * 0.2)) +
+    (idUploaded ? 10 : 0) +
+    (certUploaded ? 15 : 0) +
+    (cprUploaded ? 15 : 0) +
+    (bgUploaded ? 5 : 0) +
+    ((profile?.rating || 0) > 0 || (profile?.totalJobs || 0) > 0 ? 10 : 0)
+  return {
+    progress: Math.round((items.filter(Boolean).length / items.length) * 100),
+    trustScore: Math.min(100, Math.round(trustScore)),
+    nextStep,
+  }
+}
 
 function getWeekStart() {
   const now = new Date()
@@ -239,6 +282,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const { score: completeness, items: completenessItems } = calculateCompleteness(profile, documents)
   const missingProfileItems = completenessItems.filter((i: any) => !i.done)
   const expiringDocs = documents.filter(d => d.status === 'expiring_soon' || d.status === 'expired')
+  const homeVerification = getHomeVerification(profile, documents, completeness)
+  const verificationAlerts = [
+    ...expiringDocs.slice(0, 2).map(d => d.status === 'expired' ? `${d.name} expired` : `${d.name} expires soon`),
+    ...(homeVerification.nextStep === 'Background check not started' ? ['Background check not started'] : []),
+  ].slice(0, 3)
 
   const completedWeekEntries = timeEntries.filter(e => e.status === 'completed' && e.date >= weekStart)
   const uninvoicedEntries = timeEntries.filter(e => e.status === 'completed' && !e.isInvoiced)
@@ -664,6 +712,41 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             <p className="text-[11px] text-base-content/55">Search</p>
           </button>
         </div>
+      </section>
+
+      <section className="rounded-2xl bg-base-200 border border-primary/20 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Shield size={22} />
+            </div>
+            <div>
+              <p className={sectionTitle}>Trust &amp; Verification</p>
+              <p className="text-sm font-bold text-base-content mt-1">{homeVerification.progress}% complete</p>
+              <p className="text-xs text-base-content/60 mt-0.5">Next step: {homeVerification.nextStep}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-black text-base-content">{homeVerification.trustScore}</p>
+            <p className="text-[10px] text-base-content/50">Trust score</p>
+          </div>
+        </div>
+        <div className="mt-3 h-2 rounded-full bg-base-100 overflow-hidden">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${homeVerification.progress}%` }} />
+        </div>
+        {verificationAlerts.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {verificationAlerts.map(alert => (
+              <div key={alert} className="flex items-center gap-2 text-xs text-warning">
+                <AlertTriangle size={13} />
+                <span>{alert}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <button onClick={() => onNavigateToSection('verification', 'section-verification')} className="btn btn-primary btn-sm w-full rounded-2xl mt-3 text-white">
+          Continue Verification
+        </button>
       </section>
 
       <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">

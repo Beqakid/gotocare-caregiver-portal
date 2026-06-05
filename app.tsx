@@ -168,12 +168,13 @@ function getTabFromLocation(): TabType {
   try {
     const params = new URLSearchParams(window.location.search)
     const queryTab = params.get('tab') as TabType | null
-    if (queryTab && VALID_TABS.includes(queryTab)) return queryTab
+    // Phase 7: 'requests' is now a sub-tab inside Work; map to 'schedule' for initial render
+    if (queryTab && VALID_TABS.includes(queryTab)) return queryTab === 'requests' ? 'schedule' : queryTab
     const hash = window.location.hash.replace('#', '') as TabType
-    if (VALID_TABS.includes(hash)) return hash
+    if (VALID_TABS.includes(hash)) return hash === 'requests' ? 'schedule' : hash
     if (localStorage.getItem('cgp_token')) {
       const savedTab = localStorage.getItem(LAST_TAB_KEY) as TabType | null
-      if (savedTab && VALID_TABS.includes(savedTab)) return savedTab
+      if (savedTab && VALID_TABS.includes(savedTab)) return savedTab === 'requests' ? 'schedule' : savedTab
     }
     return 'home'
   } catch { return 'home' }
@@ -205,7 +206,32 @@ const App: React.FC<{}> = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>(getTabFromLocation)
 
+  // Phase 7: work hub initial view signal — 'requests' when navigating from Today/Stripe/notifications
+  // Initialized lazily so deep-linking to #requests also works on first load
+  const [workInitialView, setWorkInitialView] = useState<'requests' | undefined>(() => {
+    try {
+      const hash = window.location.hash.replace('#', '')
+      const params = new URLSearchParams(window.location.search)
+      if (hash === 'requests' || params.get('tab') === 'requests') return 'requests'
+    } catch {}
+    return undefined
+  })
+
   const navigateToTab = useCallback((tab: TabType) => {
+    // Phase 7: 'requests' is merged into Work — redirect to Work with Requests sub-tab active
+    if (tab === 'requests') {
+      setWorkInitialView('requests')
+      setActiveTab('schedule')
+      try {
+        localStorage.setItem(LAST_TAB_KEY, 'schedule')
+        window.history.pushState({ tab: 'schedule' }, '', '#schedule')
+      } catch {}
+      return
+    }
+    // Tapping Work directly resets the initial view (let ScheduleTab restore its own saved view)
+    if (tab === 'schedule') {
+      setWorkInitialView(undefined)
+    }
     setActiveTab(tab)
     try {
       localStorage.setItem(LAST_TAB_KEY, tab)
@@ -216,14 +242,14 @@ const App: React.FC<{}> = () => {
   useEffect(() => {
     const syncTabFromLocation = (stateTab?: TabType) => {
       try {
-        if (stateTab && VALID_TABS.includes(stateTab)) {
-          setActiveTab(stateTab)
-          localStorage.setItem(LAST_TAB_KEY, stateTab)
-        } else {
-          const nextTab = getTabFromLocation()
-          setActiveTab(nextTab)
-          localStorage.setItem(LAST_TAB_KEY, nextTab)
+        let nextTab = (stateTab && VALID_TABS.includes(stateTab)) ? stateTab : getTabFromLocation()
+        // Phase 7: 'requests' is merged into Work — redirect to schedule + open Requests sub-tab
+        if (nextTab === 'requests') {
+          nextTab = 'schedule'
+          setWorkInitialView('requests')
         }
+        setActiveTab(nextTab)
+        localStorage.setItem(LAST_TAB_KEY, nextTab)
       } catch {}
     }
     const onPop = (e: PopStateEvent) => syncTabFromLocation(e.state?.tab as TabType | undefined)
@@ -359,13 +385,13 @@ const App: React.FC<{}> = () => {
     const subscriptionSuccess = params.get('subscription')
     if (unlockedBookingId) {
       setReturnedBookingId(unlockedBookingId)   // pass to RequestsTab to highlight card
-      navigateToTab('requests')
+      navigateToTab('requests')                 // Phase 7: redirects to Work → Requests sub-tab
       loadData(profile.id)
-      window.history.replaceState({ tab: 'requests' }, '', '#requests')
+      window.history.replaceState({ tab: 'schedule' }, '', '#schedule')
     } else if (subscriptionSuccess === 'success') {
       setReturnedSubscription(true)
-      navigateToTab('requests')                 // go to requests, not profile — they paid to see requests
-      window.history.replaceState({ tab: 'requests' }, '', '#requests')
+      navigateToTab('requests')                 // Phase 7: redirects to Work → Requests sub-tab
+      window.history.replaceState({ tab: 'schedule' }, '', '#schedule')
     }
   }, [loggedIn, profile, loadData])
 
@@ -740,7 +766,16 @@ const App: React.FC<{}> = () => {
             />
           )}
           {activeTab === 'schedule' && (
-            <ScheduleTab shifts={shifts} loading={loading} onClockIn={handleClockIn} onTimerUpdate={refreshDocs} />
+            <ScheduleTab
+              shifts={shifts}
+              loading={loading}
+              onClockIn={handleClockIn}
+              onTimerUpdate={refreshDocs}
+              initialView={workInitialView}
+              profile={profile}
+              returnedBookingId={returnedBookingId}
+              returnedSubscription={returnedSubscription}
+            />
           )}
           {activeTab === 'requests' && (
             <RequestsTab

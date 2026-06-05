@@ -132,7 +132,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       const res = await fetch(`${API_BASE}/api/caregiver-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify((() => {
+          const _body: any = { name: name.trim(), email: email.trim().toLowerCase(), password }
+          try { const ic = localStorage.getItem('cgp_invite_code'); if (ic) _body.invite_code = ic } catch {}
+          try { const rc = localStorage.getItem('cgp_ref_code'); if (rc) _body.ref_code = rc } catch {}
+          try { const sc = localStorage.getItem('cgp_source'); if (sc) _body.source = sc } catch {}
+          return _body
+        })()),
       })
       const data = await res.json()
       if (data.success && data.emailVerificationRequired) {

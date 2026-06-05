@@ -195,6 +195,16 @@ const App: React.FC<{}> = () => {
   const [verifyToken] = useState(() => {
     try { return new URLSearchParams(window.location.search).get('verify') } catch { return null }
   })
+  // Phase 20: capture invite/referral URL params
+  const [p20InviteCode] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('invite') } catch { return null }
+  })
+  const [p20RefCode] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('ref') } catch { return null }
+  })
+  const [p20Campaign] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('campaign') } catch { return null }
+  })
   const [verifyStatus, setVerifyStatus] = useState<null | 'pending' | 'success' | 'error'>(
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('verify') ? 'pending' : null
   )
@@ -553,6 +563,14 @@ const App: React.FC<{}> = () => {
     } catch {}
   }
   // SECURITY (RISK-06): Register auto-logout handler for authFetch 401 responses
+  // Phase 20: persist invite/ref codes to localStorage for registration
+  React.useEffect(() => {
+    try {
+      if (p20InviteCode) localStorage.setItem('cgp_invite_code', p20InviteCode)
+      if (p20RefCode) localStorage.setItem('cgp_ref_code', p20RefCode)
+      if (p20Campaign) localStorage.setItem('cgp_source', p20Campaign)
+    } catch {}
+  }, [])
   React.useEffect(() => { _autoLogout = handleLogout; return () => { _autoLogout = null } }, [])
 
   const handleClockIn = async (shiftId: number) => {

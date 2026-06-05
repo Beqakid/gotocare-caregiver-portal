@@ -23,6 +23,9 @@ import {
   Users,
 } from 'lucide-react'
 import { CaregiverProfile, Shift, Timesheet, CareRequest, TimeEntry, CaregiverDocument } from '../types'
+// Phase 25 — location check-in
+import { CheckInModal } from './CheckInModal'
+import { extractCareLocation } from '../utils/geoUtils'
 import {
   addTimeEntry,
   calculateCompleteness,
@@ -307,7 +310,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         icon: Timer,
         iconBg: 'bg-success/10',
         iconColor: 'text-success',
-        action: stopTimer,
+        action: handleCheckOutClick,
       })
     }
 
@@ -406,6 +409,22 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     return tasks.slice(0, 4)
   }, [activeTimer, elapsed, pendingRequests.length, uninvoicedHours, uninvoicedAmount, pendingInvoices.length, nextShift, expiringDocs.length, completeness, missingProfileItems.length])
 
+  // ── Phase 25: Check-In / Check-Out modal intercept ───────────────────────
+  const [checkInModalState, setCheckInModalState] = useState<{
+    mode: 'checkin' | 'checkout'
+    shiftId?: number
+    shift?: Shift
+  } | null>(null)
+
+  const handleCheckInClick = useCallback((shiftId: number) => {
+    setCheckInModalState({ mode: 'checkin', shiftId, shift: nextShift ?? undefined })
+  }, [nextShift])
+
+  const handleCheckOutClick = useCallback(() => {
+    setCheckInModalState({ mode: 'checkout' })
+  }, [])
+  // ─────────────────────────────────────────────────────────────────────────
+
   // ── Phase 2: heroAction — rich card data for the top-priority Next Best Action ──
   const heroAction = useMemo(() => {
     // 1. Active timer running
@@ -421,7 +440,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         primaryLabel: 'View Timer',
         primaryAction: onNavigateToSchedule,
         secondaryLabel: 'Stop Timer',
-        secondaryAction: stopTimer,
+        secondaryAction: handleCheckOutClick,
         note: null,
       }
     }
@@ -436,7 +455,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         title: "Today's Visit",
         subtitle: `Your next visit is scheduled for ${nextShift.startTime || 'today'}.`,
         primaryLabel: 'Start Timer',
-        primaryAction: () => onClockIn(nextShift.id),
+        primaryAction: () => handleCheckInClick(nextShift.id),
         secondaryLabel: 'View Work',
         secondaryAction: onNavigateToSchedule,
         note: null,
@@ -733,7 +752,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <div className="grid grid-cols-3 gap-2">
           {activeTimer ? (
             <button
-              onClick={stopTimer}
+              onClick={handleCheckOutClick}
               className="rounded-2xl bg-error/8 border border-error/20 px-3 py-3 text-left press-card"
             >
               <Square size={18} className="text-error mb-1.5" fill="currentColor" />
@@ -867,7 +886,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   <p className="text-xs text-base-content/60">{activeTimer.clientName} at ${activeTimer.hourlyRate}/hr</p>
                 </div>
               </div>
-              <button onClick={stopTimer} className="btn btn-error btn-sm text-white">
+              <button onClick={handleCheckOutClick} className="btn btn-error btn-sm text-white">
                 <Square size={13} fill="currentColor" /> Stop
               </button>
             </div>
@@ -882,7 +901,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               </div>
             </div>
             {nextShift.status === 'scheduled' && (
-              <button onClick={() => onClockIn(nextShift.id)} className="btn btn-primary btn-sm text-white">Clock in</button>
+              <button onClick={() => handleCheckInClick(nextShift.id)} className="btn btn-primary btn-sm text-white">Check In</button>
             )}
           </div>
         ) : (
@@ -1030,6 +1049,49 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </div>
           )}
         </section>
+      )}
+
+      {/* ── Phase 25: Location Check-In / Check-Out Modal ─────────────── */}
+      {checkInModalState && (
+        <CheckInModal
+          mode={checkInModalState.mode}
+          shiftId={checkInModalState.shiftId}
+          clientName={checkInModalState.shift?.client?.name || checkInModalState.shift?.careType || undefined}
+          scheduledStart={checkInModalState.shift?.startTime || null}
+          scheduledEnd={checkInModalState.shift?.endTime || null}
+          careLocation={extractCareLocation(checkInModalState.shift ?? null)}
+          onCancel={() => setCheckInModalState(null)}
+          onConfirm={(result) => {
+            const pendingMode = checkInModalState.mode
+            const pendingShiftId = checkInModalState.shiftId
+            setCheckInModalState(null)
+            // Record location data to backend (non-blocking, best-effort)
+            const token = localStorage.getItem('cgp_token')
+            if (token) {
+              fetch('https://carehia-admin.jjioji.workers.dev/location-checkin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                  shiftId: pendingShiftId ?? null,
+                  mode: result.mode,
+                  checkInStatus: result.status,
+                  caregiverLat: result.location?.lat ?? null,
+                  caregiverLng: result.location?.lng ?? null,
+                  gpsAccuracyMeters: result.location?.accuracy ?? null,
+                  distanceMeters: result.distanceMeters ?? null,
+                  manualReason: result.manualReason ?? null,
+                  manualNote: result.manualNote ?? null,
+                }),
+              }).catch(() => {})
+            }
+            // Proceed with original timer action
+            if (pendingMode === 'checkin' && pendingShiftId != null) {
+              onClockIn(pendingShiftId)
+            } else if (pendingMode === 'checkout') {
+              stopTimer()
+            }
+          }}
+        />
       )}
 
     </div>

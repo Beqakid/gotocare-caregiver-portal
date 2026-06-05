@@ -481,10 +481,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     if (!token) return
     setSubUpgrading(true)
     try {
+      // Phase 26B: save pending action before Stripe redirect
+      const p26bCtx = { action: 'boost_profile', returnTab: 'profile', returnView: 'visibility', plan: 'unlimited', createdAt: new Date().toISOString(), source: 'caregiver_subscription_unlock' }
+      try { sessionStorage.setItem('cgp_pending_subscription_action', JSON.stringify(p26bCtx)) } catch {}
+      try { localStorage.setItem('cgp_pending_subscription_action_backup', JSON.stringify(p26bCtx)) } catch {}
       const r = await fetch(`${API_BASE}/api/create-caregiver-subscription-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, caregiverAction: 'boost_profile', returnTab: 'profile', returnView: 'visibility' }),
       })
       const d = await r.json()
       if (d.url) window.location.href = d.url

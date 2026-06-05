@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { getTrustPassportSummary } from '../utils/trustEngine'
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -91,56 +92,22 @@ function hasHomeDoc(docs: CaregiverDocument[], test: (doc: CaregiverDocument) =>
   return docs.some(test)
 }
 
-function getHomeVerification(profile: CaregiverProfile | null, documents: CaregiverDocument[], completeness: number) {
-  const idUploaded = hasHomeDoc(documents, d => d.type === 'license' || /driver|state id|passport|identity|id\b/i.test(`${d.name || ''}`))
-  const certUploaded = hasHomeDoc(documents, d => d.type === 'certification' || d.type === 'license')
-  const cprUploaded = hasHomeDoc(documents, d => /cpr|first aid|first-aid/i.test(`${d.name || ''} ${d.type || ''}`))
-  const bgUploaded = hasHomeDoc(documents, d => d.type === 'background_check')
-  const items = [
-    !!profile?.profilePhoto,
-    !!profile?.bio && profile.bio.trim().length >= 40,
-    (profile?.skills?.length || 0) >= 3,
-    !!profile?.phone,
-    idUploaded,
-    certUploaded,
-    cprUploaded,
-    bgUploaded,
-  ]
-  const nextStep =
-    !profile?.profilePhoto ? 'Add a profile photo' :
-    !profile?.bio || profile.bio.trim().length < 40 ? 'Complete your bio' :
-    (profile?.skills?.length || 0) < 3 ? 'Add care specialties' :
-    !idUploaded ? 'Upload ID' :
-    !certUploaded ? 'Upload a certification' :
-    !cprUploaded ? 'Upload CPR or First Aid' :
-    !bgUploaded ? 'Background check not started' :
-    'Keep documents current'
-  const trustScore =
-    (completeness >= 70 ? 20 : Math.round(completeness * 0.2)) +
-    (idUploaded ? 10 : 0) +
-    (certUploaded ? 15 : 0) +
-    (cprUploaded ? 15 : 0) +
-    (bgUploaded ? 5 : 0) +
-    ((profile?.rating || 0) > 0 || (profile?.totalJobs || 0) > 0 ? 10 : 0)
+// Phase 8 — getHomeVerification now delegates to the Trust Passport Engine
+// Returns the same shape as before (for backwards compat) + new engine fields
+function getHomeVerification(profile: CaregiverProfile | null, documents: CaregiverDocument[], _completeness: number) {
+  const summary = getTrustPassportSummary(profile, documents)
   return {
-    progress: Math.round((items.filter(Boolean).length / items.length) * 100),
-    trustScore: Math.min(100, Math.round(trustScore)),
-    nextStep,
-    trustLevel: Math.round((items.filter(Boolean).length / items.length) * 100) >= 75 ? 4 :
-                Math.round((items.filter(Boolean).length / items.length) * 100) >= 50 ? 3 :
-                Math.round((items.filter(Boolean).length / items.length) * 100) >= 25 ? 2 : 1,
-    trustLevelName: Math.round((items.filter(Boolean).length / items.length) * 100) >= 75 ? 'Verified Pro' :
-                    Math.round((items.filter(Boolean).length / items.length) * 100) >= 50 ? 'Established' :
-                    Math.round((items.filter(Boolean).length / items.length) * 100) >= 25 ? 'Building Trust' : 'Getting Started',
-    unlockMessage:
-      !profile?.profilePhoto ? 'Better first impressions with families' :
-      !profile?.bio || profile.bio.trim().length < 40 ? 'Better profile visibility for families' :
-      (profile?.skills?.length || 0) < 3 ? 'Appear in more care search results' :
-      !idUploaded ? 'Verified badge + higher trust score' :
-      !certUploaded ? 'Show families your qualifications' :
-      !cprUploaded ? 'Required for many care placements' :
-      !bgUploaded ? 'Unlock client contact details + premium jobs' :
-      'Maintain your verified status',
+    // Legacy-compatible fields
+    progress:       summary.completionPercentage,
+    trustScore:     summary.trustScore,
+    nextStep:       summary.nextRecommendedStep,
+    trustLevel:     summary.trustLevel,
+    trustLevelName: summary.trustLevelName,
+    unlockMessage:  summary.nextUnlock,
+    // New Phase 8 fields
+    nextActionExplanation: summary.nextActionExplanation,
+    publicBadges:   summary.publicBadges,
+    clientVisibilityStatus: summary.clientVisibilityStatus,
   }
 }
 
@@ -303,7 +270,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const homeVerification = getHomeVerification(profile, documents, completeness)
   const verificationAlerts = [
     ...expiringDocs.slice(0, 2).map(d => d.status === 'expired' ? `${d.name} expired` : `${d.name} expires soon`),
-    ...(homeVerification.nextStep === 'Background check not started' ? ['Background check not started'] : []),
+    ...(homeVerification.nextStep === 'Give background check permission' ? ['Background check not started'] : []),
   ].slice(0, 3)
 
   const completedWeekEntries = timeEntries.filter(e => e.status === 'completed' && e.date >= weekStart)
@@ -951,7 +918,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className={sectionTitle}>Carehia Trust Passport</p>
-            <p className="text-sm font-bold text-base-content leading-tight">{homeVerification.progress}% complete — Level {homeVerification.trustLevel}</p>
+            <p className="text-sm font-bold text-base-content leading-tight">{homeVerification.progress}% — Level {homeVerification.trustLevel}: {homeVerification.trustLevelName}</p>
             <p className="text-xs text-base-content/50 truncate mt-0.5">{homeVerification.nextStep}</p>
           </div>
           <span className="text-xl font-black text-primary shrink-0">{homeVerification.progress}%</span>

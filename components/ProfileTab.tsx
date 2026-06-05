@@ -1752,6 +1752,85 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
+
+      {/* ─── Phase 20: INVITE A CAREGIVER + ONBOARDING NUDGES (additive) ─── */}
+      {profile?.id && (() => {
+        const refCode = 'CGP' + profile.id
+        const inviteLink = 'https://work.carehia.com?ref=' + refCode
+        const copyLink = () => {
+          try {
+            navigator.clipboard.writeText(inviteLink).then(() => {
+              const btn = document.getElementById('cgp-copy-btn-' + profile.id)
+              if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy Link' }, 2000) }
+            })
+          } catch {}
+        }
+        const shareLink = async () => {
+          try {
+            if (navigator.share) {
+              await navigator.share({ title: 'Join me on Carehia', text: 'I use Carehia to manage my caregiving work. Join here:', url: inviteLink })
+            } else { copyLink() }
+          } catch {}
+        }
+
+        // Nudges based on profile completeness
+        const nudges = []
+        if (!profile.bio || profile.bio.trim() === '') nudges.push({ icon: '✍️', text: 'Add a short bio to introduce yourself to families', action: 'Edit your profile above' })
+        if (!profile.skills || (profile.skills as any[]).length === 0) nudges.push({ icon: '💪', text: 'Add your care skills to get matched with the right clients', action: 'Tap Skills to add them' })
+        if (!profile.hourly_rate || Number(profile.hourly_rate) === 0) nudges.push({ icon: '💵', text: 'Set your hourly rate so families know what to expect', action: 'Tap Edit Profile to add it' })
+        if (!profile.photo_url) nudges.push({ icon: '📸', text: 'Add a profile photo — caregivers with photos get 3x more requests', action: 'Tap the photo circle above' })
+
+        return (
+          <>
+            {/* Invite card */}
+            <div style={{ margin: '0 0 16px', padding: '20px', background: 'linear-gradient(135deg, #EDE9FE 0%, #DBEAFE 100%)', borderRadius: 16, border: '1px solid rgba(124,92,255,0.15)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,92,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🤝</div>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 15 }}>Invite a Caregiver</div>
+                  <div style={{ color: '#475569', fontSize: 12, marginTop: 2 }}>Know someone who'd be great on Carehia?</div>
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#475569', fontFamily: 'monospace', marginBottom: 12, wordBreak: 'break-all' }}>
+                {inviteLink}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  id={'cgp-copy-btn-' + profile.id}
+                  onClick={copyLink}
+                  style={{ flex: 1, padding: '10px', background: '#7C5CFF', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                >📋 Copy Link</button>
+                {'share' in navigator && (
+                  <button
+                    onClick={shareLink}
+                    style={{ flex: 1, padding: '10px', background: 'rgba(124,92,255,0.12)', color: '#7C5CFF', border: '1px solid rgba(124,92,255,0.3)', borderRadius: 10, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                  >↗ Share</button>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, textAlign: 'center' }}>
+                Your code: <strong style={{ color: '#7C5CFF' }}>{refCode}</strong> · No sign-up fee, no catch
+              </div>
+            </div>
+
+            {/* Onboarding nudges */}
+            {nudges.length > 0 && (
+              <div style={{ margin: '0 0 16px', padding: '16px 20px', background: '#FFFBEB', borderRadius: 16, border: '1px solid #FDE68A' }}>
+                <div style={{ fontWeight: 700, color: '#92400E', fontSize: 14, marginBottom: 12 }}>💡 Complete your profile</div>
+                {nudges.slice(0, 3).map((n, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < nudges.slice(0,3).length - 1 ? 10 : 0 }}>
+                    <span style={{ fontSize: 16 }}>{n.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 500 }}>{n.text}</div>
+                      <div style={{ fontSize: 11, color: '#92400E', marginTop: 2 }}>{n.action}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )
+      })()}
+
       {/* ─── QR FULLSCREEN MODAL ─── */}
       {showQR && profile?.id && (
         <div

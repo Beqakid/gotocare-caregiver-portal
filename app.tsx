@@ -333,6 +333,43 @@ const App: React.FC<{}> = () => {
       return updated
     })
   }, [])
+
+  // Phase 15: mark single notification read
+  const markOneRead = useCallback((id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      try { localStorage.setItem('cgp_notifications', JSON.stringify(updated)) } catch {}
+      return updated
+    })
+  }, [])
+
+  // Phase 15: navigate from notification action label to correct tab
+  const navigateFromNotification = useCallback((action?: string) => {
+    setShowNotifPanel(false)
+    switch (action) {
+      case 'work_requests':
+        setWorkInitialView('requests')
+        setActiveTab('schedule')
+        break
+      case 'work_schedule':
+        setWorkInitialView('schedule')
+        setActiveTab('schedule')
+        break
+      case 'money':
+        setActiveTab('earnings')
+        break
+      case 'trust_passport':
+        setShowTrustPassport(true)
+        break
+      case 'profile':
+        setActiveTab('profile')
+        break
+      case 'today':
+      default:
+        setActiveTab('home')
+        break
+    }
+  }, [])
   // ────────────────────────────────────────────────────────────────────────
 
   const refreshDocs = () => setDocuments(refreshDocumentStatuses())
@@ -869,26 +906,79 @@ const App: React.FC<{}> = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {notifications.map((n) => (
-                  <div key={n.id} style={{
-                    background: n.read ? '#f8fafc' : '#f0ebff',
-                    border: `1px solid ${n.read ? '#e2e8f0' : 'rgba(124,92,255,0.25)'}`,
-                    borderRadius: 16, padding: '14px 16px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: n.read ? 500 : 700, fontSize: 14, margin: '0 0 4px', color: '#0f172a' }}>{n.title}</p>
-                        <p style={{ fontSize: 13, margin: '0 0 6px', color: '#475569', lineHeight: '1.4' }}>{n.body}</p>
-                        <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                          {new Date(n.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                        </p>
+                {/* Phase 15: enhanced notification cards — priority accent, emoji, action button */}
+                {notifications.map((n) => {
+                  // Priority accent colour — falls back gracefully for old push notifications
+                  const priorityCfg: Record<string, { accent: string; border: string }> = {
+                    urgent:    { accent: '#EF4444', border: 'rgba(239,68,68,0.45)'   },
+                    important: { accent: '#7C5CFF', border: 'rgba(124,92,255,0.45)' },
+                    normal:    { accent: '#4A90E2', border: 'rgba(74,144,226,0.35)' },
+                    low:       { accent: '#94a3b8', border: 'rgba(148,163,184,0.25)'},
+                  }
+                  const pCfg = priorityCfg[n.priority || (n.read ? 'low' : 'important')]
+
+                  // Type emoji — falls back to bell for old push notifications
+                  const typeEmojiMap: Record<string, string> = {
+                    new_care_request: '🔔', request_expiring: '⏰',
+                    interview_request: '📋', hire_offer_received: '📄',
+                    hire_offer_signed: '✅', client_confirmed: '🎉',
+                    visit_upcoming: '📅', timer_reminder: '⏱️',
+                    invoice_ready: '💰', payment_received: '🎉',
+                    trust_passport_action_needed: '🛡️', certification_expiring: '⚠️',
+                    review_received: '⭐',
+                  }
+                  const emoji = n.type ? (typeEmojiMap[n.type] || '🔔') : '🔔'
+
+                  // Action button label
+                  const actionLabelMap: Record<string, string> = {
+                    work_requests: 'Review Now', work_schedule: 'View Schedule',
+                    money: 'View Money', trust_passport: 'View Trust Passport',
+                    profile: 'Update Profile', today: 'Go to Today',
+                  }
+                  const actionLabel = n.action ? actionLabelMap[n.action] : null
+
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => markOneRead(n.id)}
+                      style={{
+                        background: n.read ? '#f8fafc' : '#f5f1ff',
+                        border: `1px solid ${n.read ? '#e2e8f0' : pCfg.border}`,
+                        borderLeft: `4px solid ${n.read ? '#e2e8f0' : pCfg.accent}`,
+                        borderRadius: 14, padding: '13px 14px 11px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: n.read ? 500 : 700, fontSize: 14, margin: '0 0 3px', color: '#0f172a' }}>
+                            {emoji} {n.title}
+                          </p>
+                          <p style={{ fontSize: 13, margin: '0 0 5px', color: '#475569', lineHeight: '1.4' }}>{n.body}</p>
+                          <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+                            {new Date(n.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </p>
+                          {/* Phase 15: action button — routes to correct tab */}
+                          {actionLabel && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); navigateFromNotification(n.action) }}
+                              style={{
+                                marginTop: 9, padding: '5px 12px', fontSize: 12, fontWeight: 600,
+                                background: pCfg.accent, color: '#ffffff', border: 'none',
+                                borderRadius: 20, cursor: 'pointer',
+                              }}
+                            >
+                              {actionLabel}
+                            </button>
+                          )}
+                        </div>
+                        {!n.read && (
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: pCfg.accent, flexShrink: 0, marginTop: 3 }} />
+                        )}
                       </div>
-                      {!n.read && (
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C5CFF', flexShrink: 0, marginTop: 3 }} />
-                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

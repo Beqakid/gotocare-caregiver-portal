@@ -48,8 +48,10 @@ export interface CaregiverMatchContext {
   paidInvoices?: number;
   repeatClients?: number;
   activeCerts?: number;
-  // Response speed — TODO: add when caregiver_response_metrics table is active
-  // avgResponseTimeMins?: number;
+  // Phase 15: Response speed — now active via client-side responseMetrics.ts scaffold
+  // When backend caregiver_response_metrics table is live, pass avgResponseTimeMins here.
+  // Falls back to neutral score (3/5) when not provided.
+  avgResponseTimeMins?: number;
 }
 
 export interface MatchScoreResult {
@@ -175,10 +177,18 @@ function _workHistoryScore(completedVisits?: number, paidInvoices?: number): num
 }
 
 // Response speed score (0–5)
-// TODO: use caregiver_response_metrics.avg_response_time_minutes when available
-// Data dependency: response tracking not yet live in dispatch flow
-function _responseSpeedScore(): number {
-  return 3  // default neutral until response metrics table is populated
+// Phase 15: Use avgResponseTimeMins from CaregiverMatchContext when provided.
+// Client-side scaffold: responseMetrics.ts populates this via getResponseScoreForMatching().
+// Backend: caregiver_response_metrics D1 table (wire when dispatch tracking is live).
+// Falls back to neutral (3/5) when no data — never penalises new caregivers.
+function _responseSpeedScore(avgResponseTimeMins?: number): number {
+  if (typeof avgResponseTimeMins !== 'number') return 3  // neutral default
+  // Score 0–5 based on average response time
+  if (avgResponseTimeMins <= 5)  return 5   // under 5 mins — excellent
+  if (avgResponseTimeMins <= 15) return 4   // under 15 mins — great
+  if (avgResponseTimeMins <= 30) return 3   // under 30 mins — good (neutral)
+  if (avgResponseTimeMins <= 60) return 2   // under 1 hour — acceptable
+  return 1                                   // over 1 hour — still included, not zero
 }
 
 // ── Reason builders ───────────────────────────────────────────────────
@@ -350,7 +360,7 @@ export function calculateCaregiverMatchScore(
   )
   const ratingSc   = _ratingScore(context.avgRating, context.reviewCount)
   const workSc     = _workHistoryScore(context.completedVisits, context.paidInvoices)
-  const responseSc = _responseSpeedScore()
+  const responseSc = _responseSpeedScore(context?.avgResponseTimeMins)
 
   const totalScore = trustSc + skillsSc + locSc + availSc + ratingSc + workSc + responseSc
 

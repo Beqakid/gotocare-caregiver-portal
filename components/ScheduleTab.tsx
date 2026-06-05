@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, User, Users, Play, Square, Plus, Trash2, Timer, X, Car, ChevronDown, ChevronUp, Zap, Edit2, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Shift, TimeEntry, PrivateClient, MileageEntry } from '../types'
 import { getTimeEntries, addTimeEntry, updateTimeEntry, deleteTimeEntry, getActiveTimer, setActiveTimer, getPrivateClients, addPrivateClient, deletePrivateClient, addMileageEntry, getMileageEntries } from '../utils/storage'
+import { RequestsTab } from './RequestsTab'
 import { cloudGetTimeEntries, cloudAddTimeEntry, cloudDeleteTimeEntry, cloudGetActiveTimer, cloudSetActiveTimer, cloudGetPrivateClients, cloudAddPrivateClient, cloudDeletePrivateClient, cloudAddMileage, cloudGetMileage } from '../utils/cloud-api'
 
 interface ScheduleTabProps {
@@ -10,15 +11,22 @@ interface ScheduleTabProps {
   loading: boolean
   onClockIn: (shiftId: number) => void
   onTimerUpdate: () => void
+  // Phase 7: Work Hub — initial sub-tab override (used when navigating from Today/Stripe/notifications)
+  initialView?: ScheduleViewMode
+  // Phase 7: props passed through to embedded RequestsTab
+  profile?: any
+  returnedBookingId?: string | null
+  returnedSubscription?: boolean
 }
 
 const SCHEDULE_VIEW_KEY = 'cgp_schedule_view'
 const SCHEDULE_MONTH_KEY = 'cgp_schedule_month'
-type ScheduleViewMode = 'schedule' | 'timesheet' | 'clients' | 'availability'
+type ScheduleViewMode = 'schedule' | 'timesheet' | 'clients' | 'availability' | 'requests'
 
 function getSavedScheduleView(): ScheduleViewMode {
   try {
     const saved = localStorage.getItem(SCHEDULE_VIEW_KEY) as ScheduleViewMode | null
+    // 'requests' is intentionally excluded — it's never persisted, always comes from nav signal
     if (saved === 'schedule' || saved === 'timesheet' || saved === 'clients' || saved === 'availability') return saved
   } catch {}
   return 'schedule'
@@ -152,8 +160,13 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDates, onToggleDate
   )
 }
 
-export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate }) => {
-  const [viewMode, setViewMode] = useState<ScheduleViewMode>(getSavedScheduleView)
+export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClockIn, onTimerUpdate, initialView, profile, returnedBookingId, returnedSubscription }) => {
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>(() => initialView || getSavedScheduleView())
+
+  // Phase 7: when parent signals a specific view (e.g. 'requests' from Today/Stripe), apply it
+  useEffect(() => {
+    if (initialView) setViewMode(initialView)
+  }, [initialView])
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [schedulesLoading, setSchedulesLoading] = useState(false)
 
@@ -223,7 +236,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   const navigateToViewMode = (mode: ScheduleViewMode) => {
     setViewMode(mode)
-    try { localStorage.setItem(SCHEDULE_VIEW_KEY, mode) } catch {}
+    // Don't persist 'requests' — it should always be set via navigation signal, not localStorage
+    if (mode !== 'requests') {
+      try { localStorage.setItem(SCHEDULE_VIEW_KEY, mode) } catch {}
+    }
   }
 
   const toggleDay = (key: string) => {
@@ -677,20 +693,22 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   return (
     <div className="pb-4">
       <div className="px-4 pt-4 pb-3">
-        <h1 className="text-xl font-bold text-base-content">Schedule & Time</h1>
-        <div className="grid grid-cols-4 gap-2 mt-3">
+        <h1 className="text-xl font-bold text-base-content">Work</h1>
+        <p className="text-xs text-base-content/55 mt-0.5">Find, manage, and complete your care work.</p>
+        <div className="grid grid-cols-5 gap-1.5 mt-3">
           {[
+            { key: 'requests' as const, icon: '📬', label: 'Requests' },
             { key: 'schedule' as const, icon: '📅', label: 'Schedule' },
-            { key: 'timesheet' as const, icon: '⏱', label: 'Tracker' },
+            { key: 'timesheet' as const, icon: '⏱', label: 'Time' },
             { key: 'clients' as const, icon: '👥', label: 'Clients' },
-            { key: 'availability' as const, icon: '🗓', label: 'Availability' },
+            { key: 'availability' as const, icon: '🗓', label: 'Avail.' },
           ].map(t => (
             <button
               key={t.key}
-              className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-semibold transition-all ${viewMode === t.key ? 'bg-primary text-primary-content shadow-md' : 'bg-base-200/60 text-base-content/70 hover:bg-base-200'}`}
+              className={`flex flex-col items-center gap-1 py-2 px-0.5 rounded-xl text-xs font-semibold transition-all ${viewMode === t.key ? 'bg-primary text-primary-content shadow-md' : 'bg-base-200/60 text-base-content/70 hover:bg-base-200'}`}
               onClick={() => navigateToViewMode(t.key)}
             >
-              <span className="text-base leading-none">{t.icon}</span>
+              <span className="text-sm leading-none">{t.icon}</span>
               <span className="leading-tight">{t.label}</span>
             </button>
           ))}
@@ -1352,6 +1370,15 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
             {availabilitySaved ? '✓ Saved!' : 'Save Availability'}
           </button>
         </div>
+      )}
+
+      {/* ---- REQUESTS VIEW (Phase 7: embedded RequestsTab) ---- */}
+      {viewMode === 'requests' && (
+        <RequestsTab
+          profile={profile}
+          returnedBookingId={returnedBookingId}
+          returnedSubscription={returnedSubscription}
+        />
       )}
 
       {/* ---- MY CLIENTS VIEW ---- */}

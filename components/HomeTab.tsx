@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { getTrustPassportSummary, WorkHistoryData, computeTrustedProEligibility } from '../utils/trustEngine'
+import { getEligibilityFromTrustLevel, ELIGIBILITY_LABELS } from '../utils/matchingEngine'
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -938,6 +939,19 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <div className="h-1.5 rounded-full bg-base-100 overflow-hidden mb-3">
           <div className="h-full rounded-full bg-primary" style={{ width: `${homeVerification.progress}%` }} />
         </div>
+        {/* ── Phase 12: Visibility status pill ── */}
+        {(() => {
+          const _el12 = getEligibilityFromTrustLevel(homeVerification.trustLevel)
+          const _info12 = ELIGIBILITY_LABELS[_el12]
+          return (
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border"
+                style={{ color: _info12.color, borderColor: _info12.color + '33', background: _info12.color + '12' }}>
+                {_info12.emoji} {_info12.label}
+              </span>
+            </div>
+          )
+        })()}
         {verificationAlerts.length > 0 && (
           <div className="mb-2 space-y-1">
             {verificationAlerts.map(alert => (

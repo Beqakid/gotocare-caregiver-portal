@@ -9,19 +9,24 @@ import { VerificationTab } from './VerificationTab'
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 const PROFILE_SECTION_KEY = 'cgp_profile_section'
 const PROFILE_VERIFICATION_OPEN_KEY = 'cgp_profile_verification_open'
-type ProfileSection = 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings'
+type ProfileSection = 'profile' | 'trust-passport' | 'work-preferences' | 'account'
 
-function getSavedProfileSection(initialSection?: ProfileSection): ProfileSection {
-  if ((initialSection as any) === 'profile' || (initialSection as any) === 'clients') return 'overview'
-  if ((initialSection as any) === 'trust') return 'verification'
-  if (initialSection) return initialSection
+const SECTION_MAP: Record<string, ProfileSection> = {
+  overview: 'profile', profile: 'profile', clients: 'profile',
+  verification: 'trust-passport', certifications: 'trust-passport',
+  documents: 'trust-passport', badges: 'trust-passport', trust: 'trust-passport',
+  'trust-passport': 'trust-passport',
+  'work-preferences': 'work-preferences',
+  settings: 'account', account: 'account',
+}
+
+function getSavedProfileSection(initialSection?: string): ProfileSection {
+  if (initialSection && SECTION_MAP[initialSection]) return SECTION_MAP[initialSection]
   try {
     const saved = localStorage.getItem(PROFILE_SECTION_KEY)
-    if (saved === 'profile' || saved === 'clients') return 'overview'
-    if (saved === 'trust') return 'verification'
-    if (saved === 'overview' || saved === 'verification' || saved === 'certifications' || saved === 'documents' || saved === 'badges' || saved === 'settings') return saved
+    if (saved && SECTION_MAP[saved]) return SECTION_MAP[saved]
   } catch {}
-  return 'overview'
+  return 'profile'
 }
 
 interface ProfileTabProps {
@@ -31,7 +36,7 @@ interface ProfileTabProps {
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
   deepLink?: string
-  initialSection?: ProfileSection
+  initialSection?: string
   returnedSubscription?: boolean
   onNavigateHome?: () => void
   onOpenTrustPassport?: () => void
@@ -228,9 +233,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     if (initialSection) navigateToSection(initialSection)
     if (deepLink) {
       setTimeout(() => {
-        if (deepLink === 'section-verification') navigateToSection('verification')
-        if (deepLink === 'section-certifications') navigateToSection('certifications')
-        if (deepLink === 'section-settings') navigateToSection('settings')
+        if (deepLink === 'section-verification') navigateToSection('trust-passport')
+        if (deepLink === 'section-certifications') navigateToSection('trust-passport')
+        if (deepLink === 'section-documents') navigateToSection('trust-passport')
+        if (deepLink === 'section-settings') navigateToSection('account')
         const el = document.getElementById(deepLink)
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
         if (deepLink === 'section-bio') setEditing(true)
@@ -256,7 +262,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       .finally(() => { clearTimeout(tid); setClientsLoading(false) })
   }
   useEffect(() => {
-    if (section !== 'settings') return
+    if (section !== 'account') return
     fetchMyClients()
   }, [section])
 
@@ -317,20 +323,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   }
 
   const openBioEditor = (focusRate = false) => {
-    navigateToSection('overview')
+    navigateToSection('profile')
     setEditing(true)
     scrollToProfileSection('section-bio', focusRate ? 'input[type="number"]' : 'textarea')
   }
 
   const openSkillsEditor = () => {
-    navigateToSection('overview')
+    navigateToSection('work-preferences')
     setSelectedSkills(profile?.skills || [])
     setEditingSkills(true)
     scrollToProfileSection('section-skills')
   }
 
   const openContactEditor = () => {
-    navigateToSection('overview')
+    navigateToSection('profile')
     setEditPhone(profile?.phone || '')
     setEditCity(profile?.location?.city || '')
     setEditState(profile?.location?.state || '')
@@ -576,7 +582,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       title: 'Upload at least 1 trust document',
       detail: 'Certifications, licenses, and background checks build confidence.',
       action: 'Add document',
-      run: () => { navigateToSection('documents'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
+      run: () => { navigateToSection('trust-passport'); setShowAddDoc(true); setTimeout(() => scrollToProfileSection('trust-manual-proof'), 80) },
     },
   ]
   const nextReadinessTasks = readinessTasks.filter(t => !t.done).slice(0, 3)
@@ -661,31 +667,25 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       </div>
 
-      {/* Section tabs */}
-      <div className="px-4 mt-4 mb-3 flex gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist">
-        {[
-          { key: 'overview' as const, label: 'Overview' },
-          { key: 'verification' as const, label: 'Verification' },
-          { key: 'certifications' as const, label: `Certifications (${certificationDocs.length})` },
-          { key: 'documents' as const, label: `Documents (${docs.length})` },
-          { key: 'badges' as const, label: `Badges (${earnedBadges.length})` },
-          { key: 'settings' as const, label: 'Settings' },
-        ].map(t => (
+      {/* Section tabs – 4-tab grid, never overflows on mobile */}
+      <div className="px-4 mt-4 mb-3 grid grid-cols-4 gap-1" role="tablist">
+        {([
+          { key: 'profile' as ProfileSection, label: 'Profile' },
+          { key: 'trust-passport' as ProfileSection, label: 'Trust' },
+          { key: 'work-preferences' as ProfileSection, label: 'Work' },
+          { key: 'account' as ProfileSection, label: 'Account' },
+        ] as Array<{key: ProfileSection; label: string}>).map(t => (
           <button key={t.key}
-            className={`btn btn-sm rounded-full shrink-0 ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
+            className={`btn btn-sm rounded-full text-xs font-semibold ${section === t.key ? 'btn-primary' : 'btn-ghost'}`}
             role="tab"
             aria-selected={section === t.key}
-            onClick={(e) => {
-              navigateToSection(t.key)
-              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-            }}
+            onClick={() => navigateToSection(t.key)}
           >{t.label}</button>
         ))}
-        <div className="shrink-0 w-8" />
       </div>
 
-      {/* ---- OVERVIEW SECTION ---- */}
-      {section === 'overview' && (
+      {/* ── PROFILE SECTION ── */}
+      {section === 'profile' && (
         <div className="px-4 space-y-3">
           <div className="bg-base-200 rounded-3xl p-4 border border-base-300/70">
             <div className="flex items-start justify-between gap-4 mb-4">
@@ -733,44 +733,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
+          {/* Compact Trust Passport summary → Trust tab */}
           <div className="bg-base-200 rounded-3xl p-4 border border-primary/15">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Trust &amp; Verification</p>
-                <p className="text-lg font-bold text-base-content">{verification.verificationProgress}% complete</p>
-                <p className="text-sm text-base-content/60 mt-1">Next step: {verification.nextStep}</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                <Shield size={20} />
               </div>
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <Shield size={26} />
+              <div className="flex-1">
+                <p className="font-bold text-sm text-base-content">Carehia Trust Passport</p>
+                <p className="text-xs text-base-content/60">{verification.verificationProgress}% complete · {verification.nextStep}</p>
               </div>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-base-100 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-base-100 overflow-hidden mb-3">
               <div className="h-full rounded-full bg-primary" style={{ width: `${verification.verificationProgress}%` }} />
             </div>
-            <button onClick={() => navigateToSection('verification')} className="btn btn-primary btn-sm w-full mt-4 rounded-2xl">
-              Continue Verification
-            </button>
-          </div>
-
-          {/* ── Carehia Trust Passport entry card (Phase 5 — additive) ── */}
-          <div className="rounded-3xl p-4 border border-primary/20" style={{ background: 'linear-gradient(135deg, rgba(124,92,255,0.07) 0%, rgba(74,144,226,0.07) 100%)' }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Shield size={20} className="text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-extrabold text-base-content leading-tight">Carehia Trust Passport</p>
-                  <p className="text-xs text-base-content/55 mt-0.5">Build trust and unlock more opportunities</p>
-                </div>
-              </div>
+            <div className="flex gap-2">
+              <button onClick={() => navigateToSection('trust-passport')} className="btn btn-primary btn-sm flex-1 rounded-2xl">
+                View Trust Passport
+              </button>
+              <button onClick={() => onOpenTrustPassport?.()} className="btn btn-outline btn-sm rounded-2xl border-primary/30 text-primary">
+                Full View
+              </button>
             </div>
-            <button
-              onClick={() => onOpenTrustPassport?.()}
-              className="btn btn-primary btn-sm w-full mt-4 rounded-2xl text-white"
-            >
-              View Trust Passport
-            </button>
           </div>
 
           <div className="bg-base-200 rounded-3xl p-4 border border-base-300/70">
@@ -796,8 +780,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => openBioEditor()} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Edit3 size={15} /> Edit Bio</button>
-            <button onClick={() => { navigateToSection('certifications'); setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Award size={15} /> Add Certification</button>
-            <button onClick={() => { navigateToSection('documents'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Upload size={15} /> Upload Document</button>
+            <button onClick={() => { navigateToSection('trust-passport'); setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Award size={15} /> Add Certification</button>
+            <button onClick={() => { navigateToSection('trust-passport'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Upload size={15} /> Upload Proof</button>
             <button onClick={() => setShowQR(true)} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Share2 size={15} /> Show QR Code</button>
           </div>
 
@@ -1059,43 +1043,23 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Skills */}
+          {/* Skills – display-only; full editor in Work tab */}
           <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm text-base-content">Skills &amp; Specializations</p>
-              <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
-                <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
+              <p className="font-semibold text-sm text-base-content">Care Skills</p>
+              <button onClick={() => navigateToSection('work-preferences')} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
+                <Edit3 size={12} /> Edit in Work
               </button>
             </div>
-            {editingSkills ? (
-              <div>
-                <p className="text-xs text-base-content/50 mb-3">Tap to select the care services you offer.</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {ALL_CARE_NEEDS.map(need => {
-                    const active = selectedSkills.includes(need)
-                    return (
-                      <button key={need} onClick={() => handleToggleSkill(need)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                          active ? 'bg-primary text-white border-primary' : 'bg-base-100 text-base-content/60 border-base-300'
-                        }`}
-                      >{need}</button>
-                    )
-                  })}
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditingSkills(false)} className="btn btn-ghost btn-sm flex-1">Cancel</button>
-                  <button onClick={handleSaveSkills} className="btn btn-primary btn-sm flex-1">Save ({selectedSkills.length})</button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {(profile.skills?.length || 0) > 0 ? profile.skills!.map((skill, i) => (
-                  <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">{skill}</span>
-                )) : (
-                  <p className="text-xs text-base-content/65">No skills added yet. Tap Edit to select care services you offer.</p>
-                )}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-1.5">
+              {(profile.skills?.length || 0) > 0 ? profile.skills!.map((skill, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">{skill}</span>
+              )) : (
+                <button onClick={() => navigateToSection('work-preferences')} className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg">
+                  + Add care skills in Work tab
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Languages */}
@@ -1161,15 +1125,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Settings row */}
-          <div className="bg-base-200 rounded-2xl overflow-hidden">
-            <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors border-b border-base-300">
-              <Settings size={18} className="text-base-content/60" />
-              <span className="flex-1 text-left text-sm text-base-content">Settings</span>
-              <ChevronRight size={16} className="opacity-30" />
-            </button>
-          </div>
-
           {/* Subscription success banner */}
           {showSubBanner && (
             <div
@@ -1194,62 +1149,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           )}
 
-          {/* Subscription card */}
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm text-base-content">Subscription</p>
-              {cgSub?.subscribed && (
-                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>
-              )}
-            </div>
-            {cgSubLoading ? (
-              <p className="text-xs text-base-content/60">Loading...</p>
-            ) : cgSub?.subscribed ? (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">♾️</div>
-                  <div>
-                    <p className="font-semibold text-sm text-base-content">Unlimited Plan</p>
-                    <p className="text-xs text-base-content/60">$19.99/mo · All bookings auto-unlocked</p>
-                  </div>
-                </div>
-                {cgSub.createdAt && (
-                  <p className="text-xs text-base-content/50">Member since {new Date(cgSub.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base">🆓</div>
-                  <div>
-                    <p className="font-semibold text-sm text-base-content">Pay-per-unlock</p>
-                    <p className="text-xs text-base-content/60">$4.99 per booking reveal</p>
-                  </div>
-                </div>
-                <div className="bg-primary/5 rounded-xl p-3 mb-3">
-                  <p className="text-xs font-semibold text-primary mb-1">♾️ Unlimited Plan — $19.99/mo</p>
-                  <p className="text-xs text-base-content/60">Auto-unlock all bookings. Pay once, never miss a lead.</p>
-                </div>
-                <button
-                  onClick={handleCgSubscribe}
-                  disabled={subUpgrading}
-                  className="btn btn-primary btn-sm w-full rounded-xl gap-1"
-                >
-                  {subUpgrading ? 'Redirecting...' : '⚡ Upgrade to Unlimited'}
-                </button>
-              </div>
-            )}
-          </div>
 
-          <button onClick={onLogout} className="btn btn-ghost w-full text-error gap-2 mt-2">
-            <LogOut size={18} /> Sign Out
-          </button>
         </div>
       )}
 
-      {/* ---- VERIFICATION SECTION ---- */}
-      {section === 'verification' && (
-        <div id="section-verification" className="px-4 space-y-4">
+      {/* ── TRUST PASSPORT: Verification ── */}
+      {section === 'trust-passport' && (
+        <div id="trust-summary" className="px-4 space-y-4">
+          {/* Trust Passport header */}
+          <div className="rounded-3xl p-4" style={{ background: 'linear-gradient(135deg,rgba(124,92,255,0.10) 0%,rgba(74,144,226,0.10) 100%)', border: '1.5px solid rgba(124,92,255,0.25)' }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-1">Carehia Trust Passport</p>
+            <h2 className="text-lg font-bold text-base-content">Build trust step by step and unlock more opportunities.</h2>
+            <p className="text-xs text-base-content/60 mt-1">Complete each module to rank higher and get more bookings.</p>
+          </div>
+          <div id="trust-verification">
           <div className="rounded-3xl bg-base-200 border border-primary/15 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1350,16 +1263,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           </div>
 
           <TrustCenter profile={profile} />
+          </div>{/* /trust-verification */}
         </div>
       )}
 
-      {/* ---- CERTIFICATIONS SECTION ---- */}
-      {section === 'certifications' && (
-        <div id="section-certifications" className="px-4 space-y-4">
+      {/* ── TRUST PASSPORT: Certifications & Skills Proof ── */}
+      {section === 'trust-passport' && (
+        <div id="trust-certifications" className="px-4 space-y-4">
           <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications &amp; Skills Proof</p>
                 <h3 className="text-lg font-bold text-base-content mt-1">Show your care qualifications</h3>
                 <p className="text-sm text-base-content/60 mt-1">Verified certifications can help improve your visibility. Uploaded proof stays private during review.</p>
               </div>
@@ -1424,12 +1338,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ---- DOCUMENTS SECTION ---- */}
-      {section === 'documents' && (
-        <div id="section-documents" className="px-4 space-y-4">
+      {/* ── TRUST PASSPORT: Manual Proof / Document Vault ── */}
+      {section === 'trust-passport' && (
+        <div id="trust-manual-proof" className="px-4 space-y-4">
           <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-lg font-bold text-base-content">Private Document Vault</p>
-            <p className="text-sm text-base-content/60 mt-1">Your documents are private and only used for verification unless you choose to share approved badges.</p>
+            <p className="text-lg font-bold text-base-content">Manual Proof</p>
+            <p className="text-sm text-base-content/60 mt-1">Upload proof when a trust step needs supporting documents such as certifications, licenses, training, or background check records. Documents are private.</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {['Identity', 'Certification', 'Training', 'Medical clearance', 'Other'].map(label => (
                 <span key={label} className="rounded-full bg-base-100 border border-base-300 px-2.5 py-1 text-[11px] font-semibold text-base-content/60">{label}</span>
@@ -1548,14 +1462,62 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ---- CLIENTS SECTION ---- */}
-      {section === 'settings' && (
+      {/* ── ACCOUNT SECTION ── */}
+      {section === 'account' && (
         <div className="px-4 space-y-3 pb-4">
-          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-lg font-bold text-base-content">Settings</p>
-            <p className="text-sm text-base-content/60 mt-1">Manage account access, support, subscription, and care team details.</p>
-            <button onClick={() => setShowSettings(true)} className="btn btn-primary btn-sm rounded-2xl mt-3">
-              Open Account Settings
+          {/* Subscription success banner */}
+          {showSubBanner && (
+            <div style={{ background: 'linear-gradient(135deg,#22C55E 0%,#16a34a 100%)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🎉</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: 14, margin: 0 }}>You&apos;re on Unlimited!</p>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: 0 }}>All new bookings will be auto-unlocked.</p>
+              </div>
+              <button onClick={() => setShowSubBanner(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+          )}
+          {/* Subscription card */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-sm text-base-content">Subscription</p>
+              {cgSub?.subscribed && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>)}
+            </div>
+            {cgSubLoading ? (<p className="text-xs text-base-content/60">Loading...</p>) : cgSub?.subscribed ? (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">♾️</div>
+                  <div>
+                    <p className="font-semibold text-sm text-base-content">Unlimited Plan</p>
+                    <p className="text-xs text-base-content/60">$19.99/mo · All bookings auto-unlocked</p>
+                  </div>
+                </div>
+                {cgSub.createdAt && (<p className="text-xs text-base-content/50">Member since {new Date(cgSub.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>)}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base">🆓</div>
+                  <div>
+                    <p className="font-semibold text-sm text-base-content">Pay-per-unlock</p>
+                    <p className="text-xs text-base-content/60">$4.99 per booking reveal</p>
+                  </div>
+                </div>
+                <div className="bg-primary/5 rounded-xl p-3 mb-3">
+                  <p className="text-xs font-semibold text-primary mb-1">♾️ Unlimited Plan — $19.99/mo</p>
+                  <p className="text-xs text-base-content/60">Auto-unlock all bookings. Pay once, never miss a lead.</p>
+                </div>
+                <button onClick={handleCgSubscribe} disabled={subUpgrading} className="btn btn-primary btn-sm w-full rounded-xl gap-1">
+                  {subUpgrading ? 'Redirecting...' : '⚡ Upgrade to Unlimited'}
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Account settings row */}
+          <div className="bg-base-200 rounded-2xl overflow-hidden">
+            <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors">
+              <Settings size={18} className="text-base-content/60" />
+              <span className="flex-1 text-left text-sm text-base-content">Settings &amp; Support</span>
+              <ChevronRight size={16} className="opacity-30" />
             </button>
           </div>
           <p className="text-xs font-bold uppercase tracking-wide text-base-content/45">My Clients</p>
@@ -1595,12 +1557,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             )
           })}
+          <button onClick={onLogout} className="btn btn-ghost w-full text-error gap-2 mt-2">
+            <LogOut size={18} /> Sign Out
+          </button>
         </div>
       )}
 
-      {/* ---- BADGES SECTION ---- */}
-      {section === 'badges' && (
-        <div className="px-4 space-y-4">
+      {/* ── TRUST PASSPORT: Badges ── */}
+      {section === 'trust-passport' && (
+        <div id="trust-badges" className="px-4 space-y-4 pb-2">
           <p className="text-xs text-base-content/60">
             Earn badges to build trust with clients. Badges appear on your public profile and in search results.
           </p>
@@ -1683,6 +1648,115 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── WORK PREFERENCES SECTION ── */}
+      {section === 'work-preferences' && (
+        <div className="px-4 space-y-4 pb-4">
+          <div className="rounded-3xl p-4" style={{ background: 'linear-gradient(135deg,rgba(124,92,255,0.08) 0%,rgba(74,144,226,0.08) 100%)', border: '1.5px solid rgba(124,92,255,0.20)' }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-1">Work Preferences</p>
+            <h2 className="text-lg font-bold text-base-content">Set when, where, and how you want to work.</h2>
+          </div>
+
+          {/* Availability */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-sm text-base-content">Available for Work</p>
+                <p className="text-xs text-base-content/70">Clients can find and book you when online</p>
+              </div>
+              <input type="checkbox" className="toggle toggle-primary toggle-sm" checked={isAvailable} onChange={handleToggleAvailability} />
+            </div>
+          </div>
+
+          {/* Hourly rate */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-semibold text-sm text-base-content">Hourly Rate</p>
+              <span className="text-lg font-bold text-primary">${profile.hourlyRate || 25}/hr</span>
+            </div>
+            <p className="text-xs text-base-content/60 mb-3">Clear pricing helps families decide quickly.</p>
+            <button onClick={() => openBioEditor(true)} className="btn btn-outline btn-sm w-full rounded-xl border-primary/30 text-primary gap-1">
+              <Edit3 size={13} /> Edit Rate
+            </button>
+          </div>
+
+          {/* Care skills editor */}
+          <div id="section-skills-work" className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-sm text-base-content">Care Skills &amp; Specialties</p>
+              <button onClick={() => { setEditingSkills(!editingSkills); setSelectedSkills(profile.skills || []) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
+                <Edit3 size={12} /> {editingSkills ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
+            {editingSkills ? (
+              <div>
+                <p className="text-xs text-base-content/50 mb-3">Select care services you offer. Matching improves your visibility.</p>
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {ALL_CARE_NEEDS.map(need => {
+                    const active = selectedSkills.includes(need)
+                    return (
+                      <button key={need} onClick={() => handleToggleSkill(need)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                          active ? 'bg-primary text-white border-primary' : 'bg-base-100 text-base-content/60 border-base-300'
+                        }`}
+                      >{need}</button>
+                    )
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingSkills(false)} className="btn btn-ghost btn-sm flex-1">Cancel</button>
+                  <button onClick={handleSaveSkills} className="btn btn-primary btn-sm flex-1">Save ({selectedSkills.length})</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(profile.skills?.length || 0) > 0 ? profile.skills!.map((skill, i) => (
+                  <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">{skill}</span>
+                )) : (
+                  <p className="text-xs text-base-content/65">No skills added yet. Tap Edit to add care services.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Service area */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-semibold text-sm text-base-content">Service Area</p>
+            </div>
+            {profile.location?.city ? (
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin size={14} className="text-primary" />
+                <span className="text-sm text-base-content/70">{profile.location.city}{profile.location.state ? `, ${profile.location.state}` : ''}</span>
+              </div>
+            ) : (
+              <p className="text-xs text-base-content/60 mb-3">Add your city so families know where you work.</p>
+            )}
+            <button onClick={openContactEditor} className="btn btn-outline btn-sm w-full rounded-xl border-primary/30 text-primary gap-1">
+              <MapPin size={13} /> Edit Service Area
+            </button>
+          </div>
+
+          {/* Languages */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-semibold text-sm text-base-content">Languages</p>
+              <button onClick={() => { navigateToSection('profile'); setTimeout(() => setShowLangInput(true), 150) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
+                <Plus size={12} /> Add
+              </button>
+            </div>
+            {profile.languages && profile.languages.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {profile.languages.map((lang, i) => (
+                  <span key={i} className="badge badge-sm badge-ghost py-2.5">{lang}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-base-content/65">No languages added. Languages improve your match rate.</p>
+            )}
+          </div>
         </div>
       )}
 

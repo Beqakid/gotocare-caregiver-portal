@@ -885,7 +885,11 @@ export function RequestsTab({
       let payload: Record<string, any>
       if (plan === 'unlimited') {
         endpoint = `${API}/create-caregiver-subscription-checkout`
-        payload = { token, caregiverId }
+        // Phase 26B: save pending action before Stripe redirect
+        const p26bCtx = { action: 'unlock_request', requestId: req.id, returnTab: 'work', returnView: 'requests', plan: 'unlimited', createdAt: new Date().toISOString(), source: 'caregiver_subscription_unlock' }
+        try { sessionStorage.setItem('cgp_pending_subscription_action', JSON.stringify(p26bCtx)) } catch {}
+        try { localStorage.setItem('cgp_pending_subscription_action_backup', JSON.stringify(p26bCtx)) } catch {}
+        payload = { token, caregiverId, caregiverAction: 'unlock_request', requestId: req.id, returnTab: 'work', returnView: 'requests' }
       } else {
         endpoint = `${API}/unlock-booking`
         payload = { token, bookingId: req.id, caregiverId }

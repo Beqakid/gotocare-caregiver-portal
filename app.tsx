@@ -79,6 +79,51 @@ const TrustPassport = React.lazy(() => import('./components/TrustPassport').then
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
 const LAST_TAB_KEY = 'cgp_last_tab'
 
+// ── Phase 26B: Caregiver Pending Subscription Action Helpers ─────────────────
+const CGP_PENDING_KEY        = 'cgp_pending_subscription_action'
+const CGP_PENDING_BACKUP_KEY = 'cgp_pending_subscription_action_backup'
+
+type CaregiverPendingActionContext = {
+  action: 'respond_to_request' | 'unlock_request' | 'accept_request' | 'create_invoice' | 'send_invoice' | 'boost_profile' | 'continue_trust_passport' | 'view_client_contact' | 'priority_visibility'
+  requestId?: string | number
+  invoiceId?: string | number
+  clientId?: string | number
+  trustModuleId?: string
+  plan?: string
+  returnTab?: 'today' | 'work' | 'money' | 'profile'
+  returnView?: string
+  createdAt: string
+  source: 'caregiver_subscription_unlock'
+}
+
+function saveCaregiverPendingSubscriptionAction(ctx: CaregiverPendingActionContext): void {
+  const str = JSON.stringify(ctx)
+  try { sessionStorage.setItem(CGP_PENDING_KEY, str) } catch {}
+  try { localStorage.setItem(CGP_PENDING_BACKUP_KEY, str) } catch {}
+}
+
+function readCaregiverPendingSubscriptionAction(): CaregiverPendingActionContext | null {
+  const sources: Array<() => string | null> = [
+    () => { try { return sessionStorage.getItem(CGP_PENDING_KEY) } catch { return null } },
+    () => { try { return localStorage.getItem(CGP_PENDING_BACKUP_KEY) } catch { return null } },
+  ]
+  for (const src of sources) {
+    const raw = src()
+    if (!raw) continue
+    try {
+      const ctx = JSON.parse(raw) as CaregiverPendingActionContext
+      if (ctx?.source === 'caregiver_subscription_unlock') return ctx
+    } catch {}
+  }
+  return null
+}
+
+function clearCaregiverPendingSubscriptionAction(): void {
+  try { sessionStorage.removeItem(CGP_PENDING_KEY) } catch {}
+  try { localStorage.removeItem(CGP_PENDING_BACKUP_KEY) } catch {}
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function shiftClientName(shift?: Shift): string {
   const client = shift?.client
   if (!client) return 'Client'
@@ -167,6 +212,23 @@ function mapBookingToRequest(b: any): CareRequest {
 function getTabFromLocation(): TabType {
   try {
     const params = new URLSearchParams(window.location.search)
+    // Phase 26B: caregiver subscription return — route to the correct tab immediately
+    const subStatus = params.get('subscription')
+    const subRole   = params.get('role')
+    if (subStatus && subRole === 'caregiver') {
+      const rt = params.get('return_tab')
+      const tabMap: Record<string, TabType> = { work: 'schedule', today: 'home', money: 'earnings', profile: 'profile' }
+      if (rt && tabMap[rt]) return tabMap[rt]
+      // fallback: read from localStorage backup
+      try {
+        const raw = localStorage.getItem(CGP_PENDING_BACKUP_KEY)
+        if (raw) {
+          const ctx = JSON.parse(raw) as CaregiverPendingActionContext
+          if (ctx?.returnTab && tabMap[ctx.returnTab]) return tabMap[ctx.returnTab]
+        }
+      } catch {}
+      return 'schedule'
+    }
     const queryTab = params.get('tab') as TabType | null
     // Phase 7: 'requests' is now a sub-tab inside Work; map to 'schedule' for initial render
     if (queryTab && VALID_TABS.includes(queryTab)) return queryTab === 'requests' ? 'schedule' : queryTab
@@ -303,6 +365,9 @@ const App: React.FC<{}> = () => {
   }
   const [returnedSubscription, setReturnedSubscription] = useState(false)
   const [returnedBookingId, setReturnedBookingId] = useState<string | null>(null)
+  // Phase 26B: caregiver subscription return state
+  const [cgSubReturnState, setCgSubReturnState] = useState<null | 'confirming' | 'success' | 'failed' | 'cancelled'>(null)
+  const [cgSubReturnMsg, setCgSubReturnMsg] = useState('')
   const [profile, setProfile] = useState<CaregiverProfile | null>(() => {
     try {
       const saved = localStorage.getItem('cgp_account')
@@ -424,20 +489,125 @@ const App: React.FC<{}> = () => {
       })
   }, [verifyToken])
 
-  // Handle Stripe return URLs
+  // Handle Stripe return URLs (Phase 26B: full caregiver subscription restore)
   useEffect(() => {
     if (!loggedIn || !profile) return
     const params = new URLSearchParams(window.location.search)
-    const unlockedBookingId = params.get('booking_unlocked')
-    const subscriptionSuccess = params.get('subscription')
+    const unlockedBookingId  = params.get('booking_unlocked')
+    const subscriptionStatus = params.get('subscription')
+    const role               = params.get('role')
+
     if (unlockedBookingId) {
-      setReturnedBookingId(unlockedBookingId)   // pass to RequestsTab to highlight card
-      navigateToTab('requests')                 // Phase 7: redirects to Work → Requests sub-tab
+      setReturnedBookingId(unlockedBookingId)
+      navigateToTab('requests')
       loadData(profile.id)
       window.history.replaceState({ tab: 'schedule' }, '', '#schedule')
-    } else if (subscriptionSuccess === 'success') {
+      return
+    }
+
+    // Phase 26B: caregiver subscription return with full restore
+    if (subscriptionStatus === 'success' && role === 'caregiver') {
+      const sessionId     = params.get('session_id') || ''
+      const actionFromUrl = params.get('caregiver_action') || 'unlock_request'
+      const requestIdFromUrl = params.get('request_id') || ''
+      const returnTabFromUrl = params.get('return_tab') || 'work'
+      const returnViewFromUrl = params.get('return_view') || 'requests'
+
+      // Read pending action (storage takes priority over URL)
+      const stored = readCaregiverPendingSubscriptionAction()
+      const effectiveCtx: CaregiverPendingActionContext = stored || {
+        action: actionFromUrl as CaregiverPendingActionContext['action'],
+        requestId: requestIdFromUrl || undefined,
+        returnTab: returnTabFromUrl as CaregiverPendingActionContext['returnTab'],
+        returnView: returnViewFromUrl,
+        plan: 'unlimited',
+        createdAt: new Date().toISOString(),
+        source: 'caregiver_subscription_unlock',
+      }
+
+      // Route to correct tab immediately
+      const tabMap: Record<string, TabType> = { work: 'schedule', today: 'home', money: 'earnings', profile: 'profile' }
+      const targetTab = tabMap[effectiveCtx.returnTab || 'work'] || 'schedule'
+      if (targetTab === 'schedule') setWorkInitialView('requests')
+      setActiveTab(targetTab)
+      window.history.replaceState({ tab: targetTab }, '', '#' + targetTab)
+
+      setCgSubReturnState('confirming')
+      setCgSubReturnMsg('Confirming your Carehia Pro access...')
+
+      const token = localStorage.getItem('cgp_token') || '';
+      (async () => {
+        // Step 1: call confirm endpoint (best-effort)
+        try {
+          await fetch(`${API_BASE}/api/confirm-caregiver-subscription`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, sessionId }),
+          })
+        } catch {}
+
+        // Step 2: retry subscription status check 3x with 1s gaps
+        setCgSubReturnMsg('Almost done — confirming your upgrade...')
+        let subscribed = false
+        for (let i = 0; i < 3; i++) {
+          try {
+            const r = await fetch(`${API_BASE}/api/caregiver-subscription?token=${encodeURIComponent(token)}`)
+            const d = await r.json() as any
+            if (d.subscribed) { subscribed = true; break }
+          } catch {}
+          if (i < 2) await new Promise<void>(res => setTimeout(res, 1000))
+        }
+
+        if (subscribed) {
+          // Step 3: resume — clear pending action, show message
+          setReturnedSubscription(true)
+          clearCaregiverPendingSubscriptionAction()
+          const actionMsgMap: Record<string, string> = {
+            respond_to_request: 'Your plan is active. You can now respond to this request.',
+            unlock_request:     'All requests are now unlocked.',
+            accept_request:     'Your plan is active. You can now accept this request.',
+            create_invoice:     'Invoice tools unlocked. Continue your invoice.',
+            send_invoice:       'Invoice tools unlocked.',
+            boost_profile:      'Visibility tools unlocked.',
+            priority_visibility:'Visibility tools unlocked.',
+            continue_trust_passport: 'Continue your Trust Passport.',
+            view_client_contact: 'Contact info is now available.',
+          }
+          const resumeMsg = actionMsgMap[effectiveCtx.action] || 'Your Carehia Pro access is now active.'
+          setCgSubReturnMsg(resumeMsg)
+          setCgSubReturnState('success')
+          // Open Trust Passport if that was the action
+          if (effectiveCtx.action === 'continue_trust_passport') {
+            setTimeout(() => setShowTrustPassport(true), 600)
+          }
+          // Auto-dismiss after 4s
+          setTimeout(() => setCgSubReturnState(null), 4000)
+        } else {
+          setCgSubReturnState('failed')
+          setCgSubReturnMsg('We could not confirm your upgrade yet. If you just paid, wait a moment and try again.')
+        }
+      })()
+      return
+    }
+
+    // Phase 26B: cancel return
+    if (subscriptionStatus === 'cancelled' && role === 'caregiver') {
+      const returnTabFromUrl = params.get('return_tab') || 'work'
+      const tabMap: Record<string, TabType> = { work: 'schedule', today: 'home', money: 'earnings', profile: 'profile' }
+      const targetTab = tabMap[returnTabFromUrl] || 'schedule'
+      if (targetTab === 'schedule') setWorkInitialView('requests')
+      setActiveTab(targetTab)
+      window.history.replaceState({ tab: targetTab }, '', '#' + targetTab)
+      setCgSubReturnState('cancelled')
+      setCgSubReturnMsg('Checkout was cancelled. You can upgrade when you are ready.')
+      setTimeout(() => setCgSubReturnState(null), 5000)
+      return
+    }
+
+    // Legacy fallback (subscription=success without role=caregiver param)
+    if (subscriptionStatus === 'success') {
       setReturnedSubscription(true)
-      navigateToTab('requests')                 // Phase 7: redirects to Work → Requests sub-tab
+      navigateToTab('requests')
       window.history.replaceState({ tab: 'schedule' }, '', '#schedule')
     }
   }, [loggedIn, profile, loadData])
@@ -873,6 +1043,70 @@ const App: React.FC<{}> = () => {
         onTabChange={navigateToTab}
         requestCount={pendingRequestCount}
       />
+
+      {/* ── Phase 26B: Caregiver Subscription Return Banner ───────────────── */}
+      {cgSubReturnState && (
+        <div style={{
+          position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)', maxWidth: 480, zIndex: 8000,
+          background: cgSubReturnState === 'success' ? '#f0fdf4' : cgSubReturnState === 'cancelled' ? '#fff7ed' : cgSubReturnState === 'failed' ? '#fff1f2' : '#f5f3ff',
+          border: `1px solid ${cgSubReturnState === 'success' ? 'rgba(34,197,94,0.3)' : cgSubReturnState === 'failed' ? 'rgba(239,68,68,0.3)' : 'rgba(124,92,255,0.3)'}`,
+          borderRadius: 16, padding: '14px 16px 12px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.13)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>
+              {cgSubReturnState === 'confirming' ? '⏳' : cgSubReturnState === 'success' ? '✅' : cgSubReturnState === 'cancelled' ? '↩️' : '⚠️'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0f172a', lineHeight: '1.4' }}>{cgSubReturnMsg}</p>
+              {cgSubReturnState === 'failed' && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      setCgSubReturnState('confirming')
+                      setCgSubReturnMsg('Retrying...')
+                      const tkn = localStorage.getItem('cgp_token') || '';
+                      (async () => {
+                        let ok = false
+                        for (let i = 0; i < 3; i++) {
+                          try {
+                            const r = await fetch(`${API_BASE}/api/caregiver-subscription?token=${encodeURIComponent(tkn)}`)
+                            const d = await r.json() as any
+                            if (d.subscribed) { ok = true; break }
+                          } catch {}
+                          if (i < 2) await new Promise<void>(res => setTimeout(res, 1000))
+                        }
+                        if (ok) {
+                          setReturnedSubscription(true)
+                          clearCaregiverPendingSubscriptionAction()
+                          setCgSubReturnMsg('Your Carehia Pro access is now active.')
+                          setCgSubReturnState('success')
+                          setTimeout(() => setCgSubReturnState(null), 4000)
+                        } else {
+                          setCgSubReturnState('failed')
+                          setCgSubReturnMsg('We could not confirm your upgrade yet. If you just paid, wait a moment and try again.')
+                        }
+                      })()
+                    }}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, background: '#7C5CFF', color: '#fff', border: 'none', borderRadius: 20, cursor: 'pointer' }}
+                  >Try Again</button>
+                  <button
+                    onClick={() => { navigateToTab('home'); setCgSubReturnState(null) }}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, background: 'transparent', color: '#7C5CFF', border: '1px solid rgba(124,92,255,0.4)', borderRadius: 20, cursor: 'pointer' }}
+                  >Go to Today</button>
+                  <a href="mailto:support@carehia.com" style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 20, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
+                    Contact Support
+                  </a>
+                </div>
+              )}
+            </div>
+            {cgSubReturnState !== 'confirming' && (
+              <button onClick={() => setCgSubReturnState(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16, flexShrink: 0, lineHeight: 1, padding: 2 }}>&#x2715;</button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Phase 5: Trust Passport full-screen overlay ────────────────── */}
       {showTrustPassport && (

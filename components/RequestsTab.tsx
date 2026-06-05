@@ -266,16 +266,45 @@ function InterviewRequestCard({
   onHide: (target: HideTarget) => void
 }) {
   const statusLabel: Record<string, string> = {
-    pending: 'Pending Review',
-    accepted: 'Accepted',
-    confirmed: 'Confirmed',
-    upcoming: 'Upcoming',
-    declined: 'Declined',
-    completed: 'Completed',
-    cancelled: 'Cancelled',
-    expired: 'Expired',
-    no_show: 'No show',
+    pending:              'New Request',
+    accepted:             'Accepted',
+    confirmed:            'Confirmed Work',
+    upcoming:             'Starting Soon',
+    scheduled:            'Scheduled',
+    in_progress:          'In Progress',
+    invoiced:             'Ready to Invoice',
+    paid:                 'Paid',
+    reviewed:             'Reviewed ✔',
+    declined:             'Declined',
+    completed:            'Completed',
+    cancelled:            'Cancelled',
+    expired:              'Expired',
+    no_show:              'No Show',
+    interview_requested:  'Interview Requested',
+    interview_scheduled:  'Interview Scheduled',
+    caregiver_accepted:   'You Accepted ✔',
+    client_confirming:    'Waiting for Client',
+    hire_offer_sent:      'Hire Offer Sent',
+    agreement_pending:    'Agreement Pending',
+    agreement_signed:     'Agreement Signed',
   }
+
+  // Phase 14: lifecycle next-step message (caregiver-facing only, safe)
+  type LifecycleStep = { icon: string; text: string; color: string; bg: string }
+  const lifecycleNextStep: Record<string, LifecycleStep> = {
+    accepted:           { icon: '⏳', text: 'Waiting for the client to confirm — you’ll be notified once they do.',           color: '#92400E', bg: 'rgba(245,158,11,0.10)' },
+    caregiver_accepted: { icon: '⏳', text: 'Waiting for the client to confirm — you’ll be notified once they do.',           color: '#92400E', bg: 'rgba(245,158,11,0.10)' },
+    client_confirming:  { icon: '⏳', text: 'Client is reviewing — sit tight, this usually takes just a few minutes.',             color: '#92400E', bg: 'rgba(245,158,11,0.10)' },
+    confirmed:          { icon: '✅', text: 'Confirmed! Check Work → Schedule for session details.',                               color: '#065F46', bg: 'rgba(34,197,94,0.09)'  },
+    upcoming:           { icon: '📅', text: 'This session is coming up soon. Check Work → Schedule.',                          color: '#1E3A5F', bg: 'rgba(74,144,226,0.10)' },
+    scheduled:          { icon: '📅', text: 'Scheduled. Head to Work → Schedule to clock in when ready.',                      color: '#1E3A5F', bg: 'rgba(74,144,226,0.10)' },
+    in_progress:        { icon: '⏱',  text: 'Session in progress — don’t forget to track your time.',                        color: '#1E3A5F', bg: 'rgba(74,144,226,0.10)' },
+    completed:          { icon: '💼', text: 'Work completed! Add a time entry to keep your Trust Passport up to date.',             color: '#065F46', bg: 'rgba(34,197,94,0.09)'  },
+    invoiced:           { icon: '💵', text: 'Invoice sent — waiting on payment.',                                              color: '#065F46', bg: 'rgba(34,197,94,0.09)'  },
+    paid:               { icon: '🎉', text: 'Payment received! Great work.',                                                        color: '#065F46', bg: 'rgba(34,197,94,0.09)'  },
+    reviewed:           { icon: '⭐', text: 'You received a review! Check your Trust Passport to see how it helps your score.',          color: '#065F46', bg: 'rgba(34,197,94,0.09)'  },
+  }
+  const nextStep: LifecycleStep | undefined = lifecycleNextStep[req.status]
   const showDelete = canHideInterview(req.status)
 
   return (
@@ -328,7 +357,14 @@ function InterviewRequestCard({
           <p className="text-xs text-center text-base-content/50">One-time unlock · Unlimited plan unlocks all future requests</p>
         </div>
       )}
-      {showDelete && (
+      {/* Phase 14: lifecycle next-step banner */}
+      {nextStep && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: nextStep.bg, borderRadius: 10, padding: '8px 12px', marginTop: 4 }}>
+          <span style={{ fontSize: 15, flexShrink: 0 }}>{nextStep.icon}</span>
+          <p style={{ fontSize: 12, color: nextStep.color, margin: 0, lineHeight: 1.5 }}>{nextStep.text}</p>
+        </div>
+      )}
+            {showDelete && (
         <button
           onClick={() => onHide({ id: req.id, itemType: 'interview', label: req.careType || 'interview request' })}
           title="Remove from my view"
@@ -449,6 +485,13 @@ function HireOfferCard({ offer, onSign, onDecline, onHide }: {
         {offer.status === 'active' && <span style={{ fontSize: 11, color: s.color }}>Both parties signed</span>}
       </div>
 
+      {/* Phase 14: confirmed work nudge for active agreements */}
+      {offer.status === 'active' && (
+        <div style={{ background: 'rgba(34,197,94,0.09)', borderTop: '1px solid rgba(34,197,94,0.2)', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13 }}>📅</span>
+          <p style={{ fontSize: 12, color: '#065F46', margin: 0 }}>Agreement active — check <strong>Work → Schedule</strong> to see upcoming sessions.</p>
+        </div>
+      )}
       <div style={{ padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
@@ -878,7 +921,7 @@ export function RequestsTab({
             onClick={() => navigateToSection('live')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'live' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
-            <span>Live</span>
+            <span>New Requests</span>
             {activeLiveCount > 0 && (
               <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'live' ? 'bg-white/20 text-white' : 'bg-error text-white'}`}>{activeLiveCount}</span>
             )}
@@ -887,7 +930,7 @@ export function RequestsTab({
             onClick={() => navigateToSection('offers')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${activeSection === 'offers' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50'}`}
           >
-            <span>Hire Offers</span>
+            <span>Offers</span>
             {pendingOffersCount > 0 && (
               <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeSection === 'offers' ? 'bg-white/20 text-white' : 'bg-warning text-black'}`}>{pendingOffersCount}</span>
             )}
@@ -1044,7 +1087,7 @@ export function RequestsTab({
             )}
             {!isLoadingBookings && bookings.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                <span className="text-4xl">calendar</span>
+                <span className="text-4xl">📅</span>
                 <p className="font-bold text-base-content/60">No Interview Requests Yet</p>
                 <p className="text-sm text-base-content/60">When clients book an interview with you, it will appear here.</p>
                 <div className="rounded-2xl bg-base-200 border border-base-300 p-4 w-full space-y-2 text-left mt-2">

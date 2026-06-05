@@ -345,7 +345,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const loadApiDocs = async () => {
     setDocsLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/caregiver-documents?token=${cgToken}`)
+      const res = await fetch(`${API_BASE}/api/cgp-docs?token=${cgToken}`)
       const data = await res.json()
       if (data.success) setApiDocs(data.documents || [])
     } catch (e) {}
@@ -442,7 +442,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         fd.append('doc_type', docType)
         if (docExpiry) fd.append('expiry_date', docExpiry)
         if (docFile) fd.append('file', docFile)
-        const res = await fetch(`${API_BASE}/api/caregiver-documents`, { method: 'POST', body: fd })
+        const res = await fetch(`${API_BASE}/api/cgp-docs`, { method: 'POST', body: fd })
         const data = await res.json()
         if (data.success) {
           try { await submitVerificationCopy(cgToken, docType, docName.trim(), docExpiry, docFile) } catch (e) { console.warn('Verification review submission failed', e) }
@@ -463,7 +463,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const handleDeleteDocument = async (id: string) => {
     if (cgToken) {
       try {
-        const res = await fetch(`${API_BASE}/api/caregiver-documents?id=${id}&token=${cgToken}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/cgp-docs?id=${id}&token=${cgToken}`, { method: 'DELETE' })
         const data = await res.json()
         if (data.success) {
           await loadApiDocs()
@@ -1522,7 +1522,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                         )}
                         {!doc.expiryDate && <p className="text-xs text-base-content/60 mt-0.5">No expiry</p>}
                         {doc.r2Key && cgToken && (
-                          <a href={`${API_BASE}/api/caregiver-documents/file?key=${encodeURIComponent(doc.r2Key)}&token=${cgToken}`}
+                          <a href={`${API_BASE}/api/cgp-docs/file?key=${encodeURIComponent(doc.r2Key)}&token=${cgToken}`}
                             target="_blank" rel="noopener noreferrer"
                             className="text-xs text-primary/70 mt-0.5 flex items-center gap-0.5 hover:text-primary">
                             <Upload size={10} /> View file

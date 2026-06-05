@@ -354,6 +354,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [sendNotice, setSendNotice] = useState('')
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
   const [invoiceSentTo, setInvoiceSentTo] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [privateClients, setPrivateClients] = useState<any[]>([])
   const [invClientId, setInvClientId] = useState('')
   const [invClient, setInvClient] = useState('')
@@ -661,6 +662,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     updateInvoice(id, updates)
     if (id.startsWith('cloud_')) cloudUpdateInvoice(id.replace('cloud_', ''), updates)
     syncInvoiceInView(id, updates)
+    // P31-3: sync preview if currently open
+    if (previewInvoice?.id === id) setPreviewInvoice(prev => prev ? { ...prev, ...updates } : null)
   }
 
   const handleSendInvoice = async (invoice: Invoice) => {
@@ -708,10 +711,20 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   }
 }
 
+  // P31-1: show confirmation dialog instead of immediate delete
   const handleDeleteInvoice = (id: string) => {
+    setDeleteConfirmId(id)
+  }
+
+  // P31-2: called only after user confirms
+  const confirmDeleteInvoice = () => {
+    const id = deleteConfirmId
+    if (!id) return
     deleteInvoice(id)
     if (id.startsWith('cloud_')) cloudDeleteInvoice(id.replace('cloud_', ''))
     setInvoices(prev => prev.filter(inv => inv.id !== id))
+    if (previewInvoice?.id === id) setPreviewInvoice(null)
+    setDeleteConfirmId(null)
   }
 
   const handlePrintInvoice = (invoice: Invoice) => {
@@ -1028,7 +1041,10 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             <div className="rounded-2xl bg-base-200 p-8 text-center">
               <FileText size={38} className="mx-auto mb-3 text-base-content/25" />
               <p className="font-semibold text-base-content">No invoices yet</p>
-              <p className="mt-1 text-sm text-base-content/55">Create a draft once you have private client hours to bill.</p>
+              <p className="mt-1 text-sm text-base-content/55">Create your first invoice from tracked hours or a private client.</p>
+              <button onClick={openCreate} className="btn btn-primary btn-sm mt-4 gap-1 rounded-2xl">
+                <Plus size={14} /> Create Invoice
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1128,7 +1144,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200">
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
                   <div className="grid grid-cols-[1fr_52px_64px_72px] bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     <span>Service</span>
                     <span className="text-right">Hrs</span>
@@ -1195,6 +1211,23 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* P31-1: Delete confirmation modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 backdrop-blur-sm px-6" onClick={() => setDeleteConfirmId(null)}>
+          <div className="w-full max-w-sm rounded-3xl bg-base-100 p-6 shadow-2xl text-center" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-error/10">
+              <Trash2 size={28} className="text-error" />
+            </div>
+            <h3 className="text-xl font-bold text-base-content">Delete this invoice?</h3>
+            <p className="mt-2 text-sm text-base-content/60">This removes the invoice from your Money view. This cannot be undone.</p>
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setDeleteConfirmId(null)} className="btn btn-outline flex-1 rounded-2xl">Cancel</button>
+              <button onClick={confirmDeleteInvoice} className="btn btn-error flex-1 rounded-2xl">Delete</button>
+            </div>
           </div>
         </div>
       )}

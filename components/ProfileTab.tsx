@@ -20,6 +20,36 @@ const SECTION_MAP: Record<string, ProfileSection> = {
   settings: 'account', account: 'account',
 }
 
+function normalizeProfileSection(input: string): ProfileSection {
+  return SECTION_MAP[input] || 'profile'
+}
+
+// Maps old deep link strings to the new anchor IDs inside the 4-tab layout.
+function getProfileAnchorForDeepLink(deepLink: string): string | null {
+  const MAP: Record<string, string | null> = {
+    'section-verification':   'trust-verification',
+    'section-certifications': 'trust-certifications',
+    'section-documents':      'trust-manual-proof',
+    'section-badges':         'trust-badges',
+    'section-settings':       null,
+    'section-clients':        null,
+    'section-skills':         'section-skills',
+    'section-bio':            'section-bio',
+    'section-contact':        'section-contact',
+    'section-photo':          'section-photo',
+    'section-share':          'section-share',
+    'section-languages':      'section-languages',
+    'trust-summary':          'trust-summary',
+    'trust-verification':     'trust-verification',
+    'trust-certifications':   'trust-certifications',
+    'trust-manual-proof':     'trust-manual-proof',
+    'trust-badges':           'trust-badges',
+    'trust-review':           'trust-review',
+    'trust-work-history':     'trust-work-history',
+  }
+  return Object.prototype.hasOwnProperty.call(MAP, deepLink) ? MAP[deepLink] : deepLink
+}
+
 function getSavedProfileSection(initialSection?: string): ProfileSection {
   if (initialSection && SECTION_MAP[initialSection]) return SECTION_MAP[initialSection]
   try {
@@ -232,18 +262,43 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   useEffect(() => {
     if (initialSection) navigateToSection(initialSection)
     if (deepLink) {
+      // Centralised deep-link routing — maps old names to new 4-tab sections
+      const DEEP_LINK_SECTION: Record<string, ProfileSection> = {
+        'section-verification':   'trust-passport',
+        'section-certifications': 'trust-passport',
+        'section-documents':      'trust-passport',
+        'section-badges':         'trust-passport',
+        'trust-summary':          'trust-passport',
+        'trust-verification':     'trust-passport',
+        'trust-certifications':   'trust-passport',
+        'trust-manual-proof':     'trust-passport',
+        'trust-badges':           'trust-passport',
+        'trust-review':           'trust-passport',
+        'trust-work-history':     'trust-passport',
+        'section-settings':       'account',
+        'section-clients':        'account',
+        'section-skills':         'work-preferences',
+        'section-availability':   'work-preferences',
+        'section-bio':            'profile',
+        'section-contact':        'profile',
+        'section-photo':          'profile',
+        'section-languages':      'profile',
+        'section-share':          'profile',
+      }
+      const destSection = DEEP_LINK_SECTION[deepLink]
+      if (destSection) navigateToSection(destSection)
+      // Activate inline editors
+      if (deepLink === 'section-bio') setEditing(true)
+      if (deepLink === 'section-skills') setEditingSkills(true)
+      if (deepLink === 'section-contact') setEditingContact(true)
+      if (deepLink === 'section-languages') setShowLangInput(true)
+      // Scroll to anchor after section renders (200ms lets React repaint)
       setTimeout(() => {
-        if (deepLink === 'section-verification') navigateToSection('trust-passport')
-        if (deepLink === 'section-certifications') navigateToSection('trust-passport')
-        if (deepLink === 'section-documents') navigateToSection('trust-passport')
-        if (deepLink === 'section-settings') navigateToSection('account')
-        const el = document.getElementById(deepLink)
+        const anchorId = getProfileAnchorForDeepLink(deepLink) || deepLink
+        if (!anchorId) return
+        const el = document.getElementById(anchorId)
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        if (deepLink === 'section-bio') setEditing(true)
-        if (deepLink === 'section-skills') setEditingSkills(true)
-        if (deepLink === 'section-contact') setEditingContact(true)
-        if (deepLink === 'section-languages') setShowLangInput(true)
-      }, 150)
+      }, 200)
     }
   }, [deepLink, initialSection])
 
@@ -1194,7 +1249,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               body: 'Accepted documents: Driver License, State ID, or Passport.',
               action: 'Upload ID',
               disabled: false,
-              run: () => { navigateToSection('documents'); setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); scrollToProfileSection('section-documents') },
+              run: () => { navigateToSection('trust-passport'); setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); setTimeout(() => scrollToProfileSection('trust-manual-proof'), 80) },
             },
             {
               title: 'Background Check',
@@ -1648,6 +1703,47 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── TRUST PASSPORT: Reviews & Work History ── */}
+      {section === 'trust-passport' && (
+        <div className="px-4 space-y-4 pb-2">
+          <div id="trust-review" className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-1">Reviews &amp; Reputation</p>
+            <h3 className="text-lg font-bold text-base-content">Client Reviews</h3>
+            <p className="text-sm text-base-content/60 mt-1">Completed care sessions and positive client reviews strengthen your Trust Passport score automatically.</p>
+            {profileReviews.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {profileReviews.slice(0, 3).map((r: any, i: number) => (
+                  <div key={i} className="rounded-2xl bg-base-100 px-3 py-2">
+                    <div className="flex items-center gap-1 mb-1">
+                      {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= (r.rating || 5) ? 'text-warning fill-warning' : 'text-base-300'} />)}
+                    </div>
+                    <p className="text-xs text-base-content/70">{r.comment || 'Great caregiver!'}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-base-content/50 mt-3 italic">No reviews yet. Complete care sessions to start earning reviews.</p>
+            )}
+          </div>
+
+          <div id="trust-work-history" className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-1">Work History</p>
+            <h3 className="text-lg font-bold text-base-content">Completed Care Sessions</h3>
+            <p className="text-sm text-base-content/60 mt-1">Every verified care session adds to your trust signal. Consistent work history helps families feel confident.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-base-100 p-3 text-center">
+                <p className="text-xl font-bold text-base-content">{profile.totalJobs || 0}</p>
+                <p className="text-[10px] text-base-content/50">Sessions Done</p>
+              </div>
+              <div className="rounded-xl bg-base-100 p-3 text-center">
+                <p className="text-xl font-bold text-base-content">{profile.rating ? profile.rating.toFixed(1) : '—'}</p>
+                <p className="text-[10px] text-base-content/50">Avg Rating</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -1,23 +1,49 @@
 // @ts-nocheck
+// Phase 8 — Full Modular Trust Passport Engine wired in
 import React, { useMemo } from 'react'
 import {
   Shield, ChevronLeft, CheckCircle2, Clock, Star,
   User, Phone, Camera, Heart, Users, Award, ShieldCheck, Briefcase, FileText,
+  TrendingUp,
 } from 'lucide-react'
 import { CaregiverDocument } from '../types'
+import {
+  getTrustPassportSummary,
+  TrustPassportModule,
+  ModuleType,
+} from '../utils/trustEngine'
 
-type ModuleStatus = 'Verified' | 'In Progress' | 'Submitted' | 'Needs a Quick Fix' | 'Not Started' | 'Expired'
+// ─── Module icon map ──────────────────────────────────────────────────────
+const MODULE_ICONS: Record<ModuleType, React.FC<any>> = {
+  basic_profile:         User,
+  contact_verification:  Phone,
+  selfie_intro:          Camera,
+  care_experience:       Heart,
+  references:            Users,
+  certifications:        Award,
+  background_permission: ShieldCheck,
+  carehia_review:        Star,
+  work_history:          Briefcase,
+  manual_proof:          FileText,
+}
 
-interface Module {
-  id: string
-  title: string
-  description: string
-  status: ModuleStatus
-  estimatedTime: string
-  unlock: string
-  Icon: React.FC<any>
-  action: string
-  comingSoon?: boolean
+// ─── Status badge styles ──────────────────────────────────────────────────
+const STATUS_CLASS: Record<string, string> = {
+  'Verified':          'bg-success/10 text-success',
+  'In Progress':       'bg-warning/10 text-warning',
+  'Submitted':         'bg-primary/10 text-primary',
+  'Needs a Quick Fix': 'bg-error/10 text-error',
+  'Not Started':       'bg-base-300/60 text-base-content/45',
+  'Expired':           'bg-error/10 text-error',
+}
+
+// ─── Level color map ──────────────────────────────────────────────────────
+const LEVEL_COLORS: Record<number, { pill: string; bar: string; text: string }> = {
+  1: { pill: 'bg-warning/10 text-warning',   bar: 'bg-warning',  text: 'text-warning'  },
+  2: { pill: 'bg-success/10 text-success',   bar: 'bg-success',  text: 'text-success'  },
+  3: { pill: 'bg-secondary/10 text-secondary', bar: 'bg-secondary', text: 'text-secondary' },
+  4: { pill: 'bg-primary/10 text-primary',   bar: 'bg-primary',  text: 'text-primary'  },
+  5: { pill: 'bg-primary/20 text-primary',   bar: 'bg-primary',  text: 'text-primary'  },
 }
 
 interface TrustPassportProps {
@@ -27,164 +53,35 @@ interface TrustPassportProps {
   onOpenDocUpload?: () => void
 }
 
-function deriveModules(profile: any, documents: CaregiverDocument[]): Module[] {
-  const docs = documents || []
-  const now = new Date()
-
-  const hasName = !!(profile?.firstName && profile?.lastName)
-  const hasBio = !!(profile?.bio && String(profile.bio).length > 20)
-  const hasPhoto = !!profile?.photoUrl
-  const hasRate = !!profile?.hourlyRate
-  const hasLocation = !!(profile?.location?.city || profile?.zipCode)
-  const basicDone = hasName && hasBio && hasPhoto && hasRate && hasLocation
-
-  const emailVerified = !!(profile?.emailVerified || profile?.email_verified)
-
-  const hasSkills = !!(
-    (Array.isArray(profile?.skills) && profile.skills.length > 0) ||
-    (Array.isArray(profile?.careTypes) && profile.careTypes.length > 0) ||
-    (typeof profile?.care_types === 'string' && profile.care_types.length > 0)
+export const TrustPassport: React.FC<TrustPassportProps> = ({
+  profile,
+  documents,
+  onClose,
+  onOpenDocUpload,
+}) => {
+  const summary = useMemo(
+    () => getTrustPassportSummary(profile, documents),
+    [profile, documents],
   )
 
-  const certDocs = docs.filter(d => d.type === 'certification')
-  const hasExpired = certDocs.some(d => d.expirationDate && new Date(d.expirationDate) < now)
-  const certStatus: ModuleStatus = certDocs.length > 0 ? (hasExpired ? 'Expired' : 'Submitted') : 'Not Started'
+  const {
+    trustLevel,
+    trustLevelName,
+    trustScore,
+    completionPercentage,
+    nextRecommendedStep,
+    nextRecommendedModule,
+    nextUnlock,
+    nextActionExplanation,
+    publicBadges,
+    modules,
+  } = summary
 
-  const manualDocs = docs.filter(d => d.type !== 'certification')
-  const manualStatus: ModuleStatus = manualDocs.length > 0 ? 'Submitted' : 'Not Started'
+  const lc = LEVEL_COLORS[trustLevel] || LEVEL_COLORS[1]
 
-  return [
-    {
-      id: 'basic_profile',
-      title: 'Basic Profile',
-      description: 'Name, photo, hourly rate, location, and a short bio.',
-      status: basicDone ? 'Verified' : (hasBio || hasPhoto || hasRate) ? 'In Progress' : 'Not Started',
-      estimatedTime: '5 min',
-      unlock: 'Appear in caregiver search results',
-      Icon: User,
-      action: 'Complete Profile',
-    },
-    {
-      id: 'contact_verification',
-      title: 'Contact Verification',
-      description: 'Confirm your email address so families know you are reachable.',
-      status: emailVerified ? 'Verified' : 'In Progress',
-      estimatedTime: '2 min',
-      unlock: 'Builds client confidence in your contact info',
-      Icon: Phone,
-      action: 'Verify Email',
-    },
-    {
-      id: 'selfie_intro',
-      title: 'Selfie & Intro',
-      description: 'A clear profile photo and a brief written greeting.',
-      status: hasPhoto ? 'In Progress' : 'Not Started',
-      estimatedTime: '3 min',
-      unlock: '3x more profile views',
-      Icon: Camera,
-      action: 'Add Photo',
-    },
-    {
-      id: 'care_experience',
-      title: 'Care Experience',
-      description: 'Care types, skills, and what you specialise in.',
-      status: hasSkills ? 'Verified' : 'Not Started',
-      estimatedTime: '5 min',
-      unlock: 'Match with the right families',
-      Icon: Heart,
-      action: 'Add Skills',
-    },
-    {
-      id: 'references',
-      title: 'References',
-      description: 'Professional or personal contacts who can vouch for your care work.',
-      status: 'Not Started',
-      estimatedTime: '5 min',
-      unlock: 'Trusted Caregiver badge',
-      Icon: Users,
-      action: 'Add References',
-      comingSoon: true,
-    },
-    {
-      id: 'certifications',
-      title: 'Certifications & Skills',
-      description: 'CPR, First Aid, CNA, or other credentials.',
-      status: certStatus,
-      estimatedTime: '5 min',
-      unlock: 'Certified badge on your profile',
-      Icon: Award,
-      action: 'Add Certifications',
-    },
-    {
-      id: 'background_check',
-      title: 'Background Check Permission',
-      description: 'Authorise a basic background check to unlock full platform access.',
-      status: 'Not Started',
-      estimatedTime: '2 min',
-      unlock: 'Background Checked badge + premium matches',
-      Icon: ShieldCheck,
-      action: 'Coming Soon',
-      comingSoon: true,
-    },
-    {
-      id: 'carehia_review',
-      title: 'Carehia Review',
-      description: 'Our team does a quick manual review of your profile.',
-      status: 'Not Started',
-      estimatedTime: '24–48 hrs',
-      unlock: 'Carehia Verified badge',
-      Icon: Star,
-      action: 'Learn More',
-      comingSoon: true,
-    },
-    {
-      id: 'work_history',
-      title: 'Work History Trust',
-      description: 'Past employers or agencies that can confirm your experience.',
-      status: 'Not Started',
-      estimatedTime: '10 min',
-      unlock: 'Experienced Caregiver badge',
-      Icon: Briefcase,
-      action: 'Add Work History',
-      comingSoon: true,
-    },
-    {
-      id: 'manual_proof',
-      title: 'Manual Proof',
-      description: 'Having trouble verifying a step? You can upload proof manually.',
-      status: manualStatus,
-      estimatedTime: '5 min',
-      unlock: 'Bypass automated checks with manual team review',
-      Icon: FileText,
-      action: 'Upload Document',
-    },
-  ]
-}
-
-function getTrustLevel(progress: number): { level: number; name: string; colorClass: string } {
-  if (progress >= 80) return { level: 4, name: 'Verified Pro', colorClass: 'text-success' }
-  if (progress >= 60) return { level: 3, name: 'Established', colorClass: 'text-primary' }
-  if (progress >= 30) return { level: 2, name: 'Building Trust', colorClass: 'text-warning' }
-  return { level: 1, name: 'Getting Started', colorClass: 'text-base-content/55' }
-}
-
-const STATUS_CLASS: Record<ModuleStatus, string> = {
-  'Verified':          'bg-success/10 text-success',
-  'In Progress':       'bg-warning/10 text-warning',
-  'Submitted':         'bg-primary/10 text-primary',
-  'Needs a Quick Fix': 'bg-error/10 text-error',
-  'Not Started':       'bg-base-300/60 text-base-content/45',
-  'Expired':           'bg-error/10 text-error',
-}
-
-export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents, onClose, onOpenDocUpload }) => {
-  const modules = useMemo(() => deriveModules(profile, documents), [profile, documents])
-
-  const doneCount = modules.filter(m => m.status === 'Verified' || m.status === 'Submitted').length
-  const progress  = Math.round((doneCount / modules.length) * 100)
-  const { level, name: levelName, colorClass } = getTrustLevel(progress)
-  const nextModule  = modules.find(m => m.status !== 'Verified' && m.status !== 'Submitted')
-  const earnedBadges = modules.filter(m => m.status === 'Verified')
+  // Modules ordered for display: core 9 first, manual_proof last
+  const coreModules = modules.filter(m => m.moduleType !== 'manual_proof')
+  const manualMod   = modules.find(m => m.moduleType === 'manual_proof')
 
   return (
     <div style={{
@@ -192,6 +89,7 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
       background: 'var(--color-base-100, #F0F4FF)',
       overflowY: 'auto', WebkitOverflowScrolling: 'touch',
     }}>
+
       {/* ── Sticky header ── */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 2,
@@ -216,7 +114,6 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-primary, #7C5CFF)', marginBottom: 1 }}>Carehia</p>
             <h1 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text-primary, #0F172A)', margin: 0, lineHeight: 1.2 }}>Trust Passport</h1>
           </div>
-          {/* Shield icon top-right */}
           <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(124,92,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shield size={18} style={{ color: 'var(--color-primary, #7C5CFF)' }} />
           </div>
@@ -226,70 +123,103 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
       {/* ── Body ── */}
       <div style={{ maxWidth: 512, margin: '0 auto', padding: '16px 16px 80px' }}>
 
-        {/* Hero block */}
-        <div className="rounded-2xl border border-primary/20 p-5 mb-4" style={{ background: 'linear-gradient(135deg, rgba(124,92,255,0.07) 0%, rgba(74,144,226,0.07) 100%)' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary/12 flex items-center justify-center">
-              <Shield size={26} className="text-primary" />
+        {/* ── Hero block ── */}
+        <div
+          className="rounded-2xl border border-primary/20 p-5 mb-4"
+          style={{ background: 'linear-gradient(135deg, rgba(124,92,255,0.07) 0%, rgba(74,144,226,0.07) 100%)' }}
+        >
+          {/* Level + score row */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/12 flex items-center justify-center">
+                <Shield size={26} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary/60 mb-0.5">Trust Level</p>
+                <p className={`text-base font-extrabold leading-tight ${lc.text}`}>
+                  Level {trustLevel}: {trustLevelName}
+                </p>
+                <span className={`inline-block text-[10px] font-bold rounded-full px-2 py-0.5 mt-1 ${lc.pill}`}>
+                  {trustLevelName}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-primary/60">Trust Level</p>
-              <p className={`text-base font-extrabold leading-tight ${colorClass}`}>Level {level}: {levelName}</p>
+            {/* Trust score pill */}
+            <div className="text-right shrink-0">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-base-content/40">Trust Score</p>
+              <p className="text-2xl font-black text-primary leading-tight">{trustScore}</p>
+              <p className="text-[10px] text-base-content/35">/ 100</p>
             </div>
           </div>
+
+          {/* Progress bar */}
           <div className="h-2.5 rounded-full bg-base-200 overflow-hidden mb-2">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              className={`h-full rounded-full transition-all duration-500 ${lc.bar}`}
+              style={{ width: `${completionPercentage}%` }}
             />
           </div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold text-base-content">{progress}% complete</p>
-            <p className="text-xs text-base-content/50">{doneCount} of {modules.length} steps</p>
+            <p className="text-sm font-bold text-base-content">{completionPercentage}% complete</p>
+            <p className="text-xs text-base-content/50">
+              {modules.filter(m => ['Verified', 'Submitted'].includes(m.status)).length} of {modules.filter(m => m.moduleType !== 'manual_proof').length} steps
+            </p>
           </div>
+
+          {/* Level ladder */}
+          <div className="flex items-center gap-0.5 mb-3">
+            {[1,2,3,4,5].map(lvl => (
+              <div
+                key={lvl}
+                className={`flex-1 h-1.5 rounded-full transition-all ${lvl <= trustLevel ? lc.bar : 'bg-base-200'}`}
+              />
+            ))}
+          </div>
+
           <p className="text-xs text-base-content/55 leading-relaxed">
-            Build trust one step at a time. Your Trust Passport helps families feel confident choosing you. You do not need to finish everything today.
+            Build trust one step at a time. Your Trust Passport helps families feel confident choosing you.
           </p>
         </div>
 
-        {/* Next recommended step */}
-        {nextModule && (
-          <div className="rounded-2xl bg-primary/5 border border-primary/12 p-4 mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-primary/60 mb-1">Recommended Next Step</p>
-            <p className="text-sm font-bold text-base-content">{nextModule.title}</p>
-            <p className="text-xs text-base-content/50 mt-0.5">Unlock: {nextModule.unlock}</p>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <Clock size={11} className="text-base-content/35" />
-              <span className="text-[11px] text-base-content/40">~{nextModule.estimatedTime}</span>
-            </div>
+        {/* ── Next recommended step ── */}
+        <div className="rounded-2xl bg-primary/5 border border-primary/12 p-4 mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-primary/60 mb-1">Recommended Next Step</p>
+          <p className="text-sm font-bold text-base-content">{nextRecommendedStep}</p>
+          <p className="text-xs text-base-content/55 mt-0.5 leading-snug">{nextActionExplanation}</p>
+          <div className="flex items-start gap-1.5 mt-2 p-2 rounded-xl bg-primary/5">
+            <TrendingUp size={12} className="text-primary/60 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-primary/70 font-medium leading-snug">Unlock: {nextUnlock}</p>
           </div>
-        )}
+        </div>
 
-        {/* Earned badges */}
-        {earnedBadges.length > 0 && (
+        {/* ── Earned public badges ── */}
+        {publicBadges.length > 0 && (
           <div className="mb-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-base-content/45 mb-2 px-0.5">Badges Earned</p>
             <div className="flex flex-wrap gap-2">
-              {earnedBadges.map(b => (
-                <div key={b.id} className="flex items-center gap-1.5 bg-success/10 border border-success/20 rounded-full px-3 py-1.5">
+              {publicBadges.map(badge => (
+                <div
+                  key={badge}
+                  className="flex items-center gap-1.5 bg-success/10 border border-success/20 rounded-full px-3 py-1.5"
+                >
                   <CheckCircle2 size={12} className="text-success" />
-                  <span className="text-xs font-bold text-success">{b.title}</span>
+                  <span className="text-xs font-bold text-success">{badge}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Module cards */}
+        {/* ── Trust Modules ── */}
         <p className="text-[10px] font-bold uppercase tracking-wide text-base-content/45 mb-2 px-0.5">Trust Modules</p>
         <div className="space-y-2.5">
-          {modules.map(mod => {
-            const { Icon } = mod
-            const isDone = mod.status === 'Verified' || mod.status === 'Submitted'
-            const statusClass = STATUS_CLASS[mod.status]
+          {coreModules.map(mod => {
+            const Icon = MODULE_ICONS[mod.moduleType] || FileText
+            const isDone = ['Verified', 'Submitted'].includes(mod.status)
+            const statusClass = STATUS_CLASS[mod.status] || STATUS_CLASS['Not Started']
 
             return (
-              <div key={mod.id} className="rounded-2xl bg-base-100 border border-base-300/60 p-4 shadow-sm">
+              <div key={mod.moduleType} className="rounded-2xl bg-base-100 border border-base-300/60 p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   {/* Icon */}
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-success/10' : 'bg-primary/10'}`}>
@@ -312,11 +242,22 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
                         <Clock size={10} className="text-base-content/30" />
                         <span className="text-[11px] text-base-content/35">{mod.estimatedTime}</span>
                       </div>
-                      <div className="flex items-center gap-1 min-w-0">
-                        <Star size={10} className="text-primary/35 shrink-0" />
-                        <span className="text-[11px] text-base-content/35 truncate">{mod.unlock}</span>
-                      </div>
+                      {mod.unlockMessage && (
+                        <div className="flex items-center gap-1 min-w-0">
+                          <Star size={10} className="text-primary/35 shrink-0" />
+                          <span className="text-[11px] text-base-content/35 truncate">{mod.unlockMessage}</span>
+                        </div>
+                      )}
                     </div>
+                    {/* Module progress bar (if in progress) */}
+                    {mod.status === 'In Progress' && mod.completionPercentage > 0 && (
+                      <div className="mt-2 h-1 rounded-full bg-base-200 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-warning transition-all"
+                          style={{ width: `${mod.completionPercentage}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -327,10 +268,10 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
                       <p className="text-xs text-base-content/35 text-center font-medium py-1">Coming soon</p>
                     ) : (
                       <button
-                        onClick={mod.id === 'manual_proof' ? onOpenDocUpload : undefined}
+                        onClick={mod.moduleType === 'manual_proof' ? onOpenDocUpload : undefined}
                         className="btn btn-outline btn-sm w-full rounded-2xl border-primary/20 text-primary hover:bg-primary/5"
                       >
-                        {mod.action}
+                        {mod.nextAction}
                       </button>
                     )}
                   </div>
@@ -339,6 +280,40 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
             )
           })}
         </div>
+
+        {/* ── Manual Proof fallback ── */}
+        {manualMod && (
+          <div className="mt-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-base-content/45 mb-2 px-0.5">Manual Proof</p>
+            <div className="rounded-2xl bg-base-100 border border-base-300/60 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${['Submitted','Verified'].includes(manualMod.status) ? 'bg-success/10' : 'bg-primary/10'}`}>
+                  {['Submitted','Verified'].includes(manualMod.status)
+                    ? <CheckCircle2 size={19} className="text-success" />
+                    : <FileText size={19} className="text-primary/60" />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-base-content">{manualMod.title}</p>
+                    <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 ${STATUS_CLASS[manualMod.status] || ''}`}>
+                      {manualMod.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-base-content/50 mt-0.5 leading-snug">{manualMod.description}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <button
+                  onClick={onOpenDocUpload}
+                  className="btn btn-outline btn-sm w-full rounded-2xl border-primary/20 text-primary hover:bg-primary/5"
+                >
+                  Upload Document
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

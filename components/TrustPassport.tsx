@@ -1,17 +1,22 @@
 // @ts-nocheck
 // Phase 8 — Full Modular Trust Passport Engine wired in
-import React, { useMemo } from 'react'
+// Phase 11 — Work History Trust module live metrics (additive)
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Shield, ChevronLeft, CheckCircle2, Clock, Star,
   User, Phone, Camera, Heart, Users, Award, ShieldCheck, Briefcase, FileText,
-  TrendingUp,
+  TrendingUp, Trophy,
 } from 'lucide-react'
 import { CaregiverDocument } from '../types'
 import {
   getTrustPassportSummary,
   TrustPassportModule,
   ModuleType,
+  WorkHistoryData,
+  computeTrustedProEligibility,
 } from '../utils/trustEngine'
+
+const ADMIN_API = 'https://carehia-admin.jjioji.workers.dev'
 
 // ─── Module icon map ──────────────────────────────────────────────────────
 const MODULE_ICONS: Record<ModuleType, React.FC<any>> = {
@@ -43,7 +48,7 @@ const LEVEL_COLORS: Record<number, { pill: string; bar: string; text: string }> 
   2: { pill: 'bg-success/10 text-success',   bar: 'bg-success',  text: 'text-success'  },
   3: { pill: 'bg-secondary/10 text-secondary', bar: 'bg-secondary', text: 'text-secondary' },
   4: { pill: 'bg-primary/10 text-primary',   bar: 'bg-primary',  text: 'text-primary'  },
-  5: { pill: 'bg-primary/20 text-primary',   bar: 'bg-primary',  text: 'text-primary'  },
+  5: { pill: 'bg-warning/20 text-amber-700', bar: 'bg-amber-400', text: 'text-amber-700' },
 }
 
 interface TrustPassportProps {
@@ -59,9 +64,20 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
   onClose,
   onOpenDocUpload,
 }) => {
+  // Phase 11: fetch work history data
+  const [workData, setWorkData] = useState<WorkHistoryData | null>(null)
+  useEffect(() => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`${ADMIN_API}/work-history-trust?token=${encodeURIComponent(token)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setWorkData(d) })
+      .catch(() => {})
+  }, [])
+
   const summary = useMemo(
-    () => getTrustPassportSummary(profile, documents),
-    [profile, documents],
+    () => getTrustPassportSummary(profile, documents, workData || undefined),
+    [profile, documents, workData],
   )
 
   const {
@@ -82,6 +98,9 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
   // Modules ordered for display: core 9 first, manual_proof last
   const coreModules = modules.filter(m => m.moduleType !== 'manual_proof')
   const manualMod   = modules.find(m => m.moduleType === 'manual_proof')
+
+  // Phase 11: Trusted Pro eligibility for progress display
+  const trustedPro = workData ? computeTrustedProEligibility(workData) : null
 
   return (
     <div style={{
@@ -181,6 +200,67 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
           </p>
         </div>
 
+        {/* ── Phase 11: Trusted Pro progress block ── */}
+        {trustedPro && !trustedPro.eligible && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy size={16} className="text-amber-600" />
+              <p className="text-sm font-bold text-amber-800">
+                {trustedPro.nearly ? 'Almost Trusted Pro!' : 'Build Trusted Pro Status'}
+              </p>
+            </div>
+            <p className="text-xs text-amber-700 leading-snug mb-3">{trustedPro.encouragementCopy}</p>
+
+            {/* Requirements grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Completed visits', current: trustedPro.completedVisits, target: 10, met: trustedPro.completedVisits >= 10 },
+                { label: 'Avg rating', current: trustedPro.avgRating != null ? `${trustedPro.avgRating}★` : 'None yet', target: '4.7★', met: trustedPro.avgRating != null && trustedPro.avgRating >= 4.7 },
+                { label: 'Client reviews', current: trustedPro.reviewCount, target: 3, met: trustedPro.reviewCount >= 3 },
+                { label: 'Repeat client / paid invoices', current: `${trustedPro.repeatClients}R · ${trustedPro.paidInvoices}inv`, target: '1R or 3inv', met: trustedPro.repeatClients >= 1 || trustedPro.paidInvoices >= 3 },
+              ].map((req, i) => (
+                <div key={i} className={`rounded-xl p-2.5 ${req.met ? 'bg-green-50 border border-green-100' : 'bg-white border border-amber-100'}`}>
+                  <div className="flex items-center gap-1 mb-0.5">
+                    {req.met
+                      ? <CheckCircle2 size={11} className="text-green-500 shrink-0" />
+                      : <div className="w-3 h-3 rounded-full border-2 border-amber-300 shrink-0" />
+                    }
+                    <p className={`text-[10px] font-bold ${req.met ? 'text-green-700' : 'text-amber-700'}`}>{req.label}</p>
+                  </div>
+                  <p className={`text-xs font-black ${req.met ? 'text-green-800' : 'text-amber-800'}`}>{req.current}</p>
+                  {!req.met && <p className="text-[10px] text-amber-500">Goal: {req.target}</p>}
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-3 flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-amber-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all"
+                  style={{ width: `${(trustedPro.metRequirements / trustedPro.totalRequirements) * 100}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-amber-700">{trustedPro.metRequirements}/{trustedPro.totalRequirements} met</span>
+            </div>
+          </div>
+        )}
+
+        {/* Trusted Pro earned banner */}
+        {trustedPro?.eligible && (
+          <div className="rounded-2xl border border-amber-300 p-4 mb-4" style={{ background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-400/30 flex items-center justify-center">
+                <Trophy size={22} className="text-amber-700" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-amber-800">Trusted Pro Earned!</p>
+                <p className="text-xs text-amber-700 mt-0.5">Great work — your care history is strengthening your Trust Passport.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Next recommended step ── */}
         <div className="rounded-2xl bg-primary/5 border border-primary/12 p-4 mb-4">
           <p className="text-[10px] font-bold uppercase tracking-wide text-primary/60 mb-1">Recommended Next Step</p>
@@ -217,15 +297,19 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
             const Icon = MODULE_ICONS[mod.moduleType] || FileText
             const isDone = ['Verified', 'Submitted'].includes(mod.status)
             const statusClass = STATUS_CLASS[mod.status] || STATUS_CLASS['Not Started']
+            const isWorkHistory = mod.moduleType === 'work_history'
+            const wMeta = isWorkHistory && mod.metadata ? mod.metadata : null
 
             return (
               <div key={mod.moduleType} className="rounded-2xl bg-base-100 border border-base-300/60 p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-success/10' : 'bg-primary/10'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-success/10' : isWorkHistory ? 'bg-amber-50' : 'bg-primary/10'}`}>
                     {isDone
                       ? <CheckCircle2 size={19} className="text-success" />
-                      : <Icon size={19} className="text-primary/60" />
+                      : isWorkHistory
+                        ? <Briefcase size={19} className="text-amber-500" />
+                        : <Icon size={19} className="text-primary/60" />
                     }
                   </div>
                   {/* Content */}
@@ -261,11 +345,73 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
                   </div>
                 </div>
 
+                {/* ── Phase 11: Work History metrics panel ── */}
+                {isWorkHistory && wMeta && (
+                  <div className="mt-3 pt-3 border-t border-base-200">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-base-content/40 mb-2">Your Work Record</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">{wMeta.completedVisits ?? 0}</p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Visits</p>
+                      </div>
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">
+                          {wMeta.avgRating != null ? `${wMeta.avgRating}★` : '—'}
+                        </p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Avg Rating</p>
+                      </div>
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">{wMeta.reviewCount ?? 0}</p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Reviews</p>
+                      </div>
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">{wMeta.repeatClients ?? 0}</p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Repeat</p>
+                      </div>
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">{wMeta.paidInvoices ?? 0}</p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Paid inv.</p>
+                      </div>
+                      <div className="rounded-xl bg-primary/5 p-2.5 text-center">
+                        <p className="text-lg font-black text-primary leading-none">{wMeta.activeCertifications ?? 0}</p>
+                        <p className="text-[10px] text-base-content/50 mt-0.5">Certs</p>
+                      </div>
+                    </div>
+                    {/* Encouragement copy */}
+                    {wMeta.completedVisits === 0 ? (
+                      <p className="text-[11px] text-base-content/50 text-center mt-2 leading-snug">
+                        Complete care visits through Carehia to build your work record.
+                      </p>
+                    ) : !wMeta.isTrustedProEligible ? (
+                      <p className="text-[11px] text-primary/60 text-center mt-2 leading-snug font-medium">
+                        Keep certifications active to maintain your trust badges. Repeat clients help your profile stand out.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-success text-center mt-2 leading-snug font-bold">
+                        All Trusted Pro requirements met!
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Work history — placeholder when no data yet */}
+                {isWorkHistory && !wMeta && !workData && (
+                  <div className="mt-3 pt-3 border-t border-base-200">
+                    <p className="text-[11px] text-base-content/40 text-center leading-snug">
+                      Your trust grows as you complete care work through Carehia. Track time or accept a booking to start building your record.
+                    </p>
+                  </div>
+                )}
+
                 {/* Action row */}
                 {!isDone && (
                   <div className="mt-3">
                     {mod.comingSoon ? (
-                      <p className="text-xs text-base-content/35 text-center font-medium py-1">Coming soon</p>
+                      isWorkHistory && workData ? (
+                        <p className="text-xs text-base-content/35 text-center font-medium py-1">{wMeta?.isTrustedProEligible ? 'Trusted Pro requirements met — pending admin activation' : 'Earned through completing care visits'}</p>
+                      ) : (
+                        <p className="text-xs text-base-content/35 text-center font-medium py-1">Coming soon</p>
+                      )
                     ) : (
                       <button
                         onClick={mod.moduleType === 'manual_proof' ? onOpenDocUpload : undefined}

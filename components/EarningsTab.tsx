@@ -139,7 +139,7 @@ const getInvoiceCaregiverInfo = (): InvoiceCaregiverInfo => {
 }
 
 const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => {
-  const rows = invoice.items.map(item => `
+  const rows = (invoice.items || []).map(item => `
     <tr>
       <td>${escapeHtml(item.description || 'Care services')}</td>
       <td class="num">${(item.hours || 0).toFixed(1)}</td>
@@ -158,7 +158,7 @@ const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => 
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>${escapeHtml(invoice.invoiceNumber)} - Carehia Invoice</title>
+        <title>${escapeHtml(invoice.invoiceNumber || "Invoice")} - Carehia Invoice</title>
         <style>
           @page { size: letter; margin: 0.5in; }
           * { box-sizing: border-box; }
@@ -230,7 +230,6 @@ const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => 
             </div>
             <div class="right">
               <p class="eyebrow">Invoice</p>
-              const [invoiceSentTo, setInvoiceSentTo] = useState<string | null>(null)
               <p class="invoice-no">${escapeHtml(invoice.invoiceNumber)}</p>
               <p class="status">${escapeHtml(invoice.status)}</p>
             </div>
@@ -246,7 +245,7 @@ const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => 
             </div>
             <div>
               <p class="eyebrow">Bill To</p>
-              <p class="party">${escapeHtml(invoice.clientName)}</p>
+              <p class="party">${escapeHtml(invoice.clientName || "Client")}</p>
               ${invoice.clientEmail ? `<p class="muted small line">${escapeHtml(invoice.clientEmail)}</p>` : ''}
             </div>
             <div class="right">
@@ -273,7 +272,7 @@ const invoicePrintHtml = (invoice: Invoice, caregiver: InvoiceCaregiverInfo) => 
           <section class="total no-break">
             <div class="total-box">
               <p class="eyebrow">Total Due</p>
-              <p class="total-amount">$${invoice.total.toFixed(2)}</p>
+              <p class="total-amount">$${Number(invoice.total || 0).toFixed(2)}</p>
             </div>
           </section>
         </main>
@@ -354,6 +353,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
   const [sendNotice, setSendNotice] = useState('')
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null)
+  const [invoiceSentTo, setInvoiceSentTo] = useState<string | null>(null)
   const [privateClients, setPrivateClients] = useState<any[]>([])
   const [invClientId, setInvClientId] = useState('')
   const [invClient, setInvClient] = useState('')
@@ -364,6 +364,15 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [usedEntryIds, setUsedEntryIds] = useState<string[]>([])
   const [usedCloudIds, setUsedCloudIds] = useState<string[]>([])
   const [autoFilledNote, setAutoFilledNote] = useState('')
+
+  const openInvoicePreview = (invoice: Invoice) => {
+    try {
+      setPreviewInvoice(invoice)
+      setSendNotice('')
+    } catch {
+      setSendNotice('Invoice preview could not be opened. Please try editing and saving the invoice.')
+    }
+  }
 
   const navigateToView = (nextView: EarningsView) => {
     setView(nextView)
@@ -520,7 +529,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setEditingInvoiceId(invoice.id)
     setInvClient(invoice.clientName)
     setInvClientEmail(invoice.clientEmail || '')
-    setInvItems(invoice.items.length ? invoice.items : [{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
+    setInvItems((invoice.items || []).length ? invoice.items : [{ description: 'Care services', hours: 0, rate: 25, amount: 0 }])
     setInvNotes(invoice.notes || '')
     const daysUntilDue = Math.max(0, Math.ceil((new Date(invoice.dueDate + 'T00:00:00').getTime() - Date.now()) / 86400000))
     setInvDueDays(String(daysUntilDue || 14))
@@ -736,7 +745,11 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     const doc = iframe.contentDocument || iframe.contentWindow?.document
     if (!doc) return cleanup()
     doc.open()
-    doc.write(invoicePrintHtml(invoice, caregiver))
+    try {
+      doc.write(invoicePrintHtml(invoice, caregiver))
+    } catch (err) {
+      doc.write('<html><body><p style="font-family:sans-serif;padding:40px">Invoice print preview could not be generated. Please edit and save the invoice, then try again.</p></body></html>')
+    }
     doc.close()
     window.setTimeout(printFrame, 150)
   }
@@ -1028,12 +1041,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                         <InvoiceStatusBadge status={inv.status} />
                       </div>
                       <p className="text-xs text-base-content/55">{inv.invoiceNumber} - Due {dateLabel(inv.dueDate)}</p>
-                      <p className="mt-1 text-xs text-base-content/55">{inv.items.length} item{inv.items.length === 1 ? '' : 's'} - {inv.items.reduce((sum, item) => sum + (item.hours || 0), 0).toFixed(1)} hrs</p>
+                      <p className="mt-1 text-xs text-base-content/55">{(inv.items || []).length} item{(inv.items || []).length === 1 ? '' : 's'} - {(inv.items || []).reduce((sum, item) => sum + (item.hours || 0), 0).toFixed(1)} hrs</p>
                     </div>
-                    <p className="text-xl font-bold text-base-content">${inv.total.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-base-content">${Number(inv.total || 0).toFixed(2)}</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => setPreviewInvoice(inv)} className="btn btn-outline btn-xs gap-1 border-primary/55 text-primary bg-primary/6">
+                    <button onClick={() => openInvoicePreview(inv)} className="btn btn-outline btn-xs gap-1 border-primary/55 text-primary bg-primary/6">
                       <FileText size={12} /> Preview
                     </button>
                     <button onClick={() => handlePrintInvoice(inv)} className="btn btn-outline btn-xs gap-1 border-primary/55 text-primary bg-primary/6">
@@ -1122,34 +1135,18 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                     <span className="text-right">Rate</span>
                     <span className="text-right">Amount</span>
                   </div>
-                  {previewInvoice.items.map((item, idx) => (
+                  {(previewInvoice.items || []).length === 0 ? (
+                    <div className="px-3 py-6 text-center text-sm text-slate-500">
+                      No invoice items yet. Edit this invoice to add care services or tracked hours.
+                    </div>
+                  ) : (previewInvoice.items || []).map((item, idx) => (
                     <div key={idx} className="grid grid-cols-[1fr_52px_64px_72px] border-t border-slate-100 px-3 py-3 text-sm">
-                      <span className="font-medium">{item.description}</span>
-                      <span className="text-right">{(item.hours || 0).toFixed(1)}</span>
-                      <span className="text-right">${(item.rate || 0).toFixed(2)}</span>
-                      <span className="text-right font-semibold">${(item.amount || 0).toFixed(2)}</span>
+                      <span className="font-medium">{item.description || 'Care services'}</span>
+                      <span className="text-right">{Number(item.hours || 0).toFixed(1)}</span>
+                      <span className="text-right">${Number(item.rate || 0).toFixed(2)}</span>
+                      <span className="text-right font-semibold">${Number(item.amount || (item.hours || 0) * (item.rate || 0) || 0).toFixed(2)}</span>
                     </div>
                   ))}
-                  {invoiceSentTo && (
-                    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
-                    <div className="w-full max-w-sm rounded-3xl bg-base-100 p-6 shadow-2xl text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
-                    <CheckCircle2 size={32} className="text-success" />
-                  </div>
-                  <h3 className="text-xl font-bold text-base-content">Invoice Sent!</h3>
-                  <p className="mt-2 text-sm text-base-content/60">
-                    Your invoice was emailed to
-                  </p>
-                  <p className="mt-1 font-semibold text-base-content">{invoiceSentTo}</p>
-                  <button
-                    onClick={() => setInvoiceSentTo(null)}
-                    className="btn btn-primary mt-6 w-full rounded-2xl"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
                 </div>
 
                 {previewInvoice.notes && (
@@ -1162,7 +1159,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 <div className="mt-5 flex justify-end">
                   <div className="w-48 rounded-xl bg-primary/10 p-4 text-right">
                     <p className="text-xs font-bold uppercase tracking-wide text-primary/70">Total Due</p>
-                    <p className="text-3xl font-black text-primary">${previewInvoice.total.toFixed(2)}</p>
+                    <p className="text-3xl font-black text-primary">${Number(previewInvoice.total || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -1179,6 +1176,25 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {invoiceSentTo && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/50 backdrop-blur-sm px-6" onClick={() => setInvoiceSentTo(null)}>
+          <div className="w-full max-w-sm rounded-3xl bg-base-100 p-6 shadow-2xl text-center" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+              <CheckCircle2 size={32} className="text-success" />
+            </div>
+            <h3 className="text-xl font-bold text-base-content">Invoice Sent!</h3>
+            <p className="mt-2 text-sm text-base-content/60">Your invoice was emailed to</p>
+            <p className="mt-1 font-semibold text-base-content">{invoiceSentTo}</p>
+            <button
+              onClick={() => setInvoiceSentTo(null)}
+              className="btn btn-primary mt-6 w-full rounded-2xl"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

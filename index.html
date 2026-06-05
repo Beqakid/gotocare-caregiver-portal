@@ -2,24 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Carehia — Caregiver Portal</title>
-  <meta name="description" content="Your free professional caregiving office. Track hours, manage clients, build your reputation." />
-  <meta name="theme-color" content="#7C5CFF" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="stylesheet" href="styles.css" />
-  <!-- DaisyUI + Tailwind CDN (whitelisted in CSP) -->
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <meta name="theme-color" content="#7C5CFF" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Carehia Work" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- Plausible analytics -->
-  <script defer data-domain="work.carehia.com" src="https://plausible.io/js/pa-ItdAIlsEBj1VBmyRkJi6f.js"></script>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://accounts.google.com https://plausible.io; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src * data:; connect-src * blob:; font-src * data:; frame-src https://accounts.google.com; worker-src 'self' blob:" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#7C5CFF',
+            secondary: '#4A90E2',
+            success: '#22C55E',
+            warning: '#F59E0B',
+            error: '#EF4444',
+          }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://plausible.io/js/pa-ItdAIlsEBj1VBmyRkJi6f.js" data-domain="work.carehia.com"></script>
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="dist/app.js?v=20260705-p30"></script>
+  <script src="/dist/app.js?v=20260705-p31"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // @ts-nocheck
 // utils/trustEngine.ts
 // Phase 8 — Full Modular Carehia Trust Passport Engine
+// Phase 11 — Work History Trust Signals (additive)
 // ─────────────────────────────────────────────────────
 // This is the single source of truth for:
 //   - module definitions + status derivation
@@ -10,6 +11,8 @@
 //   - public badge eligibility
 //   - getTrustPassportSummary() — main entry point used by both
 //     TrustPassport.tsx (full page) and HomeTab.tsx (card)
+//   - WorkHistoryData + buildWorkHistoryStatus() [Phase 11]
+//   - computeTrustedProEligibility() [Phase 11]
 
 export type ModuleType =
   | 'basic_profile'
@@ -73,6 +76,111 @@ export interface TrustPassportSummary {
   modules: TrustPassportModule[]
 }
 
+// ─── Phase 11: Work History Data interface ────────────────────────────────
+export interface WorkHistoryData {
+  completedVisits: number
+  completedTimeEntries: number
+  acceptedBookings: number
+  avgRating: number | null
+  reviewCount: number
+  repeatClients: number
+  paidInvoices: number
+  activeCertifications: number
+  isTrustedProEligible: boolean
+  nearlyEligible: boolean
+  missingForTrustedPro: string[]
+  metRequirements: number
+  totalRequirements: number
+}
+
+// ─── Phase 11: Derive work_history module status from real data ───────────
+export function buildWorkHistoryStatus(workData: WorkHistoryData): {
+  status: ModuleStatus
+  completionPercentage: number
+  nextAction: string
+  metadata: Record<string, any>
+} {
+  const { completedVisits, avgRating, reviewCount, isTrustedProEligible, metRequirements, totalRequirements } = workData
+
+  let status: ModuleStatus = 'Not Started'
+  let completionPercentage = 0
+  let nextAction = 'Start Working'
+
+  if (isTrustedProEligible) {
+    status = 'Verified'
+    completionPercentage = 100
+    nextAction = 'Trusted Pro Earned'
+  } else if (completedVisits > 0 || reviewCount > 0) {
+    status = 'In Progress'
+    completionPercentage = Math.round((metRequirements / totalRequirements) * 80) // max 80% until earned
+    nextAction = workData.missingForTrustedPro[0]
+      ? `Next: ${workData.missingForTrustedPro[0]}`
+      : 'Keep completing visits'
+  }
+
+  return {
+    status,
+    completionPercentage,
+    nextAction,
+    metadata: {
+      completedVisits,
+      avgRating,
+      reviewCount,
+      repeatClients: workData.repeatClients,
+      paidInvoices: workData.paidInvoices,
+      activeCertifications: workData.activeCertifications,
+      isTrustedProEligible,
+      nearlyEligible: workData.nearlyEligible,
+      missingForTrustedPro: workData.missingForTrustedPro,
+      metRequirements,
+      totalRequirements,
+    },
+  }
+}
+
+// ─── Phase 11: Trusted Pro eligibility summary ───────────────────────────
+export function computeTrustedProEligibility(workData: WorkHistoryData): {
+  eligible: boolean
+  nearly: boolean
+  completedVisits: number
+  avgRating: number | null
+  reviewCount: number
+  repeatClients: number
+  paidInvoices: number
+  metRequirements: number
+  totalRequirements: number
+  missingForTrustedPro: string[]
+  encouragementCopy: string
+} {
+  const { isTrustedProEligible, nearlyEligible, completedVisits, avgRating, reviewCount, repeatClients, paidInvoices, missingForTrustedPro, metRequirements, totalRequirements } = workData
+
+  let encouragementCopy = ''
+  if (isTrustedProEligible) {
+    encouragementCopy = 'Great work — your care history is strengthening your Trust Passport.'
+  } else if (nearlyEligible) {
+    const missing = missingForTrustedPro[0] || 'a few more visits'
+    encouragementCopy = `You're close! Complete ${missing} to unlock Trusted Pro status and priority visibility.`
+  } else if (completedVisits > 0) {
+    encouragementCopy = 'Complete more visits to build Trusted Pro status. Repeat clients help your profile stand out.'
+  } else {
+    encouragementCopy = 'Your trust grows as you complete care work through Carehia. Start a visit to build your record.'
+  }
+
+  return {
+    eligible: isTrustedProEligible,
+    nearly: nearlyEligible,
+    completedVisits,
+    avgRating,
+    reviewCount,
+    repeatClients,
+    paidInvoices,
+    metRequirements,
+    totalRequirements,
+    missingForTrustedPro,
+    encouragementCopy,
+  }
+}
+
 // ─── Module weights (must sum to 100 excluding manual_proof = 0) ──────────
 const MODULE_WEIGHTS: Record<ModuleType, number> = {
   basic_profile:         15,
@@ -106,7 +214,7 @@ function tryParseArray(val: any): any[] {
 }
 
 // ─── Build module list from caregiver profile + documents ─────────────────
-export function buildTrustModules(profile: any, documents: any[]): TrustPassportModule[] {
+export function buildTrustModules(profile: any, documents: any[], workData?: WorkHistoryData): TrustPassportModule[] {
   const docs = Array.isArray(documents) ? documents : []
   const now = new Date()
 
@@ -168,8 +276,19 @@ export function buildTrustModules(profile: any, documents: any[]): TrustPassport
   // ── Carehia Review — set by admin only ──
   const reviewStatus: ModuleStatus = 'Not Started'
 
-  // ── Work History Trust — earned over time ──
-  const workStatus: ModuleStatus = 'Not Started'
+  // ── Work History Trust — Phase 11: use real data if provided ──
+  let workStatus: ModuleStatus = 'Not Started'
+  let workPct = 0
+  let workNextAction = 'Start Working'
+  let workMetadata: Record<string, any> = {}
+
+  if (workData) {
+    const wh = buildWorkHistoryStatus(workData)
+    workStatus = wh.status
+    workPct = wh.completionPercentage
+    workNextAction = wh.nextAction
+    workMetadata = wh.metadata
+  }
 
   // ── Manual Proof ──
   const manualDocs = docs.filter(d =>
@@ -276,12 +395,13 @@ export function buildTrustModules(profile: any, documents: any[]): TrustPassport
       title: 'Work History Trust',
       description: 'Completed care visits, ratings, and repeat clients build your ongoing trust score.',
       status: workStatus,
-      completionPercentage: 0,
+      completionPercentage: workPct,
       estimatedTime: 'Earned over time',
-      nextAction: 'Start Working',
-      unlockMessage: 'Experienced Caregiver badge + Trusted Pro status.',
+      nextAction: workNextAction,
+      unlockMessage: 'Trusted Pro status + priority visibility in family searches.',
       publicBadgeEligibility: true,
-      comingSoon: true,
+      comingSoon: workData == null,
+      metadata: workData ? workMetadata : undefined,
     },
     {
       moduleType: 'manual_proof',
@@ -326,12 +446,22 @@ export function computeCompletionPercentage(modules: TrustPassportModule[]): num
 // Level 2 — Identity Ready
 // Level 3 — Care Ready
 // Level 4 — Carehia Verified
-// Level 5 — Trusted Pro (reserved — no work history data yet)
+// Level 5 — Trusted Pro
 export function computeTrustLevel(modules: TrustPassportModule[]): { level: number; name: string; color: string } {
   const s = Object.fromEntries(modules.map(m => [m.moduleType, m.status])) as Record<ModuleType, ModuleStatus>
   const verified   = (t: ModuleType) => s[t] === 'Verified'
   const submitted  = (t: ModuleType) => ['Verified', 'Submitted'].includes(s[t] || '')
   const started    = (t: ModuleType) => ['In Progress', 'Submitted', 'Verified', 'Needs a Quick Fix'].includes(s[t] || '')
+
+  // Level 5 — Trusted Pro (Phase 11: work_history must be Verified)
+  if (
+    verified('basic_profile') &&
+    verified('contact_verification') &&
+    submitted('certifications') &&
+    submitted('background_permission') &&
+    submitted('carehia_review') &&
+    verified('work_history')
+  ) return { level: 5, name: 'Trusted Pro', color: '#92400E' }
 
   // Level 4 — Carehia Verified
   if (
@@ -413,9 +543,16 @@ export function getNextTrustStep(modules: TrustPassportModule[]): NextTrustStep 
   }
   if (incomplete('carehia_review')) return {
     step: 'Submit for Carehia Review',
-    explanation: 'Our team will do a quick review — usually done in 24\u201348 hrs.',
+    explanation: 'Our team will do a quick review \u2014 usually done in 24\u201348 hrs.',
     unlockMessage: 'Carehia Verified badge \u2014 the highest trust signal.',
     actionTarget: 'carehia_review',
+  }
+  // Phase 11: if work_history is in progress, nudge toward Trusted Pro
+  if (s['work_history'] === 'In Progress') return {
+    step: 'Keep building your work history',
+    explanation: 'Complete more care visits and collect client reviews.',
+    unlockMessage: 'Trusted Pro badge \u2014 priority visibility in family searches.',
+    actionTarget: 'work_history',
   }
   return {
     step: 'Keep your Trust Passport current',
@@ -438,12 +575,15 @@ export function getPublicBadges(modules: TrustPassportModule[]): string[] {
   if (['Verified', 'Submitted'].includes(s['background_permission'] || '')) badges.push('Background Check Completed')
   if (s['carehia_review'] === 'Verified') badges.push('Carehia Verified')
   if (s['references'] === 'Verified') badges.push('References Verified')
+  // Phase 11: Trusted Pro badge from work_history
+  if (s['work_history'] === 'Verified') badges.push('Trusted Pro')
   return badges
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────
-export function getTrustPassportSummary(profile: any, documents: any[]): TrustPassportSummary {
-  const modules              = buildTrustModules(profile, documents)
+// Phase 11: accepts optional workData — backwards compatible
+export function getTrustPassportSummary(profile: any, documents: any[], workData?: WorkHistoryData): TrustPassportSummary {
+  const modules              = buildTrustModules(profile, documents, workData)
   const trustScore           = computeTrustScore(modules)
   const completionPercentage = computeCompletionPercentage(modules)
   const { level, name: trustLevelName } = computeTrustLevel(modules)

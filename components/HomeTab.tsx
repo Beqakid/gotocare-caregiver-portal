@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getTrustPassportSummary } from '../utils/trustEngine'
+import { getTrustPassportSummary, WorkHistoryData, computeTrustedProEligibility } from '../utils/trustEngine'
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -17,6 +17,7 @@ import {
   Square,
   Timer,
   TrendingUp,
+  Trophy,
   User,
   Users,
 } from 'lucide-react'
@@ -260,6 +261,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         const active = (d.requests || []).filter((r: any) => !r.is_expired && r.request_status !== 'taken')
         setLiveJobCount(active.length)
       })
+      .catch(() => {})
+  }, [])
+
+  // Phase 11: work history trust data for Trusted Pro encouragement card
+  const [workData, setWorkData] = React.useState<WorkHistoryData | null>(null)
+  useEffect(() => {
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    fetch(`https://carehia-admin.jjioji.workers.dev/work-history-trust?token=${encodeURIComponent(token)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setWorkData(d) })
       .catch(() => {})
   }, [])
 
@@ -940,6 +952,37 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           Continue Trust Passport
         </button>
       </section>
+
+      {/* ── 9.5. Trusted Pro Encouragement (Phase 11 — conditional, non-intrusive) ── */}
+      {workData && workData.nearlyEligible && !workData.isTrustedProEligible && completeness >= 70 && (() => {
+        const tpe = computeTrustedProEligibility(workData)
+        return (
+          <section className="rounded-2xl border border-amber-200 p-4" style={{ background: 'linear-gradient(135deg, rgba(254,243,199,0.6), rgba(253,230,138,0.3))' }}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Trophy size={18} className="text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-800">You're close to Trusted Pro!</p>
+                <p className="text-xs text-amber-700 mt-0.5 leading-snug">
+                  {tpe.missingForTrustedPro[0]
+                    ? `Complete ${tpe.missingForTrustedPro[0]} to unlock priority visibility.`
+                    : 'Keep completing care visits to build your status.'}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-amber-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-400 transition-all"
+                      style={{ width: `${(tpe.metRequirements / tpe.totalRequirements) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-700 shrink-0">{tpe.metRequirements}/{tpe.totalRequirements}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* ── 10. Profile Growth (hidden once search-ready) ── */}
       {completeness < 70 && (

@@ -80,7 +80,7 @@ interface HomeTabProps {
   onNavigateToSchedule: () => void
   onNavigateToEarnings: () => void
   onNavigateToProfile: () => void
-  onNavigateToSection: (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings', scrollTo: string) => void
+  onNavigateToSection: (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'trust-passport', scrollTo: string) => void
   onClockIn: (shiftId: number) => void
   onTimerUpdate: () => void
 }
@@ -945,28 +945,22 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
       {/* ── 9. Carehia Trust Passport ── */}
       <section className="rounded-2xl bg-base-200 border border-primary/20 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Shield size={22} />
-            </div>
-            <div>
-              <p className={sectionTitle}>Carehia Trust Passport</p>
-              <p className="text-sm font-bold text-base-content mt-1">{homeVerification.progress}% complete • Level {homeVerification.trustLevel}: {homeVerification.trustLevelName}</p>
-              <p className="text-xs text-base-content/60 mt-0.5">Next step: {homeVerification.nextStep}</p>
-              <p className="text-xs text-primary/80 mt-0.5">Unlock: {homeVerification.unlockMessage}</p>
-            </div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Shield size={18} />
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-black text-base-content">{homeVerification.trustScore}</p>
-            <p className="text-[10px] text-base-content/50">Trust score</p>
+          <div className="flex-1 min-w-0">
+            <p className={sectionTitle}>Carehia Trust Passport</p>
+            <p className="text-sm font-bold text-base-content leading-tight">{homeVerification.progress}% complete — Level {homeVerification.trustLevel}</p>
+            <p className="text-xs text-base-content/50 truncate mt-0.5">{homeVerification.nextStep}</p>
           </div>
+          <span className="text-xl font-black text-primary shrink-0">{homeVerification.progress}%</span>
         </div>
-        <div className="mt-3 h-2 rounded-full bg-base-100 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-base-100 overflow-hidden mb-3">
           <div className="h-full rounded-full bg-primary" style={{ width: `${homeVerification.progress}%` }} />
         </div>
         {verificationAlerts.length > 0 && (
-          <div className="mt-3 space-y-1">
+          <div className="mb-2 space-y-1">
             {verificationAlerts.map(alert => (
               <div key={alert} className="flex items-center gap-2 text-xs text-warning">
                 <AlertTriangle size={13} />
@@ -975,45 +969,44 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             ))}
           </div>
         )}
-        <button onClick={() => onNavigateToSection('trust-passport', '')} className="btn btn-primary btn-sm w-full rounded-2xl mt-3 text-white">
+        <button onClick={() => onNavigateToSection('trust-passport', '')} className="btn btn-primary btn-sm w-full rounded-2xl text-white">
           Continue Trust Passport
         </button>
-        <p className="text-xs text-center text-base-content/50 mt-2">You can complete this step by step.</p>
       </section>
 
-      {/* ── 10. Profile Growth ── */}
-      <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <ProgressRing score={completeness} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-black text-base-content">{completeness}%</span>
+      {/* ── 10. Profile Growth (hidden once search-ready) ── */}
+      {completeness < 70 && (
+        <section className="rounded-2xl bg-base-200 border border-base-300/70 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <ProgressRing score={completeness} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-black text-base-content">{completeness}%</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-base-content">Profile Growth</p>
+                <p className="text-xs text-base-content/60">Reach 70% to appear in search</p>
               </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-base-content">Profile Growth</p>
-              <p className="text-xs text-base-content/60">
-                {completeness >= 70 ? 'Visible in search' : 'Reach 70% to appear in search'}
-              </p>
+            <button onClick={onNavigateToProfile} className="btn btn-ghost btn-sm text-primary shrink-0">Fix →</button>
+          </div>
+          {missingProfileItems.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {missingProfileItems.slice(0, 3).map((item: any) => (
+                <button
+                  key={item.label}
+                  onClick={() => onNavigateToSection(item.action.section, item.action.scrollTo)}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-100 border border-base-300 text-base-content/65"
+                >
+                  + {item.label}
+                </button>
+              ))}
             </div>
-          </div>
-          <button onClick={onNavigateToProfile} className="btn btn-ghost btn-sm text-primary">Continue</button>
-        </div>
-        {missingProfileItems.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {missingProfileItems.slice(0, 4).map((item: any) => (
-              <button
-                key={item.label}
-                onClick={() => onNavigateToSection(item.action.section, item.action.scrollTo)}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-100 border border-base-300 text-base-content/65"
-              >
-                + {item.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      )}
 
     </div>
   )

@@ -292,10 +292,10 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
               <div key={mod.id} className="rounded-2xl bg-base-100 border border-base-300/60 p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-success/10' : 'bg-primary/8'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-success/10' : 'bg-primary/10'}`}>
                     {isDone
                       ? <CheckCircle2 size={19} className="text-success" />
-                      : <Icon size={19} className="text-primary/65" />
+                      : <Icon size={19} className="text-primary/60" />
                     }
                   </div>
                   {/* Content */}
@@ -340,26 +340,6 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({ profile, documents
           })}
         </div>
 
-        {/* Manual Proof callout (standalone) */}
-        <div className="rounded-2xl bg-base-200 border border-base-300/60 p-4 mt-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <FileText size={19} className="text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-base-content">Manual Proof</p>
-              <p className="text-xs text-base-content/50 mt-1 leading-relaxed">
-                Having trouble verifying a step? You can upload proof manually and our team will review it within 24–48 hours.
-              </p>
-              <button
-                onClick={onOpenDocUpload}
-                className="btn btn-outline btn-sm rounded-2xl border-primary/20 text-primary mt-3 hover:bg-primary/5"
-              >
-                Upload Proof
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

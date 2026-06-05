@@ -297,6 +297,22 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const weekEarnings = completedWeekEntries.reduce((sum, entry) => sum + (entry.totalPay || hoursFromEntry(entry) * entry.hourlyRate), 0)
   const activeTimerAmount = activeTimer ? (elapsed / 3600) * (activeTimer.hourlyRate || 0) : 0
 
+  // ── Phase 25: Check-In / Check-Out modal state — defined BEFORE useMemo hooks ──
+  const [checkInModalState, setCheckInModalState] = useState<{
+    mode: 'checkin' | 'checkout'
+    shiftId?: number
+    shift?: Shift
+  } | null>(null)
+
+  const handleCheckInClick = useCallback((shiftId: number) => {
+    setCheckInModalState({ mode: 'checkin', shiftId, shift: nextShift ?? undefined })
+  }, [nextShift])
+
+  const handleCheckOutClick = useCallback(() => {
+    setCheckInModalState({ mode: 'checkout' })
+  }, [])
+  // ─────────────────────────────────────────────────────────────────────────
+
   // ── existing priorityTasks (unchanged — still used for secondary task rows) ──
   const priorityTasks = useMemo(() => {
     const tasks: any[] = []
@@ -408,22 +424,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
     return tasks.slice(0, 4)
   }, [activeTimer, elapsed, pendingRequests.length, uninvoicedHours, uninvoicedAmount, pendingInvoices.length, nextShift, expiringDocs.length, completeness, missingProfileItems.length])
-
-  // ── Phase 25: Check-In / Check-Out modal intercept ───────────────────────
-  const [checkInModalState, setCheckInModalState] = useState<{
-    mode: 'checkin' | 'checkout'
-    shiftId?: number
-    shift?: Shift
-  } | null>(null)
-
-  const handleCheckInClick = useCallback((shiftId: number) => {
-    setCheckInModalState({ mode: 'checkin', shiftId, shift: nextShift ?? undefined })
-  }, [nextShift])
-
-  const handleCheckOutClick = useCallback(() => {
-    setCheckInModalState({ mode: 'checkout' })
-  }, [])
-  // ─────────────────────────────────────────────────────────────────────────
 
   // ── Phase 2: heroAction — rich card data for the top-priority Next Best Action ──
   const heroAction = useMemo(() => {

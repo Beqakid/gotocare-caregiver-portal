@@ -24,6 +24,19 @@ function safeFmtDate(raw: string | null | undefined, fallback = 'recently'): str
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Phase 12: read local caregiver skills from stored profile (sync/cheap)
+function getLocalCaregiverSkills(): string[] {
+  try {
+    const raw = localStorage.getItem('cgp_account')
+    if (!raw) return []
+    const p = JSON.parse(raw)
+    const skills = p.skills
+    if (Array.isArray(skills)) return skills
+    if (typeof skills === 'string') { try { return JSON.parse(skills) } catch { return skills.split(',').map((s: string) => s.trim()).filter(Boolean) } }
+  } catch {}
+  return []
+}
+
 interface LiveRequest {
   dispatch_id: number
   request_id: number
@@ -150,6 +163,13 @@ function LiveRequestCard({
   const isExpired = countdown.expired || req.is_expired
   const isTaken = taken || req.request_status === 'taken'
   const isProcessing = accepting === req.request_id || declining === req.request_id
+  // Phase 12: skill match indicator against caregiver's stored skills
+  const isSkillMatch = React.useMemo(() => {
+    const skills = getLocalCaregiverSkills()
+    if (!skills.length || !req.care_type) return false
+    const ct = req.care_type.toLowerCase()
+    return skills.some(s => s.toLowerCase().includes(ct) || ct.includes(s.toLowerCase()))
+  }, [req.care_type])
 
   if (accepted) return (
     <div className="rounded-2xl p-5 bg-success/10 border border-success/30 space-y-2">
@@ -188,6 +208,10 @@ function LiveRequestCard({
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="badge badge-sm bg-primary/15 text-primary border-0 font-semibold">NEW</span>
               <RoundBadge round={req.round} />
+              {/* Phase 12: skill match chip */}
+              {isSkillMatch && (
+                <span className="badge badge-sm bg-success/15 text-success border-0 font-semibold">🎯 Skill match</span>
+              )}
             </div>
             <h3 className="font-bold text-base-content">{req.care_type}</h3>
           </div>

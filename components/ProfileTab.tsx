@@ -360,6 +360,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [apiDocs, setApiDocs] = useState<any[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [docFile, setDocFile] = useState<File | null>(null)
+  const [proofType, setProofType] = useState('Government ID')
+  const [otherDocName, setOtherDocName] = useState('')
+  const [proofNotes, setProofNotes] = useState('')
+  const [proofSubmitOk, setProofSubmitOk] = useState(false)
+  const [proofSubmitErr, setProofSubmitErr] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
 
@@ -491,6 +496,58 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const handleSaveSkills = () => {
     onUpdateProfile({ skills: selectedSkills })
     setEditingSkills(false)
+  }
+
+  // ── Phase 13C: Proof type → doc_type mapping ──────────────────
+  const PROOF_TYPE_TO_DOC_TYPE: Record<string, string> = {
+    'Government ID': 'other',
+    'CPR / First Aid': 'certification',
+    'CNA / HHA / License': 'certification',
+    'Training Certificate': 'training',
+    'Health Clearance': 'health',
+    'Insurance': 'insurance',
+    'Background Check Document': 'background_check',
+    'Work Eligibility': 'other',
+    'Other': 'other',
+  }
+  const PROOF_TYPES_EXPIRY = ['Government ID', 'CPR / First Aid', 'CNA / HHA / License', 'Training Certificate', 'Health Clearance', 'Insurance', 'Background Check Document', 'Work Eligibility']
+
+  const handleSubmitProof = async () => {
+    const resolvedName = proofType === 'Other' ? otherDocName.trim() : proofType
+    if (!resolvedName || resolvedName.length < 2) return
+    const resolvedType = PROOF_TYPE_TO_DOC_TYPE[proofType] || 'other'
+    setProofSubmitErr(false)
+    setProofSubmitOk(false)
+    if (cgToken) {
+      try {
+        const fd = new FormData()
+        fd.append('token', cgToken)
+        fd.append('name', resolvedName)
+        fd.append('doc_type', resolvedType)
+        if (docExpiry) fd.append('expiry_date', docExpiry)
+        if (proofNotes.trim()) fd.append('notes', proofNotes.trim())
+        if (docFile) fd.append('file', docFile)
+        const res = await fetch(`${API_BASE}/api/cgp-docs`, { method: 'POST', body: fd })
+        const data = await res.json()
+        if (data.success) {
+          try { await submitVerificationCopy(cgToken, resolvedType, resolvedName, docExpiry, docFile) } catch (e) { console.warn('Verification copy failed', e) }
+          await loadApiDocs()
+          setShowAddDoc(false)
+          setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('')
+          setProofSubmitOk(true)
+          window.setTimeout(() => setProofSubmitOk(false), 4000)
+          onDocumentsChange()
+          return
+        }
+      } catch (e) {}
+    }
+    // fallback: local state
+    addDocument({ name: resolvedName, type: resolvedType as CaregiverDocument['type'], expiryDate: docExpiry || undefined, notes: proofNotes || undefined })
+    setShowAddDoc(false)
+    setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('')
+    setProofSubmitOk(true)
+    window.setTimeout(() => setProofSubmitOk(false), 4000)
+    onDocumentsChange()
   }
 
   const handleAddDocument = async () => {
@@ -1290,39 +1347,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         <div id="trust-certifications" className="px-4 space-y-4">
           <div className="flex items-center justify-between px-1">
             <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications &amp; Skills Proof</p>
-            <button onClick={() => { setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-primary btn-sm rounded-2xl gap-1">
-              <Plus size={14} /> Add
+            <button onClick={() => { setShowAddDoc(true); window.setTimeout(() => { const el = document.getElementById('trust-manual-proof'); if (el) el.scrollIntoView({ behavior: 'smooth' }) }, 100) }} className="btn btn-ghost btn-sm rounded-2xl gap-1 text-primary text-xs">
+              Add Proof
             </button>
           </div>
-
-          {showAddDoc && (
-            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-semibold text-sm">Add Certification</p>
-                <button onClick={() => setShowAddDoc(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
-              </div>
-              <div className="space-y-2">
-                <select className="select select-bordered select-sm w-full" value={CERTIFICATION_TYPES.includes(docName) ? docName : 'CPR'} onChange={e => setDocName(e.target.value)}>
-                  {CERTIFICATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <input type="text" className="input input-bordered input-sm w-full" placeholder="Issuing organization (optional)" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="date" className="input input-bordered input-sm w-full" aria-label="Issue date" />
-                  <input type="date" className="input input-bordered input-sm w-full" aria-label="Expiration date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} />
-                </div>
-                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
-                  onChange={e => setDocFile(e.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-outline btn-sm w-full gap-1 border-dashed">
-                  <Upload size={14} />
-                  {docFile ? docFile.name : 'Upload proof document'}
-                </button>
-                <button onClick={() => { setDocType('certification'); if (!docName) setDocName('CPR'); handleAddDocument() }} className="btn btn-primary btn-sm w-full">
-                  Submit for Review
-                </button>
-                <p className="text-[11px] text-base-content/50">Issuing organization and issue date are UI-only for now. Proof is stored through the existing document vault.</p>
-              </div>
-            </div>
-          )}
+          {/* Phase 13C: upload is handled by unified Add Proof form below */}
 
           {CERTIFICATION_TYPES.map(type => {
             const doc = certificationDocs.find(d => type === 'Other' ? d.type === 'certification' : docText(d).includes(type.toLowerCase()))
@@ -1353,53 +1382,112 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ── TRUST PASSPORT: Manual Proof / Document Vault ── */}
       {section === 'trust-passport' && (
         <div id="trust-manual-proof" className="px-4 space-y-4">
-          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Add Proof</p>
-            <p className="text-sm text-base-content/60 mt-1">Upload supporting documents for your trust steps — certifications, licenses, training, or background check records. All documents are private.</p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {['Identity', 'Certification', 'Training', 'Medical clearance', 'Other'].map(label => (
-                <span key={label} className="rounded-full bg-base-100 border border-base-300 px-2.5 py-1 text-[11px] font-semibold text-base-content/60">{label}</span>
-              ))}
+          {/* ── Phase 13C: Unified Add Proof header ── */}
+          <div className="rounded-3xl bg-gradient-to-br from-primary/8 to-secondary/5 border border-primary/15 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Manual Proof</p>
+            <p className="text-sm text-base-content/60 mt-1">Having trouble verifying a step? Add proof manually and Carehia will review it.</p>
+            <p className="text-xs text-base-content/40 mt-2">🔒 All documents are private and never shared publicly.</p>
+          </div>
+
+          {/* ── Success / Error banners ── */}
+          {proofSubmitOk && (
+            <div className="rounded-2xl bg-success/10 border border-success/25 px-4 py-3 flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-success mt-0.5 shrink-0" />
+              <p className="text-sm text-success font-medium">Proof submitted. Carehia will review it and let you know if anything needs a quick fix.</p>
             </div>
-          </div>
-          <div className="text-xs text-base-content/60">
-            Store your certifications, licenses, and training records. Get alerts before they expire so you never fall out of compliance.
-            <p className="text-xs text-base-content/60 mt-1">🔒 Documents are private unless you choose to share them.</p>
-          </div>
+          )}
+          {proofSubmitErr && (
+            <div className="rounded-2xl bg-error/10 border border-error/25 px-4 py-3 flex items-start gap-2">
+              <AlertTriangle size={16} className="text-error mt-0.5 shrink-0" />
+              <p className="text-sm text-error font-medium">We could not upload this proof. Please try again.</p>
+            </div>
+          )}
 
-          <button onClick={() => setShowAddDoc(true)} className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">
-            <Plus size={16} /> Add Document
-          </button>
-
-          {showAddDoc && (
-            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-semibold text-sm">Add Document</p>
-                <button onClick={() => setShowAddDoc(false)} className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
+          {!showAddDoc ? (
+            <button onClick={() => { setShowAddDoc(true); setProofSubmitOk(false); setProofSubmitErr(false) }}
+              className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">
+              <Plus size={16} /> Add Proof
+            </button>
+          ) : (
+            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-sm">Add Proof</p>
+                <button onClick={() => { setShowAddDoc(false); setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('') }}
+                  className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
               </div>
-              <div className="space-y-2">
-                <input type="text" className="input input-bordered input-sm w-full" placeholder="Document name *"
-                  value={docName} onChange={e => setDocName(e.target.value)} autoFocus />
-                <select className="select select-bordered select-sm w-full" value={docType} onChange={e => setDocType(e.target.value)}>
-                  {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+
+              {/* Proof type */}
+              <div>
+                <label className="text-xs font-semibold text-base-content/70 block mb-1">What are you adding?</label>
+                <select className="select select-bordered select-sm w-full"
+                  value={proofType} onChange={e => { setProofType(e.target.value); setOtherDocName('') }}>
+                  {['Government ID', 'CPR / First Aid', 'CNA / HHA / License', 'Training Certificate', 'Health Clearance', 'Insurance', 'Background Check Document', 'Work Eligibility', 'Other'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
+              </div>
+
+              {/* Other: custom document name */}
+              {proofType === 'Other' && (
                 <div>
-                  <label className="text-xs text-base-content/60">Expiry date (optional)</label>
+                  <label className="text-xs font-semibold text-base-content/70 block mb-1">Document name <span className="text-error">*</span></label>
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="Example: Dementia Care Training, TB Test, Caregiver Workshop Certificate"
+                    value={otherDocName}
+                    onChange={e => setOtherDocName(e.target.value.slice(0, 80))}
+                    autoFocus
+                    maxLength={80}
+                  />
+                  <p className="text-[11px] text-base-content/50 mt-1">Tell us what kind of document this is so Carehia can review it correctly.</p>
+                  {otherDocName.trim().length > 0 && otherDocName.trim().length < 2 && (
+                    <p className="text-[11px] text-error mt-1">Please enter at least 2 characters.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Expiry date — shown for most types */}
+              {(PROOF_TYPES_EXPIRY.includes(proofType) || proofType === 'Other') && (
+                <div>
+                  <label className="text-xs font-semibold text-base-content/70 block mb-1">
+                    Expiry date {PROOF_TYPES_EXPIRY.includes(proofType) ? <span className="text-base-content/40 font-normal">(recommended)</span> : <span className="text-base-content/40 font-normal">(optional)</span>}
+                  </label>
                   <input type="date" className="input input-bordered input-sm w-full" value={docExpiry}
                     onChange={e => setDocExpiry(e.target.value)} />
                 </div>
-                <div>
-                  <label className="text-xs text-base-content/60 mb-1 block">Upload file (optional)</label>
-                  <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
-                    onChange={e => setDocFile(e.target.files?.[0] || null)} />
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="btn btn-outline btn-sm w-full gap-1 border-dashed">
-                    <Upload size={14} />
-                    {docFile ? docFile.name : 'Choose file (PDF, JPG, PNG)'}
-                  </button>
-                </div>
-                <button onClick={handleAddDocument} className="btn btn-primary btn-sm w-full">Add Document</button>
+              )}
+
+              {/* File upload */}
+              <div>
+                <label className="text-xs font-semibold text-base-content/70 block mb-1">Upload file <span className="text-base-content/40 font-normal">(optional)</span></label>
+                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" className="hidden"
+                  onChange={e => setDocFile(e.target.files?.[0] || null)} />
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="btn btn-outline btn-sm w-full gap-1 border-dashed">
+                  <Upload size={14} />
+                  {docFile ? docFile.name : 'Choose file (PDF, JPG, PNG)'}
+                </button>
               </div>
+
+              {/* Optional notes */}
+              <div>
+                <label className="text-xs font-semibold text-base-content/70 block mb-1">Notes <span className="text-base-content/40 font-normal">(optional)</span></label>
+                <textarea
+                  className="textarea textarea-bordered textarea-sm w-full resize-none"
+                  rows={2}
+                  placeholder="Add anything Carehia should know about this proof."
+                  value={proofNotes}
+                  onChange={e => setProofNotes(e.target.value)}
+                />
+              </div>
+
+              <button
+                onClick={handleSubmitProof}
+                disabled={proofType === 'Other' && otherDocName.trim().length < 2}
+                className="btn btn-primary btn-sm w-full disabled:opacity-50">
+                Submit Proof
+              </button>
             </div>
           )}
 

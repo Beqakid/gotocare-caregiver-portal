@@ -367,9 +367,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [proofSubmitErr, setProofSubmitErr] = useState(false)
   const [travelRadius, setTravelRadius] = useState<number>(() => {
     if (typeof window === 'undefined') return 10
+    const profileVal = (profile as any)?.travelRadiusMiles
+    if (profileVal && profileVal >= 5 && profileVal <= 50) return profileVal
     const saved = localStorage.getItem('cgp_travel_radius')
     return saved ? Number(saved) : 10
   })
+  const [radiusSaveStatus, setRadiusSaveStatus] = useState<'idle'|'saved'|'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
 
@@ -501,6 +504,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const handleSaveSkills = () => {
     onUpdateProfile({ skills: selectedSkills })
     setEditingSkills(false)
+  }
+
+  const handleSaveRadius = () => {
+    localStorage.setItem('cgp_travel_radius', String(travelRadius))
+    onUpdateProfile({ travelRadiusMiles: travelRadius })
+    setRadiusSaveStatus('saved')
+    setTimeout(() => setRadiusSaveStatus('idle'), 2500)
   }
 
   // ── Phase 13C: Proof type → doc_type mapping ──────────────────
@@ -1943,6 +1953,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <p className="text-[10px] text-base-content/40 leading-relaxed">
               &#128274; Carehia uses your service area to match you with nearby families. We do not show your exact address to clients.
             </p>
+
+            {/* Save button */}
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                onClick={handleSaveRadius}
+                className="btn btn-primary btn-sm px-5"
+              >
+                Save radius
+              </button>
+              {radiusSaveStatus === 'saved' && (
+                <span className="text-xs text-success font-medium">&#10003; Travel radius saved.</span>
+              )}
+              {radiusSaveStatus === 'error' && (
+                <span className="text-xs text-error font-medium">Could not save travel radius. Please try again.</span>
+              )}
+            </div>
           </div>
 
           {/* Languages */}

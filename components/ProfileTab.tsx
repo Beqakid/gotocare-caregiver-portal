@@ -759,10 +759,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           >
             <Camera size={15} className="text-primary-content" />
           </button>
-          <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+          <input ref={photoInputRef} type="file" accept="image/*" className="hidden" style={{ display: "none" }} onChange={handlePhotoChange} />
         </div>
         <h2 className="text-2xl font-bold text-base-content">{profile.firstName} {profile.lastName}</h2>
-        <div className="mt-1 flex items-center justify-center gap-2 text-sm text-base-content/55">
+        <div className="mt-1 flex items-center justify-center gap-2 text-sm text-base-content/55" style={{ gap: "8px" }}>
           <span>Professional Caregiver</span>
           <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? 'bg-success' : 'bg-base-content/30'}`} />
           <span>{isAvailable ? 'Available' : 'Offline'}</span>
@@ -1905,7 +1905,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 }}
                 className="range range-primary range-sm w-full"
               />
-              <div className="flex justify-between text-[10px] text-base-content/40 mt-1 px-0.5">
+              <div className="flex justify-between text-[10px] text-base-content/40 mt-1 px-0.5" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                 <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span><span>35</span><span>40</span><span>45</span><span>50</span>
               </div>
             </div>

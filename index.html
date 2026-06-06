@@ -4,44 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Carehia — Caregiver Portal</title>
-  <meta name="description" content="Your caregiving office. Track time, manage clients, get care requests." />
+  <meta name="description" content="Your professional caregiving workspace — manage clients, track time, earn more." />
   <meta name="theme-color" content="#7C5CFF" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Carehia" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/styles.css" />
-  <link rel="icon" href="/favicon.ico" />
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#7C5CFF',
-            secondary: '#4A90E2',
-            accent: '#22C55E',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    html { font-size: 18px; }
-    :root {
-      --color-primary: #7C5CFF;
-      --color-secondary: #4A90E2;
-      --color-success: #22C55E;
-      --color-warning: #F59E0B;
-      --color-error: #EF4444;
-    }
-  </style>
+  <script type="module" src="/dist/app.js?v=20260706-p14b"></script>
 </head>
 <body>
   <div id="root"></div>
-  <input type="file" id="global-file-input" style="display:none" />
-  <script type="module" src="/dist/app.js?v=20260706-p14a"></script>
 </body>
 </html>

@@ -115,10 +115,10 @@ function getCertificationDocs(docs: CaregiverDocument[]) {
 }
 
 function getDocReviewStatus(doc?: CaregiverDocument) {
-  if (!doc) return { label: 'Missing', tone: 'bg-base-300 text-base-content/60', state: 'missing' }
+  if (!doc) return { label: 'Not Started', tone: 'bg-base-300 text-base-content/60', state: 'missing' }
   if (doc.status === 'expired') return { label: 'Expired', tone: 'bg-error/10 text-error', state: 'expired' }
   if (doc.status === 'expiring_soon') return { label: 'Expiring Soon', tone: 'bg-warning/15 text-warning', state: 'expiring' }
-  return { label: 'Pending Review', tone: 'bg-warning/15 text-warning', state: 'pending' }
+  return { label: 'Submitted', tone: 'bg-warning/15 text-warning', state: 'pending' }
 }
 
 function getVerificationDocType(docType: string, docName: string): string | null {
@@ -1188,28 +1188,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <p className="text-xs text-base-content/60 mt-1">Complete each module to rank higher and get more bookings.</p>
           </div>
           <div id="trust-verification">
-          <div className="rounded-3xl bg-base-200 border border-primary/15 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Verification Center</p>
-                <h3 className="text-lg font-bold text-base-content mt-1">Strengthen your Carehia profile</h3>
-                <p className="text-sm text-base-content/60 mt-1">Complete your verification to help families feel confident choosing you.</p>
-              </div>
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                <BadgeCheck size={26} />
-              </div>
+          {/* Recommended Next Step */}
+          {verification.verificationProgress < 100 && (
+            <div className="rounded-3xl p-4" style={{ background: 'rgba(124,92,255,0.07)', border: '1.5px solid rgba(124,92,255,0.2)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-1">Recommended Next Step</p>
+              <p className="font-bold text-base-content text-sm">
+                {!verification.idVerified
+                  ? 'Upload a photo ID to verify your identity.'
+                  : 'Complete your Trust Passport to rank higher in search.'}
+              </p>
+              <button
+                onClick={() => { setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); setTimeout(() => scrollToProfileSection('trust-manual-proof'), 80) }}
+                className="btn btn-primary btn-sm rounded-2xl mt-3">Continue</button>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <div className="rounded-2xl bg-base-100 p-3">
-                <p className="text-2xl font-black text-base-content">{verification.verificationProgress}%</p>
-                <p className="text-xs text-base-content/55">Verification progress</p>
-              </div>
-              <div className="rounded-2xl bg-base-100 p-3">
-                <p className="text-2xl font-black text-base-content">{verification.trustScore}</p>
-                <p className="text-xs text-base-content/55">Trust score</p>
-              </div>
-            </div>
-          </div>
+          )}
+          <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 px-1 pt-1">Trust Steps</p>
 
           {[
             {
@@ -1233,7 +1226,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             {
               title: 'References',
               icon: Users,
-              status: 'Missing',
+              status: 'Not Started',
               body: 'Professional references are planned for a future profile trust update.',
               action: 'Coming soon',
               disabled: true,
@@ -1241,7 +1234,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             },
           ].map(card => {
             const Icon = card.icon
-            const tone = card.status === 'Verified' ? 'bg-success/10 text-success' : card.status === 'Pending' || card.status === 'Pending Review' ? 'bg-warning/15 text-warning' : 'bg-base-100 text-base-content/60'
+            const tone = card.status === 'Verified' ? 'bg-success/10 text-success' : card.status === 'Pending' || card.status === 'Submitted' ? 'bg-warning/15 text-warning' : 'bg-base-100 text-base-content/60'
             return (
               <div key={card.title} className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
                 <div className="flex items-start gap-3">
@@ -1295,17 +1288,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ── TRUST PASSPORT: Certifications & Skills Proof ── */}
       {section === 'trust-passport' && (
         <div id="trust-certifications" className="px-4 space-y-4">
-          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications &amp; Skills Proof</p>
-                <h3 className="text-lg font-bold text-base-content mt-1">Show your care qualifications</h3>
-                <p className="text-sm text-base-content/60 mt-1">Verified certifications can help improve your visibility. Uploaded proof stays private during review.</p>
-              </div>
-              <button onClick={() => { setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-primary btn-sm rounded-2xl">
-                <Plus size={15} /> Add
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications &amp; Skills Proof</p>
+            <button onClick={() => { setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-primary btn-sm rounded-2xl gap-1">
+              <Plus size={14} /> Add
+            </button>
           </div>
 
           {showAddDoc && (
@@ -1367,8 +1354,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {section === 'trust-passport' && (
         <div id="trust-manual-proof" className="px-4 space-y-4">
           <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-lg font-bold text-base-content">Manual Proof</p>
-            <p className="text-sm text-base-content/60 mt-1">Upload proof when a trust step needs supporting documents such as certifications, licenses, training, or background check records. Documents are private.</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Add Proof</p>
+            <p className="text-sm text-base-content/60 mt-1">Upload supporting documents for your trust steps — certifications, licenses, training, or background check records. All documents are private.</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {['Identity', 'Certification', 'Training', 'Medical clearance', 'Other'].map(label => (
                 <span key={label} className="rounded-full bg-base-100 border border-base-300 px-2.5 py-1 text-[11px] font-semibold text-base-content/60">{label}</span>
@@ -1588,91 +1575,67 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ── TRUST PASSPORT: Badges ── */}
+      {/* ── TRUST PASSPORT: Badges (unified) ── */}
       {section === 'trust-passport' && (
         <div id="trust-badges" className="px-4 space-y-4 pb-2">
-          <p className="text-xs text-base-content/60">
-            Earn badges to build trust with clients. Badges appear on your public profile and in search results.
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 px-1">Your Trust Badges</p>
 
-          {earnedTrustBadges.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Verified Trust Badges</p>
-              <div className="space-y-2">
-                {earnedTrustBadges.map(badge => (
-                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
-                    <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                      <badge.icon size={24} className="text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                      <p className="text-xs text-base-content/60">{badge.desc}</p>
-                    </div>
-                    <CheckCircle2 size={20} className="text-success" />
+          {(earnedTrustBadges.length + earnedBadges.length) === 0 ? (
+            <div className="rounded-2xl bg-base-200 border border-base-300 p-5 text-center">
+              <div className="text-3xl mb-2">🏅</div>
+              <p className="font-semibold text-base-content text-sm">No badges yet</p>
+              <p className="text-xs text-base-content/60 mt-1">Complete trust steps to earn your first badge.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {earnedTrustBadges.map(badge => (
+                <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
+                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+                    <badge.icon size={24} className="text-success" />
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-base-content">{badge.label}</p>
+                    <p className="text-xs text-base-content/60">{badge.desc}</p>
+                  </div>
+                  <CheckCircle2 size={20} className="text-success" />
+                </div>
+              ))}
+              {earnedBadges.map(badge => (
+                <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
+                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+                    <badge.icon size={24} className={badge.color} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-base-content">{badge.label}</p>
+                    <p className="text-xs text-base-content/60">{badge.desc}</p>
+                  </div>
+                  <CheckCircle2 size={20} className="text-success" />
+                </div>
+              ))}
             </div>
           )}
 
-          {earnedBadges.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Profile Badges</p>
-              <div className="space-y-2">
-                {earnedBadges.map(badge => (
-                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
-                    <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                      <badge.icon size={24} className={badge.color} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                      <p className="text-xs text-base-content/60">{badge.desc}</p>
-                    </div>
-                    <CheckCircle2 size={20} className="text-success" />
+          {/* Next badge to unlock */}
+          {(() => {
+            const nextBadge = lockedTrustBadges[0] || unearnedBadges[0]
+            if (!nextBadge) return null
+            const Icon = 'icon' in nextBadge ? nextBadge.icon : null
+            const hint = 'unlock' in nextBadge ? nextBadge.unlock : nextBadge.desc
+            return (
+              <div className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-2">Next Badge to Unlock</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
+                    {Icon ? <Icon size={22} className="text-base-content/50" /> : <Lock size={22} className="text-base-content/50" />}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {lockedTrustBadges.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Locked Trust Badges</p>
-              <div className="space-y-2">
-                {lockedTrustBadges.map(badge => (
-                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-                      <Lock size={22} className="text-base-content/50" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                      <p className="text-xs text-base-content/60">{badge.unlock}</p>
-                    </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-base-content">{nextBadge.label}</p>
+                    <p className="text-xs text-base-content/60">{hint}</p>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {unearnedBadges.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">Available to Earn</p>
-              <div className="space-y-2">
-                {unearnedBadges.map(badge => (
-                  <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 opacity-60">
-                    <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-                      <badge.icon size={24} className="text-base-content/60" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                      <p className="text-xs text-base-content/60">{badge.desc}</p>
-                    </div>
-                    <div className="w-5 h-5 rounded-full border-2 border-base-400" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            )
+          })()}
         </div>
       )}
 

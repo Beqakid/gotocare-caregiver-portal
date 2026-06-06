@@ -2044,6 +2044,16 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   <span style={{ fontSize: 18 }}>💬</span>
                   <span style={{ fontSize: 14, flex: 1 }}>Contact Support</span>
                 </a>
+                <a href="https://carehia.com/trust-safety" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}>
+                  <span style={{ fontSize: 18 }}>🛡️</span>
+                  <span style={{ fontSize: 14, flex: 1 }}>Trust &amp; Safety</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>→</span>
+                </a>
+                <a href="https://carehia.com/report-concern" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.07)', color: '#EF4444' }}>
+                  <span style={{ fontSize: 18 }}>🚨</span>
+                  <span style={{ fontSize: 14, flex: 1 }}>Report a Concern</span>
+                  <span style={{ fontSize: 11, color: '#EF444480' }}>→</span>
+                </a>
                 <a href="https://carehia.com" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', color: '#fff' }}>
                   <span style={{ fontSize: 18 }}>📖</span>
                   <span style={{ fontSize: 14, flex: 1 }}>About Carehia</span>

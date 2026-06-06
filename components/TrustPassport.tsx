@@ -298,6 +298,11 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
             const isDone = ['Verified', 'Submitted'].includes(mod.status)
             const statusClass = STATUS_CLASS[mod.status] || STATUS_CLASS['Not Started']
             const isWorkHistory = mod.moduleType === 'work_history'
+            const isBetaModule = ['background_permission', 'references'].includes(mod.moduleType)
+            const betaLabel = mod.moduleType === 'background_permission' ? '🔧 Provider Integration Pending' : '⚗️ Beta — Coming Soon'
+            const betaNote = mod.moduleType === 'background_permission'
+              ? 'Background check integration is coming soon. Carehia will not start this step without your permission.'
+              : 'Reference checks are coming soon. Carehia may review references manually during beta.'
             const wMeta = isWorkHistory && mod.metadata ? mod.metadata : null
 
             return (
@@ -334,6 +339,13 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
                       )}
                     </div>
                     {/* Module progress bar (if in progress) */}
+                    {isBetaModule && (
+                      <div style={{ background: '#F59E0B10', border: '1px solid #F59E0B30', borderRadius: 8, padding: '6px 10px', marginTop: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#F59E0B', color: '#fff', borderRadius: 10, padding: '1px 7px', letterSpacing: '.4px', marginRight: 6 }}>BETA</span>
+                        <span style={{ fontSize: 11, color: '#92400E' }}>{betaLabel}</span>
+                        <p style={{ fontSize: 10, color: '#92400E', marginTop: 3, lineHeight: 1.4 }}>{betaNote}</p>
+                      </div>
+                    )}
                     {mod.status === 'In Progress' && mod.completionPercentage > 0 && (
                       <div className="mt-2 h-1 rounded-full bg-base-200 overflow-hidden">
                         <div

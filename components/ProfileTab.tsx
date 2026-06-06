@@ -245,6 +245,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   })
   const [verifBadgeCount, setVerifBadgeCount] = useState(0)
   const [trustStatus, setTrustStatus] = useState<any>(null)
+  // Phase 17: compact trust tab state
+  const [trustDetail, setTrustDetail] = useState<any>(null)
+  const [trustDetailLoading, setTrustDetailLoading] = useState(false)
+  const [certExpanded, setCertExpanded] = useState(false)
 
   const navigateToSection = (nextSection: ProfileSection) => {
     setSection(nextSection)
@@ -347,6 +351,19 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       })
       .catch(() => {})
   }, [showVerification])
+
+  // Phase 17: fetch backend trust status when Trust tab is open
+  useEffect(() => {
+    if (section !== 'trust-passport') return
+    const token = localStorage.getItem('cgp_token')
+    if (!token) return
+    setTrustDetailLoading(true)
+    fetch(`${API_BASE}/api/cgp-trust-status?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(d => { if (d.checklist) setTrustDetail(d) })
+      .catch(() => {})
+      .finally(() => setTrustDetailLoading(false))
+  }, [section])
 
   const [showAddDoc, setShowAddDoc] = useState(false)
   const [docName, setDocName] = useState('')
@@ -1250,330 +1267,267 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ── TRUST PASSPORT: Verification ── */}
-      {section === 'trust-passport' && (
-        <div id="trust-summary" className="px-4 space-y-4">
-          {/* Trust Passport header */}
-          <div className="rounded-3xl p-4" style={{ background: 'linear-gradient(135deg,rgba(124,92,255,0.10) 0%,rgba(74,144,226,0.10) 100%)', border: '1.5px solid rgba(124,92,255,0.25)' }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-1">Carehia Trust Passport</p>
-            <h2 className="text-lg font-bold text-base-content">Build trust step by step and unlock more opportunities.</h2>
-            <p className="text-xs text-base-content/60 mt-1">Complete each module to rank higher and get more bookings.</p>
-          </div>
-          <div id="trust-verification">
-          {/* Recommended Next Step */}
-          {verification.verificationProgress < 100 && (
-            <div className="rounded-3xl p-4" style={{ background: 'rgba(124,92,255,0.07)', border: '1.5px solid rgba(124,92,255,0.2)' }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-1">Recommended Next Step</p>
-              <p className="font-bold text-base-content text-sm">
-                {!verification.idVerified
-                  ? 'Upload a photo ID to verify your identity.'
-                  : 'Complete your Trust Passport to rank higher in search.'}
-              </p>
-              <button
-                onClick={() => { setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); setTimeout(() => scrollToProfileSection('trust-manual-proof'), 80) }}
-                className="btn btn-primary btn-sm rounded-2xl mt-3">Continue</button>
-            </div>
-          )}
-          <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 px-1 pt-1">Trust Steps</p>
+      {/* ── TRUST PASSPORT: Compact Redesign (Phase 17) ── */}
+      {section === 'trust-passport' && (() => {
+        // Use backend trust data when available, fall back to local engine
+        const td = trustDetail || {}
+        const score = td.score != null ? td.score : (earnedTrustBadges.length * 15 + earnedBadges.length * 5)
+        const tier = td.tier || (verification.idVerified ? 'Verified' : 'Basic')
+        const nextAction = td.next_action || null
+        const checklistItems: any[] = td.checklist && td.checklist.length > 0 ? td.checklist : [
+          { key: 'profile_complete', label: 'Profile Complete', status: completeness >= 70 ? 'complete' : 'not_started', points: 10, progress: null, rejection_reason: null },
+          { key: 'identity_verified', label: 'Identity Verification', status: verification.idVerified ? 'approved' : verification.idDoc ? 'submitted' : 'not_started', points: 20, progress: null, rejection_reason: null },
+          { key: 'background_check', label: 'Background Check', status: verification.backgroundVerified ? 'approved' : 'not_started', points: 20, progress: null, rejection_reason: null },
+          { key: 'cpr_certification', label: 'CPR Certification', status: verification.cprVerified ? 'approved' : 'not_started', points: 15, progress: null, rejection_reason: null },
+          { key: 'cna_hha', label: 'CNA / HHA Verification', status: !!trustStatus?.cna_verified ? 'approved' : 'not_started', points: 10, progress: null, rejection_reason: null },
+          { key: 'completed_shifts', label: '5+ Completed Shifts', status: (profile?.totalJobs || 0) >= 5 ? 'earned' : 'not_earned', points: 10, progress: `${Math.min(profile?.totalJobs || 0, 5)}/5`, rejection_reason: null },
+          { key: 'fast_responder', label: 'Fast Responder', status: 'not_earned', points: 5, progress: null, rejection_reason: null },
+          { key: 'repeat_clients', label: 'Repeat Clients', status: 'not_earned', points: 5, progress: null, rejection_reason: null },
+          { key: 'five_star_avg', label: '5-Star Average', status: profile?.rating && profile.rating >= 5 ? 'earned' : 'not_earned', points: 5, progress: profile?.rating ? `${Number(profile.rating).toFixed(1)}★` : null, rejection_reason: null },
+        ]
+        const rep = td.reputation || { rating: profile?.rating || null, reviews: profileReviews.length, sessions: profile?.totalJobs || 0 }
+        const bdgs = td.badges || { earned: earnedTrustBadges.map((b: any) => b.label), next: lockedTrustBadges[0]?.label || null, total_earned: earnedTrustBadges.length }
 
-          {[
-            {
-              title: 'Identity Verification',
-              icon: User,
-              status: verification.idVerified ? 'Verified' : verification.idDoc ? getDocReviewStatus(verification.idDoc).label : 'Not Started',
-              body: 'Accepted documents: Driver License, State ID, or Passport.',
-              action: 'Upload ID',
-              disabled: false,
-              run: () => { navigateToSection('trust-passport'); setDocType('license'); setDocName('Identity Document'); setShowAddDoc(true); setTimeout(() => scrollToProfileSection('trust-manual-proof'), 80) },
-            },
-            {
-              title: 'Background Check',
-              icon: Shield,
-              status: verification.backgroundVerified ? 'Verified' : verification.bgDoc ? 'Submitted' : 'Not Started',
-              body: verification.backgroundVerified ? 'Your background check is verified.' : 'Background check integration coming soon. You can store proof privately for review.',
-              action: verification.backgroundVerified ? 'Verified' : 'Coming soon',
-              disabled: true,
-              run: () => {},
-            },
-            {
-              title: 'References',
-              icon: Users,
-              status: 'Not Started',
-              body: 'Professional references are planned for a future profile trust update.',
-              action: 'Coming soon',
-              disabled: true,
-              run: () => {},
-            },
-          ].map(card => {
-            const Icon = card.icon
-            const tone = card.status === 'Verified' ? 'bg-success/10 text-success' : card.status === 'Pending' || card.status === 'Submitted' ? 'bg-warning/15 text-warning' : 'bg-base-100 text-base-content/60'
-            return (
-              <div key={card.title} className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Icon size={21} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-bold text-base-content">{card.title}</p>
-                      <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${tone}`}>{card.status}</span>
-                    </div>
-                    <p className="text-sm text-base-content/60 mt-1">{card.body}</p>
-                    <button onClick={card.run} disabled={card.disabled} className={`btn btn-sm mt-3 rounded-2xl ${card.disabled ? 'btn-disabled' : 'btn-primary'}`}>
-                      {card.action}
-                    </button>
+        const slLabel = (s: string) => {
+          if (s === 'approved' || s === 'complete' || s === 'earned') return { text: 'Done', color: '#22C55E', bg: 'rgba(34,197,94,0.10)' }
+          if (s === 'submitted') return { text: 'Under Review', color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' }
+          if (s === 'rejected') return { text: 'Needs Attention', color: '#EF4444', bg: 'rgba(239,68,68,0.10)' }
+          if (s === 'not_earned') return { text: 'Not Earned', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' }
+          return { text: 'Not Started', color: '#94a3b8', bg: 'rgba(148,163,184,0.10)' }
+        }
+        const slIcon = (s: string) => {
+          if (s === 'approved' || s === 'complete' || s === 'earned') return '✅'
+          if (s === 'submitted') return '⏳'
+          if (s === 'rejected') return '⚠️'
+          return '○'
+        }
+
+        const heroMessage = nextAction?.description || 'Complete each step to rank higher and unlock more booking opportunities.'
+        const heroCta = nextAction?.cta || null
+        const handleHeroCta = () => {
+          if (!nextAction?.cta) return
+          if (nextAction.type === 'upload_id' || nextAction.type === 'resubmit_id') {
+            setProofType('Government ID'); setShowAddDoc(true); setProofSubmitOk(false); setProofSubmitErr(false)
+          } else if (nextAction.type === 'add_certification') {
+            setShowAddDoc(true); setProofSubmitOk(false); setProofSubmitErr(false)
+          }
+        }
+
+        const earnedCount = (bdgs.earned?.length || 0)
+        const nextBadgeName = bdgs.next || lockedTrustBadges[0]?.label || null
+
+        return (
+          <div className="px-4 space-y-3 pb-8">
+
+            {/* ─ 1. TRUST HERO ─ */}
+            <div id="trust-summary" style={{ background: 'linear-gradient(135deg,#7C5CFF 0%,#4A90E2 100%)', borderRadius: 20, padding: '20px 18px', color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.75, margin: 0 }}>Carehia Trust Passport</p>
+                  <p style={{ fontSize: 24, fontWeight: 800, margin: '2px 0 0', letterSpacing: '-0.5px' }}>{tier}</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '3px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{score}</span>
+                    <span style={{ fontSize: 9, opacity: 0.75, lineHeight: 1.3 }}>/ 100</span>
                   </div>
                 </div>
               </div>
-            )
-          })}
-
-          <div className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="font-bold text-base-content mb-3">Verification Timeline</p>
-            {docs.length === 0 ? (
-              <div className="rounded-2xl bg-base-100 border border-base-300 p-4 text-sm text-base-content/60">
-                No verification activity yet. Upload an ID or certification to begin.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {docs.slice(0, 5).map(doc => (
-                  <div key={doc.id} className="flex items-start gap-3 rounded-2xl bg-base-100 p-3">
-                    <div className="mt-0.5 h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                      <FileCheck2 size={16} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-base-content">{doc.name}</p>
-                      <p className="text-xs text-base-content/55">{DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type} submitted {doc.addedAt ? new Date(doc.addedAt).toLocaleDateString() : ''}</p>
-                    </div>
-                    <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${getDocReviewStatus(doc).tone}`}>{getDocReviewStatus(doc).label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <TrustCenter profile={profile} />
-          </div>{/* /trust-verification */}
-        </div>
-      )}
-
-      {/* ── TRUST PASSPORT: Certifications & Skills Proof ── */}
-      {section === 'trust-passport' && (
-        <div id="trust-certifications" className="px-4 space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Certifications &amp; Skills Proof</p>
-            <button onClick={() => { setShowAddDoc(true); window.setTimeout(() => { const el = document.getElementById('trust-manual-proof'); if (el) el.scrollIntoView({ behavior: 'smooth' }) }, 100) }} className="btn btn-ghost btn-sm rounded-2xl gap-1 text-primary text-xs">
-              Add Proof
-            </button>
-          </div>
-          {/* Phase 13C: upload is handled by unified Add Proof form below */}
-
-          {CERTIFICATION_TYPES.map(type => {
-            const doc = certificationDocs.find(d => type === 'Other' ? d.type === 'certification' : docText(d).includes(type.toLowerCase()))
-            const status = getDocReviewStatus(doc)
-            return (
-              <div key={type} className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${doc ? 'bg-primary/10 text-primary' : 'bg-base-300 text-base-content/45'}`}>
-                    <Award size={21} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-bold text-base-content">{type}</p>
-                      <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${status.tone}`}>{status.label}</span>
-                    </div>
-                    <p className="text-sm text-base-content/60 mt-1">
-                      {doc ? `${doc.name}${doc.expiryDate ? ' · Expires ' + new Date(doc.expiryDate).toLocaleDateString() : ''}` : `Upload ${type} proof to submit for review.`}
-                    </p>
-                    {doc?.r2Key ? <p className="text-xs text-success mt-1">Uploaded proof attached</p> : null}
-                  </div>
+              <p style={{ fontSize: 13, opacity: 0.9, margin: '0 0 14px', lineHeight: 1.5 }}>{heroMessage}</p>
+              {heroCta && nextAction?.type !== 'background_check' && nextAction?.type !== 'id_under_review' && nextAction?.type !== 'bg_under_review' && (
+                <button onClick={handleHeroCta} style={{ background: '#fff', color: '#7C5CFF', border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer', width: '100%', marginBottom: 8 }}>
+                  {heroCta}
+                </button>
+              )}
+              {(nextAction?.status === 'submitted' || nextAction?.type === 'id_under_review' || nextAction?.type === 'bg_under_review') && (
+                <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 12, opacity: 0.85, margin: 0 }}>⏳ Typically reviewed within 1–2 business days</p>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── TRUST PASSPORT: Manual Proof / Document Vault ── */}
-      {section === 'trust-passport' && (
-        <div id="trust-manual-proof" className="px-4 space-y-4">
-          {/* ── Phase 13C: Unified Add Proof header ── */}
-          <div className="rounded-3xl bg-gradient-to-br from-primary/8 to-secondary/5 border border-primary/15 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Manual Proof</p>
-            <p className="text-sm text-base-content/60 mt-1">Having trouble verifying a step? Add proof manually and Carehia will review it.</p>
-            <p className="text-xs text-base-content/40 mt-2">🔒 All documents are private and never shared publicly.</p>
-          </div>
-
-          {/* ── Success / Error banners ── */}
-          {proofSubmitOk && (
-            <div className="rounded-2xl bg-success/10 border border-success/25 px-4 py-3 flex items-start gap-2">
-              <CheckCircle2 size={16} className="text-success mt-0.5 shrink-0" />
-              <p className="text-sm text-success font-medium">Proof submitted. Carehia will review it and let you know if anything needs a quick fix.</p>
+              )}
+              {trustDetailLoading && <p style={{ fontSize: 11, opacity: 0.6, textAlign: 'center', margin: '8px 0 0' }}>Refreshing…</p>}
             </div>
-          )}
-          {proofSubmitErr && (
-            <div className="rounded-2xl bg-error/10 border border-error/25 px-4 py-3 flex items-start gap-2">
-              <AlertTriangle size={16} className="text-error mt-0.5 shrink-0" />
-              <p className="text-sm text-error font-medium">We could not upload this proof. Please try again.</p>
+
+            {/* ─ 2. TRUST CHECKLIST ─ */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px 8px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#7C5CFF', opacity: 0.75, margin: 0, letterSpacing: '0.06em' }}>Trust Checklist</p>
+                <p style={{ fontSize: 11, color: '#64748b', margin: 0 }}>{checklistItems.filter((i: any) => ['approved','complete','earned'].includes(i.status)).length}/{checklistItems.length} done</p>
+              </div>
+              {checklistItems.map((item: any, idx: number) => {
+                const sl = slLabel(item.status)
+                const si = slIcon(item.status)
+                const isLast = idx === checklistItems.length - 1
+                return (
+                  <div key={item.key} style={{ padding: '10px 14px', borderBottom: isLast ? 'none' : '1px solid #F8FAFC', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 15, width: 22, textAlign: 'center', flexShrink: 0 }}>{si}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>{item.label}</p>
+                      {item.rejection_reason && (
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#EF4444', lineHeight: 1.3 }}>{item.rejection_reason}</p>
+                      )}
+                      {item.progress && !['approved','complete','earned'].includes(item.status) && (
+                        <p style={{ margin: '1px 0 0', fontSize: 11, color: '#94a3b8' }}>{item.progress}</p>
+                      )}
+                    </div>
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: sl.bg, color: sl.color, whiteSpace: 'nowrap' }}>{sl.text}</span>
+                      <span style={{ fontSize: 11, color: '#7C5CFF', fontWeight: 700, opacity: 0.55, whiteSpace: 'nowrap' }}>+{item.points}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
 
-          {!showAddDoc ? (
-            <button onClick={() => { setShowAddDoc(true); setProofSubmitOk(false); setProofSubmitErr(false) }}
-              className="btn btn-primary btn-sm w-full gap-1 rounded-2xl">
-              <Plus size={16} /> Add Proof
-            </button>
-          ) : (
-            <div className="bg-base-200 rounded-2xl p-4 border-2 border-primary/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-sm">Add Proof</p>
-                <button onClick={() => { setShowAddDoc(false); setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('') }}
-                  className="btn btn-ghost btn-xs btn-circle"><X size={14} /></button>
-              </div>
-
-              {/* Proof type */}
-              <div>
-                <label className="text-xs font-semibold text-base-content/70 block mb-1">What are you adding?</label>
-                <select className="select select-bordered select-sm w-full"
-                  value={proofType} onChange={e => { setProofType(e.target.value); setOtherDocName('') }}>
-                  {['Government ID', 'CPR / First Aid', 'CNA / HHA / License', 'Training Certificate', 'Health Clearance', 'Insurance', 'Background Check Document', 'Work Eligibility', 'Other'].map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Other: custom document name */}
-              {proofType === 'Other' && (
-                <div>
-                  <label className="text-xs font-semibold text-base-content/70 block mb-1">Document name <span className="text-error">*</span></label>
-                  <input
-                    type="text"
-                    className="input input-bordered input-sm w-full"
-                    placeholder="Example: Dementia Care Training, TB Test, Caregiver Workshop Certificate"
-                    value={otherDocName}
-                    onChange={e => setOtherDocName(e.target.value.slice(0, 80))}
-                    autoFocus
-                    maxLength={80}
-                  />
-                  <p className="text-[11px] text-base-content/50 mt-1">Tell us what kind of document this is so Carehia can review it correctly.</p>
-                  {otherDocName.trim().length > 0 && otherDocName.trim().length < 2 && (
-                    <p className="text-[11px] text-error mt-1">Please enter at least 2 characters.</p>
+            {/* ─ 3. CERTIFICATIONS (collapsible) ─ */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+              <button onClick={() => setCertExpanded(!certExpanded)} style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#7C5CFF', opacity: 0.75, margin: 0, letterSpacing: '0.06em' }}>Certifications & Proof</p>
+                  <p style={{ fontSize: 13, color: '#475569', margin: '2px 0 0' }}>{docs.length > 0 ? `${docs.length} on file` : 'None on file'}</p>
+                </div>
+                <span style={{ fontSize: 18, color: '#94a3b8', transform: certExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>⌄</span>
+              </button>
+              {certExpanded && (
+                <div style={{ borderTop: '1px solid #F1F5F9', padding: '10px 14px 14px' }}>
+                  {proofSubmitOk && <div style={{ margin: '0 0 8px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: '#16a34a', fontWeight: 500 }}>✅ Proof submitted. Carehia will review it shortly.</div>}
+                  {proofSubmitErr && <div style={{ margin: '0 0 8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: '#EF4444', fontWeight: 500 }}>⚠️ Upload failed. Please try again.</div>}
+                  <button onClick={() => { setShowAddDoc(true); setProofSubmitOk(false); setProofSubmitErr(false) }}
+                    style={{ width: '100%', marginBottom: 6, padding: '10px', background: '#7C5CFF', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                    + Add Proof
+                  </button>
+                  <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', margin: '0 0 10px' }}>🔒 Documents are private and never shared publicly</p>
+                  {docs.length === 0 ? (
+                    <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>No certifications on file yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {docs.map((doc: any) => (
+                        <div key={doc.id} style={{ background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 10, border: '1px solid #E2E8F0' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{doc.name}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#475569' }}>
+                              {DOC_TYPES.find((t: any) => t.value === doc.type)?.label || doc.type}
+                              {doc.expiryDate ? ` · Expires ${new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ''}
+                            </p>
+                            {doc.r2Key && cgToken && (
+                              <a href={`${API_BASE}/api/cgp-docs/file?key=${encodeURIComponent(doc.r2Key)}&token=${cgToken}`} target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize: 11, color: '#7C5CFF', textDecoration: 'none' }}>View file ↗</a>
+                            )}
+                          </div>
+                          <button onClick={() => handleDeleteDocument(doc.id)} style={{ background: 'rgba(239,68,68,0.08)', border: 'none', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#EF4444', fontSize: 13, flexShrink: 0 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
+            </div>
 
-              {/* Expiry date — shown for most types */}
-              {(PROOF_TYPES_EXPIRY.includes(proofType) || proofType === 'Other') && (
-                <div>
-                  <label className="text-xs font-semibold text-base-content/70 block mb-1">
-                    Expiry date {PROOF_TYPES_EXPIRY.includes(proofType) ? <span className="text-base-content/40 font-normal">(recommended)</span> : <span className="text-base-content/40 font-normal">(optional)</span>}
-                  </label>
-                  <input type="date" className="input input-bordered input-sm w-full" value={docExpiry}
-                    onChange={e => setDocExpiry(e.target.value)} />
+            {/* ─ 4. REPUTATION ─ */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', padding: '14px 16px' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#7C5CFF', opacity: 0.75, margin: '0 0 10px', letterSpacing: '0.06em' }}>Reputation</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ textAlign: 'center', background: '#F8FAFC', borderRadius: 12, padding: '10px 4px' }}>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0F172A' }}>{rep.rating != null ? Number(rep.rating).toFixed(1) : '—'}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: '#64748b' }}>Rating</p>
                 </div>
-              )}
-
-              {/* File upload */}
-              <div>
-                <label className="text-xs font-semibold text-base-content/70 block mb-1">Upload file <span className="text-base-content/40 font-normal">(optional)</span></label>
-                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" className="hidden"
-                  onChange={e => setDocFile(e.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileInputRef.current?.click()}
-                  className="btn btn-outline btn-sm w-full gap-1 border-dashed">
-                  <Upload size={14} />
-                  {docFile ? docFile.name : 'Choose file (PDF, JPG, PNG)'}
-                </button>
-              </div>
-
-              {/* Optional notes */}
-              <div>
-                <label className="text-xs font-semibold text-base-content/70 block mb-1">Notes <span className="text-base-content/40 font-normal">(optional)</span></label>
-                <textarea
-                  className="textarea textarea-bordered textarea-sm w-full resize-none"
-                  rows={2}
-                  placeholder="Add anything Carehia should know about this proof."
-                  value={proofNotes}
-                  onChange={e => setProofNotes(e.target.value)}
-                />
-              </div>
-
-              <button
-                onClick={handleSubmitProof}
-                disabled={proofType === 'Other' && otherDocName.trim().length < 2}
-                className="btn btn-primary btn-sm w-full disabled:opacity-50">
-                Submit Proof
-              </button>
-            </div>
-          )}
-
-          {docs.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-success/10 rounded-xl p-3 text-center">
-                <p className="text-lg font-bold text-success">{docs.filter(d => d.status === 'valid' || d.status === 'no_expiry').length}</p>
-                <p className="text-[10px] text-base-content/60">Valid</p>
-              </div>
-              <div className="bg-warning/10 rounded-xl p-3 text-center">
-                <p className="text-lg font-bold text-warning">{docs.filter(d => d.status === 'expiring_soon').length}</p>
-                <p className="text-[10px] text-base-content/60">Expiring</p>
-              </div>
-              <div className="bg-error/10 rounded-xl p-3 text-center">
-                <p className="text-lg font-bold text-error">{docs.filter(d => d.status === 'expired').length}</p>
-                <p className="text-[10px] text-base-content/60">Expired</p>
+                <div style={{ textAlign: 'center', background: '#F8FAFC', borderRadius: 12, padding: '10px 4px' }}>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0F172A' }}>{rep.reviews}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: '#64748b' }}>Reviews</p>
+                </div>
+                <div style={{ textAlign: 'center', background: '#F8FAFC', borderRadius: 12, padding: '10px 4px' }}>
+                  <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0F172A' }}>{rep.sessions}</p>
+                  <p style={{ margin: 0, fontSize: 10, color: '#64748b' }}>Sessions</p>
+                </div>
               </div>
             </div>
-          )}
 
-          {docs.length === 0 && !showAddDoc ? (
-            <div className="text-center py-10">
-              <FolderOpen size={36} className="mx-auto opacity-20 mb-2" />
-              <p className="text-sm text-base-content/60">No documents yet</p>
-              <p className="text-xs text-base-content/60 mt-1">Add your certifications, licenses, and training records</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {docs.map(doc => (
-                <div key={doc.id} className="bg-base-200 rounded-2xl p-4 press-card">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        doc.status === 'expired' ? 'bg-error/10' : doc.status === 'expiring_soon' ? 'bg-warning/10' : 'bg-success/10'
-                      }`}>
-                        {doc.status === 'expired' ? <AlertTriangle size={18} className="text-error" /> :
-                          doc.status === 'expiring_soon' ? <AlertTriangle size={18} className="text-warning" /> :
-                          <CheckCircle2 size={18} className="text-success" />}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-base-content">{doc.name}</p>
-                        <p className="text-xs text-base-content/60 mt-0.5">
-                          {DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}
-                        </p>
-                        {doc.expiryDate && (
-                          <p className={`text-xs mt-0.5 ${doc.status === 'expired' ? 'text-error font-medium' : doc.status === 'expiring_soon' ? 'text-warning font-medium' : 'text-base-content/50'}`}>
-                            {doc.status === 'expired' ? 'Expired: ' : doc.status === 'expiring_soon' ? 'Expiring: ' : 'Expires: '}
-                            {new Date(doc.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        )}
-                        {!doc.expiryDate && <p className="text-xs text-base-content/60 mt-0.5">No expiry</p>}
-                        {doc.r2Key && cgToken && (
-                          <a href={`${API_BASE}/api/cgp-docs/file?key=${encodeURIComponent(doc.r2Key)}&token=${cgToken}`}
-                            target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-primary/70 mt-0.5 flex items-center gap-0.5 hover:text-primary">
-                            <Upload size={10} /> View file
-                          </a>
-                        )}
-                        {doc.fileName && !doc.r2Key && (
-                          <p className="text-xs text-base-content/60 mt-0.5">{doc.fileName}</p>
-                        )}
-                      </div>
-                    </div>
-                    <button onClick={() => handleDeleteDocument(doc.id)} className="btn btn-outline btn-xs btn-circle border-error/30 text-error">
-                      <Trash2 size={12} />
-                    </button>
+            {/* ─ 5. TRUST BADGES (compact) ─ */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', padding: '14px 16px' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#7C5CFF', opacity: 0.75, margin: '0 0 10px', letterSpacing: '0.06em' }}>Trust Badges</p>
+              {earnedCount === 0 && earnedTrustBadges.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 8px' }}>No badges yet. Complete trust steps to earn your first badge.</p>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 22 }}>🏅</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{earnedCount} badge{earnedCount !== 1 ? 's' : ''} unlocked</p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                      {bdgs.earned?.slice(0, 3).join(', ') || earnedTrustBadges.slice(0, 3).map((b: any) => b.label).join(', ')}
+                    </p>
                   </div>
                 </div>
-              ))}
+              )}
+              {nextBadgeName && (
+                <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, opacity: 0.4 }}>🔒</span>
+                  <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>Next: <strong style={{ color: '#0F172A' }}>{nextBadgeName}</strong></p>
+                </div>
+              )}
             </div>
-          )}
+
+          </div>
+        )
+      })()}
+
+      {/* ── ADD PROOF BOTTOM-SHEET MODAL ── */}
+      {section === 'trust-passport' && showAddDoc && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowAddDoc(false)}>
+          <div onClick={(e: any) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 600, margin: '0 auto', padding: '20px 16px 36px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: '#0F172A' }}>Add Proof</p>
+              <button onClick={() => { setShowAddDoc(false); setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('') }}
+                style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>🔒 All documents are private and never shared publicly.</p>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>What are you adding?</label>
+              <select style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 14, background: '#fff', color: '#0F172A', boxSizing: 'border-box' as any }}
+                value={proofType} onChange={(e: any) => { setProofType(e.target.value); setOtherDocName('') }}>
+                {['Government ID', 'CPR / First Aid', 'CNA / HHA / License', 'Training Certificate', 'Health Clearance', 'Insurance', 'Background Check Document', 'Work Eligibility', 'Other'].map((t: string) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            {proofType === 'Other' && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Document name <span style={{ color: '#EF4444' }}>*</span></label>
+                <input type="text" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 14, boxSizing: 'border-box' as any }}
+                  placeholder="e.g. Dementia Care Training, TB Test" value={otherDocName}
+                  onChange={(e: any) => setOtherDocName(e.target.value.slice(0, 80))} maxLength={80} />
+                {otherDocName.trim().length > 0 && otherDocName.trim().length < 2 && (
+                  <p style={{ fontSize: 11, color: '#EF4444', margin: '3px 0 0' }}>Please enter at least 2 characters.</p>
+                )}
+              </div>
+            )}
+            {(PROOF_TYPES_EXPIRY.includes(proofType) || proofType === 'Other') && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>
+                  Expiry date {PROOF_TYPES_EXPIRY.includes(proofType) ? <span style={{ color: '#94a3b8', fontWeight: 400 }}>(recommended)</span> : <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span>}
+                </label>
+                <input type="date" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 14, boxSizing: 'border-box' as any }}
+                  value={docExpiry} onChange={(e: any) => setDocExpiry(e.target.value)} />
+              </div>
+            )}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Upload file <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
+              <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" style={{ display: 'none' }}
+                onChange={(e: any) => setDocFile(e.target.files?.[0] || null)} />
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                style={{ width: '100%', padding: '10px 12px', border: '2px dashed #E2E8F0', borderRadius: 10, background: '#F8FAFC', fontSize: 13, color: docFile ? '#7C5CFF' : '#64748b', cursor: 'pointer', fontWeight: 500, textAlign: 'left' as any }}>
+                📎 {docFile ? docFile.name : 'Choose file (PDF, JPG, PNG)'}
+              </button>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Notes <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
+              <textarea style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 13, resize: 'none', boxSizing: 'border-box' as any }}
+                rows={2} placeholder="Add anything Carehia should know about this proof."
+                value={proofNotes} onChange={(e: any) => setProofNotes(e.target.value)} />
+            </div>
+            <button onClick={handleSubmitProof} disabled={proofType === 'Other' && otherDocName.trim().length < 2}
+              style={{ width: '100%', padding: '14px', background: '#7C5CFF', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer', opacity: (proofType === 'Other' && otherDocName.trim().length < 2) ? 0.5 : 1 }}>
+              Submit Proof
+            </button>
+          </div>
         </div>
       )}
 
@@ -1678,110 +1632,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ── TRUST PASSPORT: Badges (unified) ── */}
-      {section === 'trust-passport' && (
-        <div id="trust-badges" className="px-4 space-y-4 pb-2">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 px-1">Your Trust Badges</p>
-
-          {(earnedTrustBadges.length + earnedBadges.length) === 0 ? (
-            <div className="rounded-2xl bg-base-200 border border-base-300 p-5 text-center">
-              <div className="text-3xl mb-2">🏅</div>
-              <p className="font-semibold text-base-content text-sm">No badges yet</p>
-              <p className="text-xs text-base-content/60 mt-1">Complete trust steps to earn your first badge.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {earnedTrustBadges.map(badge => (
-                <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
-                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                    <badge.icon size={24} className="text-success" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                    <p className="text-xs text-base-content/60">{badge.desc}</p>
-                  </div>
-                  <CheckCircle2 size={20} className="text-success" />
-                </div>
-              ))}
-              {earnedBadges.map(badge => (
-                <div key={badge.id} className="bg-base-200 rounded-2xl p-4 flex items-center gap-3 border border-success/20">
-                  <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                    <badge.icon size={24} className={badge.color} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-base-content">{badge.label}</p>
-                    <p className="text-xs text-base-content/60">{badge.desc}</p>
-                  </div>
-                  <CheckCircle2 size={20} className="text-success" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Next badge to unlock */}
-          {(() => {
-            const nextBadge = lockedTrustBadges[0] || unearnedBadges[0]
-            if (!nextBadge) return null
-            const Icon = 'icon' in nextBadge ? nextBadge.icon : null
-            const hint = 'unlock' in nextBadge ? nextBadge.unlock : nextBadge.desc
-            return (
-              <div className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-primary/70 mb-2">Next Badge to Unlock</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-base-300 flex items-center justify-center">
-                    {Icon ? <Icon size={22} className="text-base-content/50" /> : <Lock size={22} className="text-base-content/50" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-base-content">{nextBadge.label}</p>
-                    <p className="text-xs text-base-content/60">{hint}</p>
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
-        </div>
-      )}
-
-      {/* ── TRUST PASSPORT: Reviews & Work History ── */}
-      {section === 'trust-passport' && (
-        <div className="px-4 space-y-4 pb-2">
-          <div id="trust-review" className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-1">Reviews &amp; Reputation</p>
-            <h3 className="text-lg font-bold text-base-content">Client Reviews</h3>
-            <p className="text-sm text-base-content/60 mt-1">Completed care sessions and positive client reviews strengthen your Trust Passport score automatically.</p>
-            {profileReviews.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {profileReviews.slice(0, 3).map((r: any, i: number) => (
-                  <div key={i} className="rounded-2xl bg-base-100 px-3 py-2">
-                    <div className="flex items-center gap-1 mb-1">
-                      {[1,2,3,4,5].map(s => <Star key={s} size={11} className={s <= (r.rating || 5) ? 'text-warning fill-warning' : 'text-base-300'} />)}
-                    </div>
-                    <p className="text-xs text-base-content/70">{r.comment || 'Great caregiver!'}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-base-content/50 mt-3 italic">No reviews yet. Complete care sessions to start earning reviews.</p>
-            )}
-          </div>
-
-          <div id="trust-work-history" className="rounded-3xl bg-base-200 border border-base-300/70 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-1">Work History</p>
-            <h3 className="text-lg font-bold text-base-content">Completed Care Sessions</h3>
-            <p className="text-sm text-base-content/60 mt-1">Every verified care session adds to your trust signal. Consistent work history helps families feel confident.</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-base-100 p-3 text-center">
-                <p className="text-xl font-bold text-base-content">{profile.totalJobs || 0}</p>
-                <p className="text-[10px] text-base-content/50">Sessions Done</p>
-              </div>
-              <div className="rounded-xl bg-base-100 p-3 text-center">
-                <p className="text-xl font-bold text-base-content">{profile.rating ? profile.rating.toFixed(1) : '—'}</p>
-                <p className="text-[10px] text-base-content/50">Avg Rating</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── WORK PREFERENCES SECTION ── */}
       {section === 'work-preferences' && (
@@ -2074,7 +1924,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
 
       {/* ─── Phase 20: INVITE A CAREGIVER + ONBOARDING NUDGES (additive) ─── */}
-      {profile?.id && (() => {
+      {section === 'account' && profile?.id && (() => {
         const refCode = 'CGP' + profile.id
         const inviteLink = 'https://work.carehia.com?ref=' + refCode
         const copyLink = () => {

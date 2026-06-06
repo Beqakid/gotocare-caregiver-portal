@@ -812,32 +812,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
-          <div className="bg-base-200 rounded-3xl p-4 border border-base-300/70">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-bold text-sm text-base-content">Profile Readiness Checklist</p>
-              <span className="text-xs font-bold text-primary">{verification.progressItems.filter(i => i.done).length}/{verification.progressItems.length}</span>
+          {/* Next Step — compact replacement for full Profile Readiness Checklist (P13A) */}
+          {verification.nextStep && (
+            <div className="bg-base-200 rounded-3xl p-4 border border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-2xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                  <Zap size={17} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-0.5">Next Step</p>
+                  <p className="text-sm font-semibold text-base-content leading-snug">{verification.nextStep}</p>
+                </div>
+                <button onClick={() => navigateToSection('trust-passport')} className="btn btn-primary btn-sm rounded-2xl flex-shrink-0">
+                  Continue
+                </button>
+              </div>
             </div>
-            <div className="space-y-2">
-              {verification.progressItems.map(item => {
-                const tone = item.status === 'Complete' ? 'bg-success/10 text-success' : item.status === 'Pending' || item.status === 'Pending Review' || item.status === 'Expiring Soon' ? 'bg-warning/15 text-warning' : item.status === 'Expired' ? 'bg-error/10 text-error' : 'bg-base-100 text-base-content/60'
-                return (
-                  <div key={item.key} className="flex items-center gap-3 rounded-2xl bg-base-100 px-3 py-2.5">
-                    <span className={`h-8 w-8 rounded-xl flex items-center justify-center ${item.done ? 'bg-success/10 text-success' : 'bg-base-300 text-base-content/45'}`}>
-                      {item.done ? <CheckCircle2 size={16} /> : <Clock size={16} />}
-                    </span>
-                    <span className="flex-1 text-sm font-semibold text-base-content">{item.label}</span>
-                    <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${tone}`}>{item.status}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+          )}
 
+          {/* Quick actions — simplified to profile-only actions (P13A) */}
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => openBioEditor()} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Edit3 size={15} /> Edit Bio</button>
-            <button onClick={() => { navigateToSection('trust-passport'); setDocType('certification'); setDocName('CPR'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Award size={15} /> Add Certification</button>
-            <button onClick={() => { navigateToSection('trust-passport'); setShowAddDoc(true) }} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Upload size={15} /> Upload Proof</button>
-            <button onClick={() => setShowQR(true)} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Share2 size={15} /> Show QR Code</button>
+            <button onClick={() => openBioEditor()} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Edit3 size={15} /> Edit Profile</button>
+            <button onClick={() => setShowQR(true)} className="btn btn-outline rounded-2xl border-primary/25 text-primary"><Share2 size={15} /> Share Profile</button>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -858,33 +854,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
-          {/* ═══ VERIFICATION CENTER CARD (NEW — additive) ═══ */}
-          <button
-            onClick={() => setVerificationOpen(true)}
-            className="w-full bg-base-200 rounded-2xl p-4 text-left"
-            style={{ border: verifBadgeCount > 0 ? '1.5px solid rgba(34,197,94,0.35)' : '1.5px solid rgba(124,92,255,0.2)' }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                  style={{ background: verifBadgeCount > 0 ? 'rgba(34,197,94,0.12)' : 'rgba(124,92,255,0.12)' }}>
-                  {verifBadgeCount > 0 ? '✅' : '🔍'}
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-base-content">Verification Center</p>
-                  <p className="text-xs text-base-content/60">
-                    {verifBadgeCount > 0 ? `${verifBadgeCount} badge${verifBadgeCount > 1 ? 's' : ''} earned · Tap to manage` : 'Get verified badges · Rank higher in search'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                {verifBadgeCount > 0 && (
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#22C55E' }}>{verifBadgeCount}</span>
-                )}
-                <ChevronRight size={16} className="opacity-40" />
-              </div>
-            </div>
-          </button>
+          {/* Verification Center card removed from Profile section (P13A) — accessible via Trust tab → Trust Passport */}
 
           {/* Bio */}
           <div id="section-bio" className="bg-base-200 rounded-2xl p-4">

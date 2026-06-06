@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -8,9 +8,40 @@
   <meta name="theme-color" content="#7C5CFF" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+  <!-- DaisyUI v3 — component classes (btn, badge, card, range, etc.) -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+
+  <!-- Tailwind CSS CDN — utility classes (flex, grid, text-xs, p-4, etc.) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'primary':   '#7C5CFF',
+            'secondary': '#4A90E2',
+            'success':   '#22C55E',
+            'warning':   '#F59E0B',
+            'error':     '#EF4444',
+            'base-100':  '#FFFFFF',
+            'base-200':  '#F0F4FF',
+            'base-300':  '#E2E8F0',
+            'base-content': '#0F172A',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Carehia custom styles — overrides and brand tokens (loads AFTER CDN to take priority) -->
   <link rel="stylesheet" href="/styles.css" />
+
+  <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" src="/dist/app.js?v=20260706-p14d"></script>
+
+  <!-- App bundle -->
+  <script type="module" src="/dist/app.js?v=20260706-p14e"></script>
 </head>
 <body>
   <div id="root"></div>

@@ -1,5 +1,5 @@
-# SECURITY (RISK-04): HTTP security headers for Cloudflare Pages
-# Applied to all responses from work.carehia.com
+# Carehia Caregiver Portal — Cloudflare Pages security headers
+# Phase 14E: Added Content-Security-Policy (CSP) to whitelist CDN resources
 
 /*
   X-Content-Type-Options: nosniff
@@ -7,3 +7,4 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(self)
   X-XSS-Protection: 1; mode=block
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://gotocare-original.jjioji.workers.dev https://carehia-admin.jjioji.workers.dev https://accounts.google.com https://*.googleapis.com https://*.google.com; frame-src 'none'; object-src 'none'; base-uri 'self'

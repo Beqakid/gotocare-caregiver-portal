@@ -365,6 +365,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [proofNotes, setProofNotes] = useState('')
   const [proofSubmitOk, setProofSubmitOk] = useState(false)
   const [proofSubmitErr, setProofSubmitErr] = useState(false)
+  const [travelRadius, setTravelRadius] = useState<number>(() => {
+    if (typeof window === 'undefined') return 10
+    const saved = localStorage.getItem('cgp_travel_radius')
+    return saved ? Number(saved) : 10
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
 
@@ -1854,6 +1859,90 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             <button onClick={openContactEditor} className="btn btn-outline btn-sm w-full rounded-xl border-primary/30 text-primary gap-1">
               <MapPin size={13} /> Edit Service Area
             </button>
+          </div>
+
+          {/* ── TRAVEL RADIUS ── */}
+          <div className="bg-base-200 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="font-semibold text-sm text-base-content">How far can you travel?</p>
+              <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">{travelRadius} mi</span>
+            </div>
+            <p className="text-xs text-base-content/60 mb-3">Set the distance you are willing to travel for care requests.</p>
+
+            {/* No service area warning */}
+            {!profile.location?.city && (
+              <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 mb-3 flex items-start gap-2">
+                <span className="text-warning text-base mt-0.5">&#9888;</span>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-warning-content mb-1.5">Add your service area first so Carehia can match you with nearby families.</p>
+                  <button onClick={openContactEditor} className="btn btn-warning btn-xs rounded-lg gap-1">
+                    <MapPin size={11} /> Add Service Area
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Slider */}
+            <div className="mb-3">
+              <input
+                type="range"
+                min={5} max={50} step={5}
+                value={travelRadius}
+                onChange={e => {
+                  const v = Number(e.target.value)
+                  setTravelRadius(v)
+                  localStorage.setItem('cgp_travel_radius', String(v))
+                }}
+                className="range range-primary range-sm w-full"
+              />
+              <div className="flex justify-between text-[10px] text-base-content/40 mt-1 px-0.5">
+                <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span><span>35</span><span>40</span><span>45</span><span>50</span>
+              </div>
+            </div>
+
+            {/* Preset labels */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {([
+                { miles: 5,  label: 'Nearby' },
+                { miles: 10, label: 'Local' },
+                { miles: 15, label: 'Wider area' },
+                { miles: 25, label: 'Farther' },
+                { miles: 50, label: 'Max reach' },
+              ] as { miles: number; label: string }[]).map(({ miles, label }) => (
+                <button
+                  key={miles}
+                  onClick={() => { setTravelRadius(miles); localStorage.setItem('cgp_travel_radius', String(miles)) }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                    travelRadius === miles
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-base-100 text-base-content/60 border-base-300 hover:border-primary/40'
+                  }`}
+                >
+                  {miles} mi — {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Current radius callout */}
+            <div className="bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 mb-3">
+              <p className="text-xs text-base-content/70">
+                <span className="font-semibold text-primary">Current radius: {travelRadius} miles</span>
+                {travelRadius <= 10 && <span className="ml-1">&#8212; You\'ll see local requests near your area.</span>}
+                {travelRadius > 10 && travelRadius <= 25 && <span className="ml-1">&#8212; Good balance of nearby and wider requests.</span>}
+                {travelRadius > 25 && <span className="ml-1">&#8212; You\'ll receive more requests across a larger area.</span>}
+              </p>
+            </div>
+
+            {travelRadius < 25 && (
+              <p className="text-[11px] text-base-content/45 mb-2">
+                &#128161; Increasing your radius may help you see more care requests.
+              </p>
+            )}
+
+            {/* Privacy note */}
+            <p className="text-[10px] text-base-content/40 leading-relaxed">
+              &#128274; Carehia uses your service area to match you with nearby families. We do not show your exact address to clients.
+            </p>
           </div>
 
           {/* Languages */}

@@ -1274,7 +1274,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             {
               title: 'Background Check',
               icon: Shield,
-              status: verification.backgroundVerified ? 'Verified' : verification.bgDoc ? 'Pending' : 'Not Started',
+              status: verification.backgroundVerified ? 'Verified' : verification.bgDoc ? 'Submitted' : 'Not Started',
               body: verification.backgroundVerified ? 'Your background check is verified.' : 'Background check integration coming soon. You can store proof privately for review.',
               action: verification.backgroundVerified ? 'Verified' : 'Coming soon',
               disabled: true,

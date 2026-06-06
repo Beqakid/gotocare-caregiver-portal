@@ -1903,7 +1903,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   setTravelRadius(v)
                   localStorage.setItem('cgp_travel_radius', String(v))
                 }}
-                className="range range-primary range-sm w-full"
+                className="carehia-range"
               />
               <div className="flex justify-between text-[10px] text-base-content/40 mt-1 px-0.5" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                 <span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span><span>35</span><span>40</span><span>45</span><span>50</span>

@@ -66,6 +66,8 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
 }) => {
   // Phase 11: fetch work history data
   const [workData, setWorkData] = useState<WorkHistoryData | null>(null)
+  // Phase 16: inline module action messages (additive)
+  const [moduleInfo, setModuleInfo] = useState<string | null>(null)
   useEffect(() => {
     const token = localStorage.getItem('cgp_token')
     if (!token) return
@@ -92,6 +94,41 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
     publicBadges,
     modules,
   } = summary
+
+
+  // Phase 16: Route each module button to a meaningful action or friendly message
+  const handleModuleAction = (mod: TrustPassportModule) => {
+    const showMsg = (msg: string, closeAfter?: number) => {
+      setModuleInfo(msg)
+      if (closeAfter) setTimeout(() => { setModuleInfo(null); onClose() }, closeAfter)
+      else setTimeout(() => setModuleInfo(null), 5000)
+    }
+    switch (mod.moduleType) {
+      case 'manual_proof':
+      case 'certifications':
+        // Upload flow — handled by parent
+        onOpenDocUpload?.()
+        break
+      case 'basic_profile':
+      case 'selfie_intro':
+        showMsg('Closing Trust Passport… Edit your photo, bio, and rate in the Profile tab.', 1600)
+        break
+      case 'contact_verification':
+        showMsg('Email and phone verification happen during account setup. Additional options are coming soon.')
+        break
+      case 'care_experience':
+        showMsg('Closing Trust Passport… Edit your care specialties in the Work tab.', 1600)
+        break
+      case 'work_history':
+        showMsg('Your work record grows as you complete care visits through Carehia. Check the Work tab to track time and accept bookings.')
+        break
+      case 'background_permission':
+        showMsg('Background check integration is coming soon. Carehia will never start this step without your permission.')
+        break
+      default:
+        onOpenDocUpload?.()
+    }
+  }
 
   const lc = LEVEL_COLORS[trustLevel] || LEVEL_COLORS[1]
 
@@ -138,6 +175,21 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Phase 16: Module action info banner */}
+      {moduleInfo && (
+        <div style={{
+          position: 'sticky', top: 67, zIndex: 3,
+          background: 'rgba(124,92,255,0.92)', backdropFilter: 'blur(8px)',
+          padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ fontSize: 13, color: '#fff', flex: 1, lineHeight: 1.4 }}>{moduleInfo}</span>
+          <button
+            onClick={() => setModuleInfo(null)}
+            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >✕</button>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <div style={{ maxWidth: 512, margin: '0 auto', padding: '16px 16px 80px' }}>
@@ -426,7 +478,7 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
                       )
                     ) : (
                       <button
-                        onClick={mod.moduleType === 'manual_proof' ? onOpenDocUpload : undefined}
+                        onClick={() => handleModuleAction(mod)}
                         className="btn btn-outline btn-sm w-full rounded-2xl border-primary/20 text-primary hover:bg-primary/5"
                       >
                         {mod.nextAction}

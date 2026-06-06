@@ -2,28 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Carehia — Your Caregiving Workspace</title>
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#7C5CFF" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Carehia" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carehia — Caregiver Portal</title>
+  <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/styles.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#7C5CFF',
+            secondary: '#4A90E2',
+            success: '#22C55E',
+            warning: '#F59E0B',
+            error: '#EF4444',
+          }
+        }
+      }
     }
   </script>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7C5CFF" />
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="/dist/app.js?v=20260706-p13c"></script>
+  <script type="module" src="dist/app.js?v=20260706-p13d"></script>
 </body>
 </html>

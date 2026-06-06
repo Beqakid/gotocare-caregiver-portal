@@ -15,6 +15,7 @@ export interface CaregiverProfile {
   rating?: number
   totalReviews?: number
   totalJobs?: number
+  travelRadiusMiles?: number
   profilePhoto?: string
   availability?: WeeklyAvailability
   location?: { city: string; state: string; zipCode: string }

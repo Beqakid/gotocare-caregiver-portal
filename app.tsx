@@ -806,6 +806,7 @@ const App: React.FC<{}> = () => {
         if (data.skills !== undefined)        payload.skills = data.skills
         if (data.certifications !== undefined) payload.certifications = data.certifications
         if (data.profilePhoto !== undefined)  payload.photoUrl = data.profilePhoto
+        if (data.travelRadiusMiles !== undefined) payload.travelRadiusMiles = data.travelRadiusMiles
         const res = await fetch('https://gotocare-original.jjioji.workers.dev/api/caregiver-profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -849,6 +850,7 @@ const App: React.FC<{}> = () => {
       location: (fullAccount.city) ? { city: fullAccount.city, state: fullAccount.state || '' } : (fullAccount.zipCode ? { city: fullAccount.zipCode, state: '' } : undefined),
       profilePhoto: fullAccount.photoUrl || fullAccount.profilePhoto || undefined,
       certifications: Array.isArray(fullAccount.certifications) ? fullAccount.certifications : [],
+      travelRadiusMiles: fullAccount.travelRadiusMiles || 10,
     }
     try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)

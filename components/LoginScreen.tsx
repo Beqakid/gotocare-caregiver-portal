@@ -258,18 +258,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
       {/* Logo */}
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <div style={{
-          width: '68px', height: '68px', borderRadius: '20px',
-          background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 14px',
-          boxShadow: '0 0 32px rgba(124,92,255,0.4), 0 8px 24px rgba(0,0,0,0.25)',
-        }}>
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-            <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z" fill="white"/>
-          </svg>
-        </div>
-        <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px', marginBottom: '4px' }}>Carehia</h1>
+        <img
+          src="https://cdn.jsdelivr.net/gh/Beqakid/gotocare-caregiver-portal@main/assets/carehia-logo-full.png"
+          alt="Carehia"
+          style={{ height: '48px', width: 'auto', display: 'block', margin: '0 auto 14px' }}
+        />
         <p style={{ fontSize: '14px', color: '#64748B', fontWeight: 400 }}>Your free professional caregiving office</p>
       </div>
 

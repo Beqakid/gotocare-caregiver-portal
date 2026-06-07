@@ -33,7 +33,7 @@ function getProfileAnchorForDeepLink(deepLink: string): string | null {
     'section-badges':         'trust-badges',
     'section-settings':       null,
     'section-clients':        null,
-    'section-skills':         'section-skills',
+    'section-skills':         'section-skills-work',
     'section-bio':            'section-bio',
     'section-contact':        'section-contact',
     'section-photo':          'section-photo',
@@ -417,7 +417,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     navigateToSection('work-preferences')
     setSelectedSkills(profile?.skills || [])
     setEditingSkills(true)
-    scrollToProfileSection('section-skills')
+    scrollToProfileSection('section-skills-work')
   }
 
   const openContactEditor = () => {
@@ -1157,24 +1157,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             )}
           </div>
 
-          {/* Skills – display-only; full editor in Work tab */}
-          <div id="section-skills" className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm text-base-content">Care Skills</p>
-              <button onClick={() => navigateToSection('work-preferences')} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
-                <Edit3 size={12} /> Edit in Work
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {(profile.skills?.length || 0) > 0 ? profile.skills!.map((skill, i) => (
-                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">{skill}</span>
-              )) : (
-                <button onClick={() => navigateToSection('work-preferences')} className="w-full text-center text-xs text-primary/70 hover:text-primary py-2 border border-dashed border-primary/20 rounded-lg">
-                  + Add care skills in Work tab
-                </button>
-              )}
-            </div>
-          </div>
 
           {/* Languages */}
           <div id="section-languages" className="bg-base-200 rounded-2xl p-4">

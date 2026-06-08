@@ -413,6 +413,31 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     loadCloud()
   }, [])
 
+  // Auto-reconcile old paid invoices that have no stored timeEntryIds
+  // (one-time migration for invoices created before the isInvoiced fix)
+  useEffect(() => {
+    const oldPaidInvs = invoices.filter((i: any) =>
+      i.status === 'paid' &&
+      !(i.timeEntryIds?.length) &&
+      !(i.cloudTimeEntryIds?.length)
+    )
+    if (oldPaidInvs.length === 0) return
+    const unclaimedEntries = getTimeEntries().filter((e: any) => e.status === 'completed' && !e.isInvoiced)
+    if (unclaimedEntries.length === 0) return
+    const totalUnclaimed = unclaimedEntries.reduce((s: number, e: any) =>
+      s + (e.totalPay || ((e.duration || 0) / 60) * (e.hourlyRate || 0)), 0)
+    oldPaidInvs.forEach((inv: any) => {
+      const invTotal = inv.total || 0
+      if (invTotal <= 0) return
+      const tolerance = Math.max(invTotal * 0.05, 2)
+      if (Math.abs(totalUnclaimed - invTotal) <= tolerance) {
+        const ids = unclaimedEntries.map((e: any) => String(e.id))
+        setInvoiceEntryIds(inv.id, ids)
+        ids.forEach((id: string) => updateTimeEntry(id, { isInvoiced: true }))
+      }
+    })
+  }, [invoices])
+
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86400000)
   const monthAgo = new Date(now.getTime() - 30 * 86400000)

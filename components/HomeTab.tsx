@@ -290,7 +290,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   ].slice(0, 3)
 
   const completedWeekEntries = timeEntries.filter(e => e.status === 'completed' && e.date >= weekStart)
-  const uninvoicedEntries = timeEntries.filter(e => e.status === 'completed' && !e.isInvoiced)
+  // Build claimed entry IDs from invoice objects + stored map (fixes paid/draft entries re-appearing)
+  const _allInvoices = getInvoices()
+  const _invMap: Record<string, string[]> = JSON.parse(localStorage.getItem('gtc_inv_entry_map') || '{}')
+  const _claimedIds = new Set<string>(
+    _allInvoices
+      .filter((inv: any) => inv.status === 'draft' || inv.status === 'sent' || inv.status === 'overdue' || inv.status === 'paid')
+      .flatMap((inv: any) => [...(inv.timeEntryIds || []), ...(inv.cloudTimeEntryIds || []), ...(_invMap[inv.id] || [])])
+  )
+  const uninvoicedEntries = timeEntries.filter(e =>
+    e.status === 'completed' && !e.isInvoiced && !_claimedIds.has(String(e.id))
+  )
   const uninvoicedHours = uninvoicedEntries.reduce((sum, entry) => sum + hoursFromEntry(entry), 0)
   const uninvoicedAmount = uninvoicedEntries.reduce((sum, entry) => sum + (entry.totalPay || hoursFromEntry(entry) * entry.hourlyRate), 0)
   const weekHours = completedWeekEntries.reduce((sum, entry) => sum + hoursFromEntry(entry), 0)
@@ -788,7 +798,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       {priorityTasks.length > 1 && (
         <section className="space-y-2">
           <p className={sectionTitle}>Also needs attention</p>
-          {priorityTasks.slice(1, 3).map((task, index) => (
+          {priorityTasks.slice(1, 3).filter((task: any) => !(heroAction.badge === 'Money' && task.badge === 'Money')).map((task, index) => (
             <TaskRow key={`${task.title}-${index}`} task={task} />
           ))}
         </section>
@@ -825,8 +835,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       )}
 
       {/* ── 6. Money card ── */}
-      {uninvoicedAmount > 0 ? (
-        /* Invoice-ready state: lead with the actionable amount */
+      {uninvoicedAmount > 0 && heroAction.badge !== 'Money' ? (
+        /* Invoice-ready state: lead with the actionable amount — only shown when hero isn't already Invoice Ready */
         <section className="rounded-2xl earnings-card p-4 text-white">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -858,8 +868,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                 <DollarSign size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-base-content">No invoice ready yet</p>
-                <p className="text-xs text-base-content/55 mt-0.5">Track time to prepare your next invoice.</p>
+                <p className="text-sm font-bold text-base-content">{uninvoicedAmount > 0 ? `$${uninvoicedAmount.toFixed(0)} ready to bill` : 'No invoice ready yet'}</p>
+                <p className="text-xs text-base-content/55 mt-0.5">{uninvoicedAmount > 0 ? `${uninvoicedHours.toFixed(1)} hrs · see the card above to create` : 'Track time to prepare your next invoice.'}</p>
               </div>
             </div>
             <button onClick={onNavigateToEarnings} className="btn btn-ghost btn-sm text-primary shrink-0">

@@ -861,8 +861,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
-          </div>
-
 
           {/* Quick actions — simplified to profile-only actions (P13A) */}
           <div className="grid grid-cols-2 gap-2">

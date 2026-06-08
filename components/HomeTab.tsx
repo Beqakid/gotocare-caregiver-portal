@@ -798,7 +798,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       {priorityTasks.length > 1 && (
         <section className="space-y-2">
           <p className={sectionTitle}>Also needs attention</p>
-          {priorityTasks.slice(1, 3).filter((task: any) => !(heroAction.badge === 'Money' && task.badge === 'Money')).map((task, index) => (
+          {priorityTasks.slice(1, 3).filter((task: any) => task.badge !== 'Money').map((task, index) => (
             <TaskRow key={`${task.title}-${index}`} task={task} />
           ))}
         </section>

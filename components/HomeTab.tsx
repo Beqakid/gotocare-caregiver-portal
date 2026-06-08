@@ -860,7 +860,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
         </section>
       ) : (
-        /* Zero state: compact, no big $0 emphasis */
+        /* Neutral Money card — shown when Invoice Ready is already the hero, or no invoice pending */
         <section className="rounded-2xl bg-base-200 border border-base-300/70 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -868,8 +868,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                 <DollarSign size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-base-content">{uninvoicedAmount > 0 ? `$${uninvoicedAmount.toFixed(0)} ready to bill` : 'No invoice ready yet'}</p>
-                <p className="text-xs text-base-content/55 mt-0.5">{uninvoicedAmount > 0 ? `${uninvoicedHours.toFixed(1)} hrs · see the card above to create` : 'Track time to prepare your next invoice.'}</p>
+                <p className="text-sm font-bold text-base-content">Money</p>
+                <p className="text-xs text-base-content/55 mt-0.5">View earnings, invoices and payment history</p>
               </div>
             </div>
             <button onClick={onNavigateToEarnings} className="btn btn-ghost btn-sm text-primary shrink-0">

@@ -1123,6 +1123,9 @@ const App: React.FC<{}> = () => {
               setProfileDeepLink('section-documents')
               navigateToTab('profile')
             }}
+            onNavigateTo={(section, scrollTo) => {
+              handleNavigateToSection(section as any, scrollTo)
+            }}
           />
         </React.Suspense>
       )}

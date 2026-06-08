@@ -56,6 +56,7 @@ interface TrustPassportProps {
   documents: CaregiverDocument[]
   onClose: () => void
   onOpenDocUpload?: () => void
+  onNavigateTo?: (section: string, scrollTo: string) => void
 }
 
 export const TrustPassport: React.FC<TrustPassportProps> = ({
@@ -63,6 +64,7 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
   documents,
   onClose,
   onOpenDocUpload,
+  onNavigateTo,
 }) => {
   // Phase 11: fetch work history data
   const [workData, setWorkData] = useState<WorkHistoryData | null>(null)
@@ -97,6 +99,7 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
 
 
   // Phase 16: Route each module button to a meaningful action or friendly message
+  // Phase 16C: Route every module button to a meaningful action or friendly message
   const handleModuleAction = (mod: TrustPassportModule) => {
     const showMsg = (msg: string, closeAfter?: number) => {
       setModuleInfo(msg)
@@ -111,13 +114,17 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
         break
       case 'basic_profile':
       case 'selfie_intro':
-        showMsg('Closing Trust Passport… Edit your photo, bio, and rate in the Profile tab.', 1600)
+        // Phase 16C: Navigate to Profile > bio/photo editor after brief message
+        setModuleInfo('Opening your profile editor...')
+        setTimeout(() => { setModuleInfo(null); onClose(); onNavigateTo?.('profile', 'section-bio') }, 800)
         break
       case 'contact_verification':
-        showMsg('Email and phone verification happen during account setup. Additional options are coming soon.')
+        showMsg('Email and phone verification happen during account setup. Additional verification options are coming soon.')
         break
       case 'care_experience':
-        showMsg('Closing Trust Passport… Edit your care specialties in the Work tab.', 1600)
+        // Phase 16C: Navigate to Work > skills editor after brief message
+        setModuleInfo('Opening your skills editor...')
+        setTimeout(() => { setModuleInfo(null); onClose(); onNavigateTo?.('profile', 'section-skills') }, 800)
         break
       case 'work_history':
         showMsg('Your work record grows as you complete care visits through Carehia. Check the Work tab to track time and accept bookings.')
@@ -125,8 +132,17 @@ export const TrustPassport: React.FC<TrustPassportProps> = ({
       case 'background_permission':
         showMsg('Background check integration is coming soon. Carehia will never start this step without your permission.')
         break
+      case 'carehia_review':
+        // Phase 16C: Friendly message for Carehia Review
+        showMsg('Carehia Review becomes available after your key Trust Passport steps are complete. Keep going!')
+        break
+      case 'references':
+        // Phase 16C: Friendly message for References
+        showMsg('Reference checks are coming soon. Carehia may review references from your past clients and employers.')
+        break
       default:
-        onOpenDocUpload?.()
+        // Phase 16C: Friendly fallback instead of opening doc upload
+        showMsg('This feature is not available yet. Check back soon!')
     }
   }
 

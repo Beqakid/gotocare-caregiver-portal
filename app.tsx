@@ -647,12 +647,29 @@ const App: React.FC<{}> = () => {
       .then(r => r.json())
       .then(d => {
         if (d.success && d.account) {
-          setProfile(prev => prev ? {
-            ...prev,
-            rating: d.account.avgRating || null,
-            totalJobs: d.account.totalJobs || 0,
-            totalReviews: d.account.reviewCount || 0,
-          } : prev)
+          setProfile(prev => {
+            if (!prev) return prev
+            const a = d.account
+            const updated = {
+              ...prev,
+              // Phase 20 Bug #2: merge ALL profile fields from API on session restore
+              phone: a.phone || prev.phone || '',
+              bio: a.bio || prev.bio || '',
+              hourlyRate: a.hourlyRate || prev.hourlyRate || 0,
+              skills: (a.skills && a.skills.length > 0) ? a.skills : prev.skills || [],
+              languages: (a.languages && a.languages.length > 0) ? a.languages : prev.languages || [],
+              location: (a.city || a.state) ? { city: a.city || '', state: a.state || '', zipCode: a.zipCode || '' } : prev.location,
+              profilePhoto: a.photoUrl || prev.profilePhoto || undefined,
+              rating: a.avgRating || null,
+              totalJobs: a.totalJobs || 0,
+              totalReviews: a.reviewCount || 0,
+              completenessScore: a.completenessScore ?? prev.completenessScore,
+              missingFields: a.missingFields ?? prev.missingFields,
+              isVisibleInSearch: a.isVisibleInSearch ?? prev.isVisibleInSearch,
+            }
+            try { localStorage.setItem('cgp_account', JSON.stringify(updated)) } catch {}
+            return updated
+          })
         }
       })
       .catch(() => {})

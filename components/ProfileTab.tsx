@@ -3,12 +3,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User, Users, FileCheck2, BadgeCheck, Lock } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
-import { TrustCenter } from './TrustCenter'
-import { VerificationTab } from './VerificationTab'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 const PROFILE_SECTION_KEY = 'cgp_profile_section'
-const PROFILE_VERIFICATION_OPEN_KEY = 'cgp_profile_verification_open'
 type ProfileSection = 'profile' | 'trust-passport' | 'work-preferences' | 'account'
 
 const SECTION_MAP: Record<string, ProfileSection> = {
@@ -239,11 +236,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [cgSubLoading, setCgSubLoading] = useState(true)
   const [subUpgrading, setSubUpgrading] = useState(false)
   const [showSubBanner, setShowSubBanner] = useState(!!returnedSubscription)
-  // NEW: Verification Center state
-  const [showVerification, setShowVerification] = useState(() => {
-    try { return localStorage.getItem(PROFILE_VERIFICATION_OPEN_KEY) === '1' } catch { return false }
-  })
-  const [verifBadgeCount, setVerifBadgeCount] = useState(0)
   const [trustStatus, setTrustStatus] = useState<any>(null)
   // Phase 17: compact trust tab state
   const [trustDetail, setTrustDetail] = useState<any>(null)
@@ -255,13 +247,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     try { localStorage.setItem(PROFILE_SECTION_KEY, nextSection) } catch {}
   }
 
-  const setVerificationOpen = (open: boolean) => {
-    setShowVerification(open)
-    try {
-      if (open) localStorage.setItem(PROFILE_VERIFICATION_OPEN_KEY, '1')
-      else localStorage.removeItem(PROFILE_VERIFICATION_OPEN_KEY)
-    } catch {}
-  }
 
   useEffect(() => {
     if (initialSection) navigateToSection(initialSection)
@@ -346,11 +331,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
           const t = d.trust
           setTrustStatus(t)
           const count = [t.id_verified, t.background_checked, t.cna_verified, t.cpr_certified].filter(Boolean).length
-          setVerifBadgeCount(count)
         }
       })
       .catch(() => {})
-  }, [showVerification])
+  }, [])
 
   // Phase 17: fetch backend trust status when Trust tab is open
   useEffect(() => {
@@ -877,47 +861,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
-          {/* Compact Trust Passport summary → Trust tab */}
-          <div className="bg-base-200 rounded-3xl p-4 border border-primary/15">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                <Shield size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-base-content">Carehia Trust Passport</p>
-                <p className="text-xs text-base-content/60">{verification.verificationProgress}% complete · {verification.nextStep}</p>
-              </div>
-            </div>
-            <div className="h-1.5 rounded-full bg-base-100 overflow-hidden mb-3">
-              <div className="h-full rounded-full bg-primary" style={{ width: `${verification.verificationProgress}%` }} />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => navigateToSection('trust-passport')} className="btn btn-primary btn-sm flex-1 rounded-2xl">
-                View Trust Passport
-              </button>
-              <button onClick={() => onOpenTrustPassport?.()} className="btn btn-outline btn-sm rounded-2xl border-primary/30 text-primary">
-                Full View
-              </button>
-            </div>
           </div>
 
-          {/* Next Step — compact replacement for full Profile Readiness Checklist (P13A) */}
-          {verification.nextStep && (
-            <div className="bg-base-200 rounded-3xl p-4 border border-primary/20">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-2xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                  <Zap size={17} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70 mb-0.5">Next Step</p>
-                  <p className="text-sm font-semibold text-base-content leading-snug">{verification.nextStep}</p>
-                </div>
-                <button onClick={() => navigateToSection('trust-passport')} className="btn btn-primary btn-sm rounded-2xl flex-shrink-0">
-                  Continue
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Quick actions — simplified to profile-only actions (P13A) */}
           <div className="grid grid-cols-2 gap-2">
@@ -1803,24 +1748,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
-          {/* Languages */}
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-semibold text-sm text-base-content">Languages</p>
-              <button onClick={() => { navigateToSection('profile'); setTimeout(() => setShowLangInput(true), 150) }} className="btn btn-outline btn-xs gap-1 border-primary/30 text-primary">
-                <Plus size={12} /> Add
-              </button>
-            </div>
-            {profile.languages && profile.languages.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {profile.languages.map((lang, i) => (
-                  <span key={i} className="badge badge-sm badge-ghost py-2.5">{lang}</span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-base-content/65">No languages added. Languages improve your match rate.</p>
-            )}
-          </div>
         </div>
       )}
 
@@ -2012,13 +1939,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         </div>
       )}
 
-      {/* ─── VERIFICATION CENTER OVERLAY (NEW — last child, additive) ─── */}
-      {showVerification && profile?.id && (
-        <VerificationTab
-          caregiverId={profile.id}
-          onClose={() => setVerificationOpen(false)}
-        />
-      )}
     </div>
   )
 }

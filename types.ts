@@ -149,6 +149,9 @@ export interface Invoice {
   lastSentAt?: string
   sendCount?: number
   emailId?: string
+  timeEntryIds?: string[]
+  cloudTimeEntryIds?: string[]
+  source?: 'time_entries' | 'manual'
 }
 
 export interface InvoiceItem {

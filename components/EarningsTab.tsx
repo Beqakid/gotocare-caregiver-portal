@@ -365,6 +365,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const [usedEntryIds, setUsedEntryIds] = useState<string[]>([])
   const [usedCloudIds, setUsedCloudIds] = useState<string[]>([])
   const [autoFilledNote, setAutoFilledNote] = useState('')
+  const [draftSavedToast, setDraftSavedToast] = useState('')
 
   const openInvoicePreview = (invoice: Invoice) => {
     try {
@@ -409,7 +410,23 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const allEntries = getTimeEntries().filter(e => e.status === 'completed')
   const localEntries = allEntries.filter(e => period === 'all' || new Date(e.date) >= (period === 'week' ? weekAgo : monthAgo))
   const relevantTimesheets = timesheets.filter(t => period === 'all' || new Date(t.date) >= (period === 'week' ? weekAgo : monthAgo))
-  const uninvoicedEntries = allEntries.filter(e => !e.isInvoiced)
+  // Collect all entry IDs claimed by active invoices (draft/sent/overdue/paid)
+  const claimedEntryIds = useMemo(() => {
+    const ids = new Set<string>()
+    invoices.forEach(inv => {
+      if (inv.status === 'draft' || inv.status === 'sent' || inv.status === 'overdue' || inv.status === 'paid') {
+        (inv.timeEntryIds || []).forEach(id => ids.add(id))
+        ;(inv.cloudTimeEntryIds || []).forEach(id => ids.add(id))
+      }
+    })
+    return ids
+  }, [invoices])
+
+  const uninvoicedEntries = allEntries.filter(e =>
+    !e.isInvoiced &&
+    !claimedEntryIds.has(e.id) &&
+    !(e.cloudId && claimedEntryIds.has(e.cloudId))
+  )
 
   const invoiceTotal = invItems.reduce((sum, item) => sum + (item.amount || 0), 0)
   const paidInvoices = invoices.filter(i => i.status === 'paid')
@@ -521,6 +538,9 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       status,
       dueDate: dueDate.toISOString().split('T')[0],
       notes: invNotes || undefined,
+      timeEntryIds: usedEntryIds.length > 0 ? usedEntryIds : undefined,
+      cloudTimeEntryIds: usedCloudIds.length > 0 ? usedCloudIds : undefined,
+      source: (usedEntryIds.length > 0 || usedCloudIds.length > 0) ? 'time_entries' as const : 'manual' as const,
     }
   }
 
@@ -536,8 +556,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setInvDueDays(String(daysUntilDue || 14))
     const matchedIdx = privateClients.findIndex(client => client.name === invoice.clientName)
     setInvClientId(matchedIdx >= 0 ? String(matchedIdx) : '__new__')
-    setUsedEntryIds([])
-    setUsedCloudIds([])
+    setUsedEntryIds(invoice.timeEntryIds || [])
+    setUsedCloudIds(invoice.cloudTimeEntryIds || [])
     setAutoFilledNote('Editing saved invoice details.')
     setSendNotice('')
   }
@@ -576,7 +596,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     setUsedEntryIds(Object.values(groups).flatMap(g => g.ids))
     setUsedCloudIds(Object.values(groups).flatMap(g => g.cloudIds))
     const hours = entries.reduce((sum, entry) => sum + entryHours(entry), 0)
-    setAutoFilledNote(`Pre-filled ${entries.length} uninvoiced session${entries.length === 1 ? '' : 's'} totaling ${hours.toFixed(1)} hours.`)
+    setAutoFilledNote(`Pre-filled ${entries.length} unbilled session${entries.length === 1 ? '' : 's'} totaling ${hours.toFixed(1)} hours.`)
     setInvNotes(`Care services for ${clientName || entries[0].clientName || 'private client'}`)
     return true
   }
@@ -605,7 +625,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       setInvItems([{ description: 'Care services', hours: 0, rate: client.hourlyRate || 25, amount: 0 }])
       setUsedEntryIds([])
       setUsedCloudIds([])
-      setAutoFilledNote('No uninvoiced sessions found for this client. Add hours manually.')
+      setAutoFilledNote('No unbilled sessions found for this client. Add hours manually.')
     }
   }
 
@@ -651,8 +671,14 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     } else {
       setInvoices(getInvoices())
     }
+    const wasNewInvoice = !editingInvoiceId
+    const hadLinkedEntries = usedEntryIds.length > 0 || usedCloudIds.length > 0
     setShowCreate(false)
     resetInvoiceForm()
+    if (wasNewInvoice && hadLinkedEntries) {
+      setDraftSavedToast('Draft invoice saved. The selected hours have been moved out of Ready to Invoice.')
+      setTimeout(() => setDraftSavedToast(''), 5000)
+    }
   }
 
   const changeInvoiceStatus = (id: string, status: Invoice['status']) => {
@@ -800,6 +826,13 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
         ))}
       </div>
 
+      {draftSavedToast && (
+        <div className="mx-4 mb-2 rounded-xl bg-success/15 px-4 py-3 text-sm text-success flex items-center gap-2">
+          <CheckCircle2 size={16} />
+          {draftSavedToast}
+        </div>
+      )}
+
       {view === 'workspace' && (
         <div className="px-4 space-y-4">
           <div className="rounded-[1.25rem] bg-gradient-to-br from-primary to-[#2563eb] p-5 text-primary-content shadow-lg shadow-primary/20">
@@ -807,7 +840,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary-content/70">Ready to invoice</p>
                 <p className="mt-1 text-4xl font-bold">{money(readyToInvoiceAmount)}</p>
-                <p className="mt-1 text-sm text-primary-content/75">{readyToInvoiceHours.toFixed(1)} uninvoiced hours</p>
+                <p className="mt-1 text-sm text-primary-content/75">{readyToInvoiceHours.toFixed(1)} unbilled hours</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
                 <FileText size={24} />

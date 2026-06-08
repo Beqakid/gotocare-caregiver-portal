@@ -374,6 +374,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     return saved ? Number(saved) : 10
   })
   const [radiusSaveStatus, setRadiusSaveStatus] = useState<'idle'|'saved'|'error'>('idle')
+  const [saveFeedback, setSaveFeedback] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null)
+  const showSaveFeedback = (msg: string, type: 'ok' | 'err' = 'ok') => {
+    setSaveFeedback({ msg, type })
+    setTimeout(() => setSaveFeedback(null), 3000)
+  }
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cgToken = typeof window !== 'undefined' ? (localStorage.getItem('cgp_token') || '') : ''
 
@@ -454,6 +459,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
     const newStatus = !isAvailable
     setIsAvailable(newStatus)
     onUpdateProfile({ status: newStatus ? 'active' : 'inactive' })
+    showSaveFeedback(newStatus ? 'You are now available for work' : 'You are now offline')
   }
 
   const handleSaveProfile = () => {
@@ -462,6 +468,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       hourlyRate: parseFloat(editRate) || profile?.hourlyRate,
     })
     setEditing(false)
+    showSaveFeedback('Profile updated')
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,6 +489,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
         ctx.drawImage(img, 0, 0, w, h)
         const compressed = canvas.toDataURL('image/jpeg', 0.75)
         onUpdateProfile({ profilePhoto: compressed })
+        showSaveFeedback('Profile photo updated')
       }
       img.src = ev.target?.result as string
     }
@@ -494,6 +502,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       location: (editCity.trim() || editState.trim()) ? { city: editCity.trim(), state: editState.trim() } : profile?.location,
     })
     setEditingContact(false)
+    showSaveFeedback('Contact info saved')
   }
 
   const handleToggleSkill = (skill: string) => {
@@ -505,13 +514,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const handleSaveSkills = () => {
     onUpdateProfile({ skills: selectedSkills })
     setEditingSkills(false)
+    showSaveFeedback('Skills saved (' + selectedSkills.length + ' selected)')
   }
 
   const handleSaveRadius = () => {
-    localStorage.setItem('cgp_travel_radius', String(travelRadius))
-    onUpdateProfile({ travelRadiusMiles: travelRadius })
-    setRadiusSaveStatus('saved')
-    setTimeout(() => setRadiusSaveStatus('idle'), 2500)
+    try {
+      localStorage.setItem('cgp_travel_radius', String(travelRadius))
+      onUpdateProfile({ travelRadiusMiles: travelRadius })
+      setRadiusSaveStatus('saved')
+      showSaveFeedback('Travel radius saved')
+      setTimeout(() => setRadiusSaveStatus('idle'), 3500)
+    } catch (_e) {
+      setRadiusSaveStatus('error')
+      setTimeout(() => setRadiusSaveStatus('idle'), 3500)
+    }
   }
 
   // ── Phase 13C: Proof type → doc_type mapping ──────────────────
@@ -1121,7 +1137,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   onKeyDown={e => {
                     if (e.key === 'Enter' && langInput.trim()) {
                       const current = profile.languages || []
-                      if (!current.includes(langInput.trim())) onUpdateProfile({ languages: [...current, langInput.trim()] })
+                      if (!current.includes(langInput.trim())) { onUpdateProfile({ languages: [...current, langInput.trim()] }); showSaveFeedback('Language added') }
                       setLangInput(''); setShowLangInput(false)
                     }
                   }}
@@ -1131,7 +1147,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                   onClick={() => {
                     if (langInput.trim()) {
                       const current = profile.languages || []
-                      if (!current.includes(langInput.trim())) onUpdateProfile({ languages: [...current, langInput.trim()] })
+                      if (!current.includes(langInput.trim())) { onUpdateProfile({ languages: [...current, langInput.trim()] }); showSaveFeedback('Language added') }
                       setLangInput('')
                     }
                     setShowLangInput(false)
@@ -1735,10 +1751,10 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 onClick={handleSaveRadius}
                 className="btn btn-primary btn-sm px-5"
               >
-                Save radius
+                Save Travel Radius
               </button>
               {radiusSaveStatus === 'saved' && (
-                <span className="text-xs text-success font-medium">&#10003; Travel radius saved.</span>
+                <span className="text-xs text-success font-medium">&#10003; Saved. You will receive care requests within {travelRadius} miles of your service area.</span>
               )}
               {radiusSaveStatus === 'error' && (
                 <span className="text-xs text-error font-medium">Could not save travel radius. Please try again.</span>
@@ -1746,6 +1762,20 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* ─── SAVE FEEDBACK TOAST ─── */}
+      {saveFeedback && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 999, background: saveFeedback.type === 'ok' ? '#22C55E' : '#EF4444',
+          color: '#fff', padding: '10px 20px', borderRadius: 12,
+          fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          animation: 'fadeIn 0.2s ease', maxWidth: '85vw', textAlign: 'center' as any,
+          whiteSpace: 'nowrap' as any
+        }}>
+          {saveFeedback.type === 'ok' ? '✓' : '⚠'} {saveFeedback.msg}
         </div>
       )}
 

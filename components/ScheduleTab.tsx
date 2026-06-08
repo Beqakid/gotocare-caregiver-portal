@@ -1405,10 +1405,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                   value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} />
                 <input type="tel" className="input input-bordered input-sm w-full" placeholder="Phone number"
                   value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
-                <div className="flex gap-2">
-                  <input type="number" className="input input-bordered input-sm flex-1" placeholder="$/hr"
+                <div className="flex flex-col gap-2">
+                  <input type="number" className="input input-bordered input-sm w-full" placeholder="$/hr"
                     value={newClientRate} onChange={e => setNewClientRate(e.target.value)} />
-                  <input type="text" className="input input-bordered input-sm flex-1" placeholder="Care type"
+                  <input type="text" className="input input-bordered input-sm w-full" placeholder="Care type"
                     value={newClientCare} onChange={e => setNewClientCare(e.target.value)} />
                 </div>
 

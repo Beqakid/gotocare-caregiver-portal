@@ -228,3 +228,23 @@ export function calculateCompleteness(profile: any, docs: CaregiverDocument[]): 
   const done = items.filter(i => i.done).length
   return { score: Math.round((done / items.length) * 100), items }
 }
+
+// Invoice → Entry ID map (persists entry claims across refreshes)
+const INV_ENTRY_MAP_KEY = 'gtc_inv_entry_map'
+function _getInvEntryMap(): Record<string, string[]> {
+  try { return JSON.parse(localStorage.getItem(INV_ENTRY_MAP_KEY) || '{}') } catch { return {} }
+}
+export function setInvoiceEntryIds(invoiceId: string, ids: string[]): void {
+  if (!invoiceId || !ids.length) return
+  const m = _getInvEntryMap()
+  m[invoiceId] = ids
+  localStorage.setItem(INV_ENTRY_MAP_KEY, JSON.stringify(m))
+}
+export function getInvoiceEntryIds(invoiceId: string): string[] {
+  return _getInvEntryMap()[invoiceId] || []
+}
+export function clearInvoiceEntryIds(invoiceId: string): void {
+  const m = _getInvEntryMap()
+  delete m[invoiceId]
+  localStorage.setItem(INV_ENTRY_MAP_KEY, JSON.stringify(m))
+}

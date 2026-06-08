@@ -21,12 +21,16 @@ import {
 import { Timesheet, Invoice, InvoiceItem, TimeEntry, CaregiverProfile } from '../types'
 import {
   addInvoice,
+  clearInvoiceEntryIds,
   deleteInvoice,
+  getInvoiceEntryIds,
   getInvoices,
   getMileageEntries,
   getNextInvoiceNumber,
   getTimeEntries,
+  setInvoiceEntryIds,
   updateInvoice,
+  updateTimeEntry,
 } from '../utils/storage'
 import {
   cloudAddInvoice,
@@ -397,7 +401,13 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       if (clients.length > 0) setPrivateClients(clients)
       if (cloudInvoices.length > 0) {
         const localOnly = getInvoices().filter(i => !i.id.startsWith('cloud_'))
-        setInvoices([...cloudInvoices, ...localOnly])
+        setInvoices([
+          ...cloudInvoices.map((ci: any) => ({
+            ...ci,
+            timeEntryIds: getInvoiceEntryIds(ci.id).length ? getInvoiceEntryIds(ci.id) : (ci.timeEntryIds || []),
+          })),
+          ...localOnly,
+        ])
       }
     }
     loadCloud()
@@ -658,6 +668,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       resetInvoiceForm()
       return
     }
+    const capturedEntryIds = [...(payload.timeEntryIds || [])]
     const inv = addInvoice({
       invoiceNumber: getNextInvoiceNumber(),
       ...payload,
@@ -665,11 +676,17 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
     })
     const cloudId = await cloudAddInvoice(inv)
     if (usedCloudIds.length > 0) cloudMarkEntriesInvoiced(usedCloudIds)
+    const finalInvId = cloudId ? `cloud_${cloudId}` : inv.id
     if (cloudId) {
       deleteInvoice(inv.id)
       setInvoices(prev => [{ ...inv, id: `cloud_${cloudId}`, cloudId }, ...prev.filter(existing => existing.id !== inv.id)])
     } else {
       setInvoices(getInvoices())
+    }
+    // Mark linked entries as invoiced in localStorage so they persist across refreshes
+    if (capturedEntryIds.length > 0) {
+      setInvoiceEntryIds(finalInvId, capturedEntryIds)
+      capturedEntryIds.forEach(eid => updateTimeEntry(eid, { isInvoiced: true }))
     }
     const wasNewInvoice = !editingInvoiceId
     const hadLinkedEntries = usedEntryIds.length > 0 || usedCloudIds.length > 0
@@ -746,9 +763,18 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
   const confirmDeleteInvoice = () => {
     const id = deleteConfirmId
     if (!id) return
+    const inv = invoices.find(i => i.id === id)
+    // Unmark entries when deleting a draft so hours return to Ready to Invoice
+    if (inv && inv.status === 'draft') {
+      const entryIds = (inv.timeEntryIds && inv.timeEntryIds.length > 0)
+        ? inv.timeEntryIds
+        : getInvoiceEntryIds(id)
+      entryIds.forEach(eid => updateTimeEntry(eid, { isInvoiced: false }))
+    }
+    clearInvoiceEntryIds(id)
     deleteInvoice(id)
     if (id.startsWith('cloud_')) cloudDeleteInvoice(id.replace('cloud_', ''))
-    setInvoices(prev => prev.filter(inv => inv.id !== id))
+    setInvoices(prev => prev.filter(i => i.id !== id))
     if (previewInvoice?.id === id) setPreviewInvoice(null)
     setDeleteConfirmId(null)
   }

@@ -919,7 +919,10 @@ const App: React.FC<{}> = () => {
               <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Email Verified!</h2>
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', marginBottom: '28px' }}>{verifyMessage}</p>
               <button
-                onClick={() => setVerifyStatus(null)}
+                onClick={() => {
+                  try { localStorage.setItem('cgp_login_screen', 'signin') } catch {}
+                  setVerifyStatus(null)
+                }}
                 style={{
                   width: '100%', padding: '13px', borderRadius: '50px',
                   background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)',

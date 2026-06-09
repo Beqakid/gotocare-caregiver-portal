@@ -434,7 +434,19 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
   const localDocs = refreshDocumentStatuses()
   const rawDocs = apiDocs.length > 0 ? apiDocs : localDocs
-  const docs = rawDocs.map((doc: any) => {
+  // G6 fix: dedup by cloudId/id first, then by type+normalized-name (keep first seen = most recent from ordered API)
+  const dedupedDocs = (() => {
+    const seen = new Set<string>()
+    return rawDocs.filter((doc: any) => {
+      const key = doc.cloudId
+        || doc.id
+        || `${(doc.type || doc.doc_type || doc.document_type || 'other').toLowerCase()}::${(doc.fileName || doc.file_name || doc.name || '').toLowerCase().replace(/\s+/g, ' ').trim()}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  })()
+  const docs = dedupedDocs.map((doc: any) => {
     const expiryDate = doc.expiryDate || doc.expiry_date || doc.expires_at
     let status = doc.status
     if (!['valid', 'expiring_soon', 'expired', 'no_expiry'].includes(status)) {

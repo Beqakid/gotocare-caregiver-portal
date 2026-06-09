@@ -1184,7 +1184,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
       )}
 
       {previewInvoice && (
-        <div className="fixed inset-0 z-[120] flex items-end bg-black/50 backdrop-blur-sm" onClick={() => setPreviewInvoice(null)}>
+        <div className="fixed inset-0 z-[120] flex items-end bg-black/50 backdrop-blur-sm" onClick={() => { setPreviewInvoice(null); setSendNotice('') }}>
           <div className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl bg-base-100 p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="mx-auto max-w-lg">
               <div className="mb-3 flex items-center justify-between">
@@ -1192,7 +1192,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   <p className="text-[11px] font-bold uppercase tracking-wide text-primary/70">Invoice Preview</p>
                   <h3 className="text-lg font-bold text-base-content">{previewInvoice.invoiceNumber}</h3>
                 </div>
-                <button onClick={() => setPreviewInvoice(null)} className="btn btn-ghost btn-sm btn-circle">
+                <button onClick={() => { setPreviewInvoice(null); setSendNotice('') }} className="btn btn-ghost btn-sm btn-circle">
                   <X size={16} />
                 </button>
               </div>
@@ -1266,6 +1266,12 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                 </div>
               </div>
 
+              {sendNotice && sendingInvoiceId === null && (
+                <div className="mt-3 rounded-xl bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">{sendNotice}</div>
+              )}
+              {sendingInvoiceId === previewInvoice.id && (
+                <div className="mt-3 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">Sending invoice email&hellip;</div>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button onClick={() => { openEditInvoice(previewInvoice); setPreviewInvoice(null) }} className="btn btn-outline btn-sm flex-1 gap-1 rounded-xl">
                   <Edit3 size={14} /> Edit
@@ -1274,7 +1280,7 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
                   <Printer size={14} /> Print
                 </button>
                 <button onClick={() => handleSendInvoice(previewInvoice)} disabled={sendingInvoiceId === previewInvoice.id} className="btn btn-primary btn-sm flex-1 gap-1 rounded-xl">
-                  <Send size={14} /> {sendingInvoiceId === previewInvoice.id ? 'Sending' : previewInvoice.status === 'draft' ? 'Send' : 'Resend'}
+                  <Send size={14} /> {sendingInvoiceId === previewInvoice.id ? 'Sending…' : previewInvoice.status === 'draft' ? 'Send' : 'Resend'}
                 </button>
               </div>
             </div>

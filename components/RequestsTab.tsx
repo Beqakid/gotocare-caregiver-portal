@@ -623,6 +623,14 @@ export function RequestsTab({
     return new Set()
   })
   const [unlockLoading, setUnlockLoading] = useState<number | null>(null)
+  // Phase 21A: backend-managed caregiver plans (fallback to hardcoded if unavailable)
+  const [cgApiPlans, setCgApiPlans] = useState<any[]>([])
+  useEffect(() => {
+    fetch('https://gotocare-original.jjioji.workers.dev/api/public-plans?audience=caregiver')
+      .then(r => r.json())
+      .then((d: any) => { if (d.plans && d.plans.length > 0) setCgApiPlans(d.plans) })
+      .catch(() => {})
+  }, [])
 
   // Hire Offers
   const [hireOffers, setHireOffers] = useState<HireOffer[]>([])

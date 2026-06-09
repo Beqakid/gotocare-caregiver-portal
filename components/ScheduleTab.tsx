@@ -223,6 +223,14 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
   const [showMileage, setShowMileage] = useState(false)
   const [mileageClient, setMileageClient] = useState('')
   const [mileageMiles, setMileageMiles] = useState('')
+  // Local toast for quick confirmations
+  const [localToast, setLocalToast] = useState('')
+  const showToast = (msg: string) => { setLocalToast(msg); setTimeout(() => setLocalToast(''), 3200) }
+  // Edit client state
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
+  const [editClientName, setEditClientName] = useState('')
+  const [editClientEmail, setEditClientEmail] = useState('')
+  const [editClientRate, setEditClientRate] = useState('')
 
   const DAYS = [
     { key: 'mon', label: 'Monday' },
@@ -309,7 +317,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
       }
       if (cloudClients.length > 0) {
         const localOnly2 = getPrivateClients().filter(c => !c.id.startsWith('cloud_'))
-        setClients([...cloudClients, ...localOnly2])
+        // Dedup: skip local entries whose name+email match a cloud entry
+        const cloudKeys = new Set(cloudClients.map((c: any) => `${(c.name||'').toLowerCase().trim()}|${(c.email||'').toLowerCase().trim()}`))
+        const uniqueLocal = localOnly2.filter(c => !cloudKeys.has(`${(c.name||'').toLowerCase().trim()}|${(c.email||'').toLowerCase().trim()}`))
+        setClients([...cloudClients, ...uniqueLocal])
       }
     }
   }
@@ -392,6 +403,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   const startTimer = () => {
     if (!timerClient.trim()) return
+    if (activeTimer) {
+      showToast('You already have an active session running. End it first.')
+      return
+    }
     const client = timerClientObj
 
     let startISO = new Date().toISOString()
@@ -594,6 +609,18 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
     onTimerUpdate()
   }
 
+  const handleUpdateClient = (id: string) => {
+    const name = editClientName.trim()
+    const rate = parseFloat(editClientRate)
+    if (!name || !rate) { showToast('Name and rate are required.'); return }
+    const all = getPrivateClients()
+    const updated = all.map(c => c.id === id ? { ...c, name, email: editClientEmail.trim(), hourlyRate: rate } : c)
+    localStorage.setItem('gtc_private_clients', JSON.stringify(updated))
+    setClients(prev => prev.map(c => c.id === id ? { ...c, name, email: editClientEmail.trim(), hourlyRate: rate } : c))
+    setEditingClientId(null)
+    showToast('Client updated.')
+  }
+
   const handleAddClient = () => {
     if (!newClientName.trim()) return
     const newClientData = {
@@ -640,15 +667,17 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   const handleAddMileage = () => {
     if (!mileageClient.trim() || !mileageMiles) return
+    const miles = parseFloat(mileageMiles) || 0
     addMileageEntry({
       date: new Date().toISOString().split('T')[0],
       clientName: mileageClient.trim(),
-      miles: parseFloat(mileageMiles) || 0,
+      miles,
     })
-    cloudAddMileage({ date: new Date().toISOString().split('T')[0], clientName: mileageClient.trim(), miles: parseFloat(mileageMiles) || 0 })
+    cloudAddMileage({ date: new Date().toISOString().split('T')[0], clientName: mileageClient.trim(), miles })
     setShowMileage(false)
     setMileageClient('')
     setMileageMiles('')
+    showToast(`Mileage saved — ${miles} miles logged.`)
   }
 
   // Shift grouping
@@ -692,6 +721,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
 
   return (
     <div className="pb-4">
+      {localToast && (
+        <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#1E293B', color: '#fff', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 600, zIndex: 9999, whiteSpace: 'nowrap', maxWidth: '90vw', overflow: 'hidden', textOverflow: 'ellipsis', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', pointerEvents: 'none' }}>{localToast}</div>
+      )}
       <div className="px-4 pt-4 pb-3">
         <h1 className="text-xl font-bold text-base-content">Work</h1>
         <p className="text-xs text-base-content/55 mt-0.5">Find, manage, and complete your care work.</p>
@@ -1518,11 +1550,33 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({ shifts, loading, onClo
                         >
                           <Play size={12} /> Track
                         </button>
+                        <button
+                          onClick={() => { setEditingClientId(client.id); setEditClientName(client.name); setEditClientEmail(client.email || ''); setEditClientRate(String(client.hourlyRate)) }}
+                          className="btn btn-ghost btn-xs btn-circle"
+                          title="Edit client"
+                        >
+                          <Edit2 size={12} />
+                        </button>
                         <button onClick={() => handleDeleteClient(client.id)} className="btn btn-outline btn-xs btn-circle border-error/30 text-error">
                           <Trash2 size={12} />
                         </button>
                       </div>
                     </div>
+                    {editingClientId === client.id && (
+                      <div className="mt-3 pt-3 border-t border-base-300 space-y-2">
+                        <p className="text-xs font-semibold text-base-content/70">Edit Client</p>
+                        <input type="text" className="input input-bordered input-sm w-full" placeholder="Name *"
+                          value={editClientName} onChange={e => setEditClientName(e.target.value)} />
+                        <input type="email" className="input input-bordered input-sm w-full" placeholder="Email"
+                          value={editClientEmail} onChange={e => setEditClientEmail(e.target.value)} />
+                        <input type="number" className="input input-bordered input-sm w-full" placeholder="$/hr *"
+                          value={editClientRate} onChange={e => setEditClientRate(e.target.value)} />
+                        <div className="flex gap-2">
+                          <button onClick={() => handleUpdateClient(client.id)} className="btn btn-primary btn-xs flex-1">Save</button>
+                          <button onClick={() => setEditingClientId(null)} className="btn btn-ghost btn-xs flex-1">Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}

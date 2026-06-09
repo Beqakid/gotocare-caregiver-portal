@@ -436,6 +436,8 @@ export const EarningsTab: React.FC<EarningsTabProps> = ({ timesheets, loading })
         ids.forEach((id: string) => updateTimeEntry(id, { isInvoiced: true }))
       }
     })
+    // Notify HomeTab to re-read entries from localStorage
+    window.dispatchEvent(new CustomEvent('carehia:entries-updated'))
   }, [invoices])
 
   const now = new Date()

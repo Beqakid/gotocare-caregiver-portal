@@ -232,8 +232,14 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     const onVisible = () => {
       if (document.visibilityState === 'visible') setTimeEntries(getTimeEntries())
     }
+    // Re-read entries when EarningsTab marks them invoiced (tab-switch within PWA)
+    const onEntriesUpdated = () => setTimeEntries(getTimeEntries())
     document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    window.addEventListener('carehia:entries-updated', onEntriesUpdated)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('carehia:entries-updated', onEntriesUpdated)
+    }
   }, [])
 
   useEffect(() => {

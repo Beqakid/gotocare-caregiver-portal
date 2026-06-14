@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react'
+import { CAREGIVER_FREE_LAUNCH_ACCESS } from '../config/launchConfig'
 import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User, Users, FileCheck2, BadgeCheck, Lock } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
@@ -1487,53 +1488,72 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       {/* ── ACCOUNT SECTION ── */}
       {section === 'account' && (
         <div className="px-4 space-y-3 pb-4">
-          {/* Subscription success banner */}
-          {showSubBanner && (
-            <div style={{ background: 'linear-gradient(135deg,#22C55E 0%,#16a34a 100%)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 20 }}>🎉</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ color: '#fff', fontWeight: 700, fontSize: 14, margin: 0 }}>You&apos;re on Unlimited!</p>
-                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: 0 }}>All new bookings will be auto-unlocked.</p>
+          {/* ── LAUNCH ACCESS CARD (shown during caregiver free first year) ── */}
+          {CAREGIVER_FREE_LAUNCH_ACCESS ? (
+            <div className="bg-base-200 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-semibold text-sm text-base-content">Access</p>
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>
               </div>
-              <button onClick={() => setShowSubBanner(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg,#7C5CFF22,#4A90E222)' }}>🎉</div>
+                <div style={{ flex: 1 }}>
+                  <p className="font-semibold text-sm text-base-content">Launch Access</p>
+                  <p className="text-xs text-base-content/60">Carehia is free for caregivers during the first launch year.</p>
+                </div>
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Subscription success banner */}
+              {showSubBanner && (
+                <div style={{ background: 'linear-gradient(135deg,#22C55E 0%,#16a34a 100%)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>🎉</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: '#fff', fontWeight: 700, fontSize: 14, margin: 0 }}>You&apos;re on Unlimited!</p>
+                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: 0 }}>All new bookings will be auto-unlocked.</p>
+                  </div>
+                  <button onClick={() => setShowSubBanner(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                </div>
+              )}
+              {/* Subscription card */}
+              <div className="bg-base-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-semibold text-sm text-base-content">Subscription</p>
+                  {cgSub?.subscribed && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>)}
+                </div>
+                {cgSubLoading ? (<p className="text-xs text-base-content/60">Loading...</p>) : cgSub?.subscribed ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">♾️</div>
+                      <div>
+                        <p className="font-semibold text-sm text-base-content">Unlimited Plan</p>
+                        <p className="text-xs text-base-content/60">$19.99/mo · All bookings auto-unlocked</p>
+                      </div>
+                    </div>
+                    {cgSub.createdAt && (<p className="text-xs text-base-content/50">Member since {new Date(cgSub.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>)}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base">🆓</div>
+                      <div>
+                        <p className="font-semibold text-sm text-base-content">Pay-per-unlock</p>
+                        <p className="text-xs text-base-content/60">$4.99 per booking reveal</p>
+                      </div>
+                    </div>
+                    <div className="bg-primary/5 rounded-xl p-3 mb-3">
+                      <p className="text-xs font-semibold text-primary mb-1">♾️ Unlimited Plan — $19.99/mo</p>
+                      <p className="text-xs text-base-content/60">Auto-unlock all bookings. Pay once, never miss a lead.</p>
+                    </div>
+                    <button onClick={handleCgSubscribe} disabled={subUpgrading} className="btn btn-primary btn-sm w-full rounded-xl gap-1">
+                      {subUpgrading ? 'Redirecting...' : '⚡ Upgrade to Unlimited'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-          {/* Subscription card */}
-          <div className="bg-base-200 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-sm text-base-content">Subscription</p>
-              {cgSub?.subscribed && (<span className="text-xs font-semibold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">Active</span>)}
-            </div>
-            {cgSubLoading ? (<p className="text-xs text-base-content/60">Loading...</p>) : cgSub?.subscribed ? (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base">♾️</div>
-                  <div>
-                    <p className="font-semibold text-sm text-base-content">Unlimited Plan</p>
-                    <p className="text-xs text-base-content/60">$19.99/mo · All bookings auto-unlocked</p>
-                  </div>
-                </div>
-                {cgSub.createdAt && (<p className="text-xs text-base-content/50">Member since {new Date(cgSub.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>)}
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base">🆓</div>
-                  <div>
-                    <p className="font-semibold text-sm text-base-content">Pay-per-unlock</p>
-                    <p className="text-xs text-base-content/60">$4.99 per booking reveal</p>
-                  </div>
-                </div>
-                <div className="bg-primary/5 rounded-xl p-3 mb-3">
-                  <p className="text-xs font-semibold text-primary mb-1">♾️ Unlimited Plan — $19.99/mo</p>
-                  <p className="text-xs text-base-content/60">Auto-unlock all bookings. Pay once, never miss a lead.</p>
-                </div>
-                <button onClick={handleCgSubscribe} disabled={subUpgrading} className="btn btn-primary btn-sm w-full rounded-xl gap-1">
-                  {subUpgrading ? 'Redirecting...' : '⚡ Upgrade to Unlimited'}
-                </button>
-              </div>
-            )}
-          </div>
           {/* Account settings row */}
           <div className="bg-base-200 rounded-2xl overflow-hidden">
             <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 p-4 hover:bg-base-300 transition-colors">

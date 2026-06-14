@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Trash2 } from 'lucide-react'
+import { CAREGIVER_FREE_LAUNCH_ACCESS } from '../config/launchConfig'
 
 const API = 'https://gotocare-original.jjioji.workers.dev/api'
 const REQUESTS_SECTION_KEY = 'cgp_requests_section'
@@ -333,7 +334,10 @@ function InterviewRequestCard({
       </div>
       {unlocked ? (
         <div className="rounded-xl bg-success/10 border border-success/20 p-3 space-y-1">
-          <p className="text-xs font-bold text-success mb-2">Contact Unlocked</p>
+          {CAREGIVER_FREE_LAUNCH_ACCESS
+            ? <p className="text-xs font-bold text-success mb-2">🎉 Launch Access — Contact Available</p>
+            : <p className="text-xs font-bold text-success mb-2">Contact Unlocked</p>
+          }
           {req.clientName && <p className="text-sm font-semibold">{req.clientName}</p>}
           {req.clientPhone && <a href={`tel:${req.clientPhone}`} className="flex items-center gap-2 text-sm text-primary">📞 {req.clientPhone}</a>}
           {req.clientEmail && <a href={`mailto:${req.clientEmail}`} className="flex items-center gap-2 text-sm text-primary">✉️ {req.clientEmail}</a>}
@@ -346,15 +350,19 @@ function InterviewRequestCard({
             <div className="h-3 rounded bg-base-300 mb-1 w-3/4" />
             <div className="h-3 rounded bg-base-300 w-1/2" />
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => onUnlock(req, 'single')} disabled={unlockLoading} className="flex-1 btn btn-primary btn-sm text-white font-bold">
-              {unlockLoading ? <span className="loading loading-spinner loading-xs" /> : 'Unlock $4.99'}
-            </button>
-            <button onClick={() => onUnlock(req, 'unlimited')} disabled={unlockLoading} className="btn btn-sm border-2 border-primary/70 bg-primary/10 text-primary font-bold">
-              $19.99/mo
-            </button>
-          </div>
-          <p className="text-xs text-center text-base-content/50">One-time unlock · Unlimited plan unlocks all future requests</p>
+          {!CAREGIVER_FREE_LAUNCH_ACCESS && (
+            <>
+              <div className="flex gap-2">
+                <button onClick={() => onUnlock(req, 'single')} disabled={unlockLoading} className="flex-1 btn btn-primary btn-sm text-white font-bold">
+                  {unlockLoading ? <span className="loading loading-spinner loading-xs" /> : 'Unlock $4.99'}
+                </button>
+                <button onClick={() => onUnlock(req, 'unlimited')} disabled={unlockLoading} className="btn btn-sm border-2 border-primary/70 bg-primary/10 text-primary font-bold">
+                  $19.99/mo
+                </button>
+              </div>
+              <p className="text-xs text-center text-base-content/50">One-time unlock · Unlimited plan unlocks all future requests</p>
+            </>
+          )}
         </div>
       )}
       {/* Phase 14: lifecycle next-step banner */}
@@ -878,8 +886,9 @@ export function RequestsTab({
     }
   }
 
+  // During caregiver free launch year, all requests are treated as unlocked
   const isUnlocked = (req: CareRequest) =>
-    !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) || (returnedSubscription === true)
+    CAREGIVER_FREE_LAUNCH_ACCESS || !!req.is_unlocked || unlockedIds.has(req.id) || optimisticUnlocked.has(req.id) || (returnedSubscription === true)
 
   const handleUnlock = async (req: CareRequest, plan: 'single' | 'unlimited') => {
     const token = localStorage.getItem('cgp_token')

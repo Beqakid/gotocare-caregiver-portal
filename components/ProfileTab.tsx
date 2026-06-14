@@ -1424,8 +1424,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
 
       {/* ── ADD PROOF CENTERED MODAL ── */}
       {section === 'trust-passport' && showAddDoc && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px calc(16px + env(safe-area-inset-bottom))', background: 'rgba(15,23,42,0.45)' }} onClick={() => setShowAddDoc(false)}>
-          <div onClick={(e: any) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 520, maxHeight: 'calc(100dvh - 48px - env(safe-area-inset-bottom))', overflowY: 'auto', padding: '20px 16px calc(24px + env(safe-area-inset-bottom))' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px calc(80px + env(safe-area-inset-bottom)) 16px', background: 'rgba(15,23,42,0.45)' }} onClick={() => setShowAddDoc(false)}>
+          <div onClick={(e: any) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 520, maxHeight: 'calc(100dvh - 96px - env(safe-area-inset-bottom))', overflowY: 'auto', padding: '20px 16px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <p style={{ margin: 0, fontWeight: 700, fontSize: 16, color: '#0F172A' }}>Add Proof</p>
               <button onClick={() => { setShowAddDoc(false); setProofType('Government ID'); setOtherDocName(''); setDocExpiry(''); setDocFile(null); setProofNotes('') }}

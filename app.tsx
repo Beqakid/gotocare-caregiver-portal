@@ -713,11 +713,10 @@ const App: React.FC<{}> = () => {
   const autoDetectOnboardingComplete = useCallback((p: CaregiverProfile) => {
     // If already marked complete, nothing to do
     try { if (localStorage.getItem('cgp_onboarding_complete') === 'true') { setOnboardingComplete(true); return } } catch {}
-    // Check if profile looks complete: real name (not email-derived) AND location
-    const emailPrefix = (p.email || '').split('@')[0].toLowerCase()
-    const hasRealName = !!p.firstName && p.firstName.toLowerCase() !== emailPrefix
+    // Skills/location are only set during onboarding — if present, user completed setup
+    const hasSkills = !!(p.skills && p.skills.length > 0)
     const hasLocation = !!(p.location?.city)
-    if (hasRealName && hasLocation) {
+    if (hasSkills || hasLocation) {
       try { localStorage.setItem('cgp_onboarding_complete', 'true') } catch {}
       setOnboardingComplete(true)
     }
@@ -972,7 +971,13 @@ const App: React.FC<{}> = () => {
     }
     try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)
-    autoDetectOnboardingComplete(cgProfile)
+    // Phase 23H-hotfix: also check setupComplete from API response
+    if (fullAccount.setupComplete) {
+      try { localStorage.setItem('cgp_onboarding_complete', 'true') } catch {}
+      setOnboardingComplete(true)
+    } else {
+      autoDetectOnboardingComplete(cgProfile)
+    }
     setLoggedIn(true)
     registerPushNotifications(token).catch(() => {})
 

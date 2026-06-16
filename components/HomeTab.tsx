@@ -87,6 +87,7 @@ interface HomeTabProps {
   onNavigateToEarnings: () => void
   onNavigateToProfile: () => void
   onNavigateToSection: (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'trust-passport', scrollTo: string) => void
+  onOpenVerifCenter?: () => void
   onClockIn: (shiftId: number) => void
   onTimerUpdate: () => void
 }
@@ -210,6 +211,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   onNavigateToEarnings,
   onNavigateToProfile,
   onNavigateToSection,
+  onOpenVerifCenter,
   onClockIn,
   onTimerUpdate,
 }) => {
@@ -742,9 +744,23 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: '1.5' }}>{tip.text}</p>
             </div>
             {trustTip && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 4, borderTop: '1px solid rgba(124,92,255,0.12)' }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{trustTip.icon}</span>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b', lineHeight: '1.5' }}>{trustTip.text}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 6, borderTop: '1px solid rgba(124,92,255,0.12)', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{trustTip.icon}</span>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b', lineHeight: '1.5' }}>{trustTip.text}</p>
+                </div>
+                {obTrustStep === 'Upload Government ID' && onOpenVerifCenter && (
+                  <button
+                    onClick={onOpenVerifCenter}
+                    style={{
+                      flexShrink: 0, background: 'linear-gradient(135deg,#7C5CFF,#4A90E2)',
+                      color: '#fff', border: 'none', borderRadius: 20, padding: '5px 12px',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Upload ID →
+                  </button>
+                )}
               </div>
             )}
           </div>

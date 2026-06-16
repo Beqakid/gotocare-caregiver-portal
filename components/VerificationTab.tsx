@@ -67,6 +67,10 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
 
   useEffect(() => {
     loadStatus()
+    // Phase 23G: clear stale saved step on fresh mount (prevents auto-expanding wrong section)
+    return () => {
+      try { localStorage.removeItem(VERIFICATION_STEP_KEY) } catch {}
+    }
   }, [])
 
   const getVerif = (docType: string) => verifications.find(v => v.doc_type === docType)
@@ -109,7 +113,7 @@ export const VerificationTab: React.FC<VerificationTabProps> = ({ caregiverId, o
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 300,
+        position: 'fixed', inset: 0, zIndex: 9500,
         background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'flex-end',
         fontFamily: 'inherit',

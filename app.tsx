@@ -77,6 +77,7 @@ const ReviewLinkView = React.lazy(() => import('./components/ReviewLinkView'))
 const TrustPassport = React.lazy(() => import('./components/TrustPassport').then(m => ({ default: m.TrustPassport })))
 // Phase 23A: WOW Caregiver Onboarding
 const CaregiverOnboarding = React.lazy(() => import('./components/CaregiverOnboarding').then(m => ({ default: m.CaregiverOnboarding })))
+const VerificationCenter = React.lazy(() => import('./components/VerificationTab').then(m => ({ default: m.VerificationTab })))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
 const LAST_TAB_KEY = 'cgp_last_tab'
@@ -361,6 +362,10 @@ const App: React.FC<{}> = () => {
   const [showTrustPassport, setShowTrustPassport] = useState(false)
   const handleOpenTrustPassport = () => setShowTrustPassport(true)
   const handleCloseTrustPassport = () => setShowTrustPassport(false)
+  // Phase 23G: Verification Center modal
+  const [showVerifCenter, setShowVerifCenter] = useState(false)
+  const handleOpenVerifCenter = () => setShowVerifCenter(true)
+  const handleCloseVerifCenter = () => setShowVerifCenter(false)
 
   const handleNavigateToSection = (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'profile' | 'trust' | 'clients' | 'trust-passport', scrollTo: string) => {
     if (section === 'trust-passport') { setShowTrustPassport(true); return }
@@ -620,6 +625,15 @@ const App: React.FC<{}> = () => {
 
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
+  // Phase 23G: auto-open Verification Center if flagged after onboarding
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('cgp_open_verif_after_onboarding') === 'true') {
+        localStorage.removeItem('cgp_open_verif_after_onboarding')
+        setTimeout(() => setShowVerifCenter(true), 800)
+      }
+    } catch {}
+  }, [onboardingComplete])
 
   // Phase 3 fix: Re-fetch bookings when home tab becomes active so counts stay in sync with RequestsTab
   useEffect(() => {
@@ -793,6 +807,10 @@ const App: React.FC<{}> = () => {
     }
     if (Object.keys(updates).length > 0) {
       await handleUpdateProfile(updates)
+    }
+    // Phase 23G: auto-open Verification Center if caregiver chose ID upload as first trust step
+    if (obData.firstTrustStep === 'Upload Government ID') {
+      try { localStorage.setItem('cgp_open_verif_after_onboarding', 'true') } catch {}
     }
     // Store goals for HomeTab personalization
     try {
@@ -1075,6 +1093,7 @@ const App: React.FC<{}> = () => {
               onNavigateToEarnings={() => navigateToTab('earnings')}
               onNavigateToProfile={() => navigateToTab('profile')}
               onNavigateToSection={handleNavigateToSection}
+              onOpenVerifCenter={handleOpenVerifCenter}
               onClockIn={handleClockIn}
               onTimerUpdate={refreshDocs}
             />
@@ -1214,6 +1233,13 @@ const App: React.FC<{}> = () => {
               handleNavigateToSection(section as any, scrollTo)
             }}
           />
+        </React.Suspense>
+      )}
+
+      {/* ── Phase 23G: Verification Center modal ───────────────────────── */}
+      {showVerifCenter && profile && (
+        <React.Suspense fallback={null}>
+          <VerificationCenter caregiverId={profile.id || 0} onClose={handleCloseVerifCenter} />
         </React.Suspense>
       )}
 

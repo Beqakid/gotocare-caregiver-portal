@@ -75,6 +75,8 @@ const ProfileTab = React.lazy(() => import('./components/ProfileTab').then(m => 
 const PublicProfileView = React.lazy(() => import('./components/PublicProfileView'))
 const ReviewLinkView = React.lazy(() => import('./components/ReviewLinkView'))
 const TrustPassport = React.lazy(() => import('./components/TrustPassport').then(m => ({ default: m.TrustPassport })))
+// Phase 23A: WOW Caregiver Onboarding
+const CaregiverOnboarding = React.lazy(() => import('./components/CaregiverOnboarding').then(m => ({ default: m.CaregiverOnboarding })))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
 const LAST_TAB_KEY = 'cgp_last_tab'
@@ -273,6 +275,10 @@ const App: React.FC<{}> = () => {
   const [verifyMessage, setVerifyMessage] = useState('')
   const sessionRestored = React.useRef(!!localStorage.getItem('cgp_token'))
   const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('cgp_token'))
+  // Phase 23A: track onboarding completion
+  const [onboardingComplete, setOnboardingComplete] = useState(() => {
+    try { return localStorage.getItem('cgp_onboarding_complete') === 'true' } catch { return false }
+  })
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
@@ -749,6 +755,40 @@ const App: React.FC<{}> = () => {
       window.history.replaceState({}, '', window.location.pathname)
     } catch {}
   }
+
+  // Phase 23A: handle onboarding completion — save data into profile + mark done
+  const handleOnboardingComplete = useCallback(async (obData: any) => {
+    setOnboardingComplete(true)
+    try { localStorage.setItem('cgp_onboarding_complete', 'true') } catch {}
+    // Merge onboarding data into profile
+    const updates: any = {}
+    if (obData.firstName && profile) {
+      updates.firstName = obData.firstName
+    }
+    if (obData.serviceArea) {
+      updates.location = { city: obData.serviceArea, state: '' }
+    }
+    if (obData.travelRadiusMiles) {
+      updates.travelRadiusMiles = obData.travelRadiusMiles
+    }
+    if (obData.careServices && obData.careServices.length > 0) {
+      updates.skills = obData.careServices
+    }
+    if (obData.workPreferences && obData.workPreferences.length > 0) {
+      updates.workPreferences = obData.workPreferences
+    }
+    if (Object.keys(updates).length > 0 && profile) {
+      await handleUpdateProfile(updates)
+    }
+    // Store goals for HomeTab personalization
+    try {
+      localStorage.setItem('cgp_onboarding_goals', JSON.stringify(obData.caregiverGoals || []))
+      localStorage.setItem('cgp_onboarding_trust_step', obData.firstTrustStep || '')
+      localStorage.setItem('cgp_onboarding_first_name', obData.firstName || '')
+    } catch {}
+    setActiveTab('home')
+    try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
+  }, [profile, handleUpdateProfile])
   // SECURITY (RISK-06): Register auto-logout handler for authFetch 401 responses
   // Phase 20: persist invite/ref codes to localStorage for registration
   React.useEffect(() => {
@@ -982,6 +1022,19 @@ const App: React.FC<{}> = () => {
         agencyError={loginError}
         agencyLoading={loginLoading}
       />
+    )
+  }
+
+  // Phase 23A: WOW onboarding gate — show after first login if not yet complete
+  if (loggedIn && !onboardingComplete) {
+    return (
+      <React.Suspense fallback={
+        <div style={{ minHeight:'100vh', background:'#F0F4FF', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:36, height:36, border:'3px solid rgba(124,92,255,0.2)', borderTopColor:'#7C5CFF', borderRadius:'50%', animation:'spin 0.7s linear infinite' }}/>
+        </div>
+      }>
+        <CaregiverOnboarding profile={profile} onComplete={handleOnboardingComplete} />
+      </React.Suspense>
     )
   }
 

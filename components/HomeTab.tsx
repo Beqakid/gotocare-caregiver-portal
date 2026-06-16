@@ -220,6 +220,32 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const [quickRate, setQuickRate] = useState(String(profile?.hourlyRate || 25))
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(() => getTimeEntries())
   const [isOnline, setIsOnline] = useState(() => localStorage.getItem('cgp_online_status') !== 'offline')
+  // Phase 23E: personalized goals banner from onboarding
+  const [obBannerDismissed, setObBannerDismissed] = useState(() => {
+    try { return localStorage.getItem('cgp_onboarding_banner_dismissed') === 'true' } catch { return false }
+  })
+  const obGoals: string[] = (() => { try { return JSON.parse(localStorage.getItem('cgp_onboarding_goals') || '[]') } catch { return [] } })()
+  const obTrustStep = (() => { try { return localStorage.getItem('cgp_onboarding_trust_step') || '' } catch { return '' } })()
+  const obComplete = (() => { try { return localStorage.getItem('cgp_onboarding_complete') === 'true' } catch { return false } })()
+  const obCompleteAt = (() => { try { return localStorage.getItem('cgp_onboarding_complete_at') || '' } catch { return '' } })()
+  const obFresh = obComplete && obCompleteAt && (Date.now() - new Date(obCompleteAt).getTime() < 7 * 24 * 60 * 60 * 1000)
+  const showObBanner = obFresh && !obBannerDismissed && obGoals.length > 0
+  const obGoalActionMap: Record<string, { icon: string; text: string; action?: string }> = {
+    'Find more clients':            { icon: '🔍', text: 'Complete your public profile to get discovered', action: 'profile' },
+    'Track my hours':               { icon: '⏱️', text: 'Start your first clock-in in the Work tab', action: 'schedule' },
+    'Clock in and out':             { icon: '⏰', text: 'Tap Work to start your first timer', action: 'schedule' },
+    'Send timesheets':              { icon: '📋', text: 'Track hours in Work, then create a timesheet in Money', action: 'earnings' },
+    'Send invoices':                { icon: '💰', text: 'Head to Money to create your first invoice', action: 'earnings' },
+    'Build trust with families':    { icon: '🛡️', text: 'Start your Trust Passport to build confidence with families', action: 'trust' },
+    'Build my resume while I work': { icon: '📄', text: 'Add your work experience in Profile', action: 'profile' },
+    'Share my caregiver profile':   { icon: '🔗', text: 'Build your shareable caregiver profile in Profile', action: 'profile' },
+    'Keep my work organized':       { icon: '📌', text: 'Explore your caregiver office — all tools are in the tabs below', action: undefined },
+    'Manage my schedule':           { icon: '📅', text: 'Set your availability in the Work tab', action: 'schedule' },
+  }
+  const dismissObBanner = () => {
+    setObBannerDismissed(true)
+    try { localStorage.setItem('cgp_onboarding_banner_dismissed', 'true') } catch {}
+  }
   const [notifPermission, setNotifPermission] = useState<string>(() => {
     if (typeof Notification !== 'undefined') return Notification.permission
     return 'unsupported'
@@ -692,6 +718,38 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ── Phase 23E: Onboarding personalized goals banner ── */}
+      {showObBanner && (() => {
+        const topGoal = obGoals[0]
+        const tip = obGoalActionMap[topGoal] || { icon: '✨', text: 'Complete your profile to unlock your first opportunity' }
+        const trustTip = obTrustStep ? { icon: '🛡️', text: `Your chosen first trust step: ${obTrustStep}` } : null
+        return (
+          <div style={{
+            background: 'linear-gradient(135deg,rgba(124,92,255,0.07),rgba(192,132,252,0.05))',
+            border: '1.5px solid rgba(124,92,255,0.2)',
+            borderRadius: 16, padding: '14px 16px',
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#7C5CFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                ✨ Your Starter Plan — Kai suggests:
+              </p>
+              <button onClick={dismissObBanner} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8', padding: 0, lineHeight: 1 }}>&#x2715;</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{tip.icon}</span>
+              <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: '1.5' }}>{tip.text}</p>
+            </div>
+            {trustTip && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 4, borderTop: '1px solid rgba(124,92,255,0.12)' }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{trustTip.icon}</span>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b', lineHeight: '1.5' }}>{trustTip.text}</p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── 2. Online toggle ── */}
       <button

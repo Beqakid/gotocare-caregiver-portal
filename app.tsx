@@ -788,7 +788,7 @@ const App: React.FC<{}> = () => {
     } catch {}
     setActiveTab('home')
     try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
-  }, [profile, handleUpdateProfile])
+  }, [profile])  // handleUpdateProfile omitted — captured by closure at call time
   // SECURITY (RISK-06): Register auto-logout handler for authFetch 401 responses
   // Phase 20: persist invite/ref codes to localStorage for registration
   React.useEffect(() => {

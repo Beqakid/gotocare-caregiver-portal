@@ -709,6 +709,20 @@ const App: React.FC<{}> = () => {
     }
   }, [loggedIn])
 
+  // Phase 23H-hotfix: auto-detect returning users who already completed onboarding
+  const autoDetectOnboardingComplete = useCallback((p: CaregiverProfile) => {
+    // If already marked complete, nothing to do
+    try { if (localStorage.getItem('cgp_onboarding_complete') === 'true') { setOnboardingComplete(true); return } } catch {}
+    // Check if profile looks complete: real name (not email-derived) AND location
+    const emailPrefix = (p.email || '').split('@')[0].toLowerCase()
+    const hasRealName = !!p.firstName && p.firstName.toLowerCase() !== emailPrefix
+    const hasLocation = !!(p.location?.city)
+    if (hasRealName && hasLocation) {
+      try { localStorage.setItem('cgp_onboarding_complete', 'true') } catch {}
+      setOnboardingComplete(true)
+    }
+  }, [])
+
   const handleLogin = async (email: string, password: string) => {
     setLoginError('')
     setLoginLoading(true)
@@ -739,6 +753,7 @@ const App: React.FC<{}> = () => {
           localStorage.setItem('cgp_auth_type', 'agency')
         } catch {}
         setProfile(cgProfile)
+        autoDetectOnboardingComplete(cgProfile)
         setLoggedIn(true)
         registerPushNotifications(result.token).catch(() => {})
         refreshDocs()
@@ -765,10 +780,24 @@ const App: React.FC<{}> = () => {
     setUsingDemoRequests(false)
     setActiveTab('home')
     try {
+      localStorage.removeItem('cgp_token')
+      localStorage.removeItem('cgp_account')
+      localStorage.removeItem('cgp_auth_type')
       localStorage.removeItem(LAST_TAB_KEY)
+      localStorage.removeItem('cgp_login_screen')
       window.history.replaceState({}, '', window.location.pathname)
     } catch {}
   }
+
+  // Phase 23H-hotfix: restart onboarding from Profile > Settings
+  const handleRestartOnboarding = useCallback(() => {
+    try {
+      localStorage.removeItem('cgp_onboarding_complete')
+      localStorage.removeItem('cgp_onboarding_step')
+      localStorage.removeItem('cgp_onboarding_data')
+    } catch {}
+    setOnboardingComplete(false)
+  }, [])
 
   // Phase 23A: handle onboarding completion — save data into profile + mark done
   // Phase 23F-fix: only write fields that are blank/auto-generated — never overwrite existing profile data
@@ -943,6 +972,7 @@ const App: React.FC<{}> = () => {
     }
     try { localStorage.setItem('cgp_account', JSON.stringify(cgProfile)) } catch {}
     setProfile(cgProfile)
+    autoDetectOnboardingComplete(cgProfile)
     setLoggedIn(true)
     registerPushNotifications(token).catch(() => {})
 
@@ -1128,6 +1158,7 @@ const App: React.FC<{}> = () => {
               profile={profile}
               documents={documents}
               onLogout={handleLogout}
+              onRestartOnboarding={handleRestartOnboarding}
               onUpdateProfile={handleUpdateProfile}
               onDocumentsChange={refreshDocs}
               deepLink={profileDeepLink}

@@ -61,6 +61,7 @@ interface ProfileTabProps {
   profile: CaregiverProfile | null
   documents: CaregiverDocument[]
   onLogout: () => void
+  onRestartOnboarding?: () => void
   onUpdateProfile: (data: any) => void
   onDocumentsChange: () => void
   deepLink?: string
@@ -214,7 +215,7 @@ function getVerificationModel(profile: any, docs: CaregiverDocument[], trust: an
   }
 }
 
-export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome, onOpenTrustPassport }) => {
+export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLogout, onRestartOnboarding, onUpdateProfile, onDocumentsChange, deepLink, initialSection, returnedSubscription, onNavigateHome, onOpenTrustPassport }) => {
   const [isAvailable, setIsAvailable] = useState(profile?.status === 'active')
   const [editing, setEditing] = useState(false)
   const [editBio, setEditBio] = useState(profile?.bio || '')
@@ -1879,6 +1880,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
                 </a>
               </div>
             </div>
+            {onRestartOnboarding && (
+              <div style={{ padding: '0 16px 4px' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.8px', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>SETUP</p>
+                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden' }}>
+                  <button
+                    onClick={() => { setShowSettings(false); onRestartOnboarding() }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', color: '#fff', textAlign: 'left' }}
+                  >
+                    <span style={{ fontSize: 18 }}>🔄</span>
+                    <span style={{ fontSize: 14, flex: 1 }}>Restart setup guide</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>→</span>
+                  </button>
+                </div>
+              </div>
+            )}
             <div style={{ padding: '12px 16px 24px' }}>
               <button
                 onClick={() => { setShowSettings(false); onLogout() }}

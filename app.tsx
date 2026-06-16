@@ -757,27 +757,41 @@ const App: React.FC<{}> = () => {
   }
 
   // Phase 23A: handle onboarding completion — save data into profile + mark done
+  // Phase 23F-fix: only write fields that are blank/auto-generated — never overwrite existing profile data
   const handleOnboardingComplete = useCallback(async (obData: any) => {
     setOnboardingComplete(true)
     try { localStorage.setItem('cgp_onboarding_complete', 'true') } catch {}
-    // Merge onboarding data into profile
+    if (!profile) {
+      setActiveTab('home')
+      try { window.history.replaceState({ tab: 'home' }, '', '#home') } catch {}
+      return
+    }
+    // Detect if name is auto-generated from email (e.g. "jjioji" from jjioji@gmail.com)
+    const emailDerived = (profile.email || '').split('@')[0].toLowerCase()
+    const currentFirst = (profile.firstName || '').toLowerCase()
+    const nameIsPlaceholder = !profile.firstName || currentFirst === emailDerived
+    // Build updates — only fill in BLANK / placeholder fields
     const updates: any = {}
-    if (obData.firstName && profile) {
+    if (obData.firstName && nameIsPlaceholder) {
       updates.firstName = obData.firstName
     }
-    if (obData.serviceArea) {
+    // Only set location if not already set
+    if (obData.serviceArea && !profile.location?.city) {
       updates.location = { city: obData.serviceArea, state: '' }
     }
-    if (obData.travelRadiusMiles) {
+    // Only set travel radius if not already set
+    if (obData.travelRadiusMiles && !profile.travelRadiusMiles) {
       updates.travelRadiusMiles = obData.travelRadiusMiles
     }
-    if (obData.careServices && obData.careServices.length > 0) {
+    // Only set skills if profile has none
+    if (obData.careServices && obData.careServices.length > 0 && (!profile.skills || profile.skills.length === 0)) {
       updates.skills = obData.careServices
     }
-    if (obData.workPreferences && obData.workPreferences.length > 0) {
+    // Only set work preferences if profile has none
+    if (obData.workPreferences && obData.workPreferences.length > 0 && (!profile.workPreferences || profile.workPreferences.length === 0)) {
       updates.workPreferences = obData.workPreferences
     }
-    if (Object.keys(updates).length > 0 && profile) {
+    if (Object.keys(updates).length > 0) {
       await handleUpdateProfile(updates)
     }
     // Store goals for HomeTab personalization

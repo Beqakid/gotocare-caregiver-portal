@@ -42,7 +42,7 @@ function blankData(profile: any): OnboardingData {
 }
 
 function readStep(): number {
-  try { const s = parseInt(localStorage.getItem(STEP_KEY) || '0', 10); return isNaN(s) ? 0 : Math.min(s, 8) } catch { return 0 }
+  try { const s = parseInt(localStorage.getItem(STEP_KEY) || '0', 10); return isNaN(s) ? 0 : Math.min(s, 4) } catch { return 0 }
 }
 
 function save(data: OnboardingData, step: number) {
@@ -197,55 +197,6 @@ const IlluTypes = () => (
   </svg>
 )
 
-const IlluGoals = () => (
-  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Caregiver work tools displayed around a mobile Carehia dashboard">
-    {/* phone */}
-    <rect x="125" y="30" width="90" height="165" rx="14" fill="#1e1b4b" stroke="rgba(124,92,255,0.4)" strokeWidth="2" filter="url(#ps)"/>
-    <rect x="130" y="40" width="80" height="148" rx="9" fill="#0f172a"/>
-    {/* screen content */}
-    <rect x="135" y="48" width="70" height="16" rx="4" fill="rgba(124,92,255,0.6)"/>
-    <text x="170" y="59" fontSize="8" textAnchor="middle" fill="#fff" fontWeight="700">Carehia Office</text>
-    <rect x="135" y="70" width="30" height="22" rx="5" fill="rgba(34,197,94,0.7)"/>
-    <text x="150" y="84" fontSize="8" textAnchor="middle" fill="#fff">&#x23F0;</text>
-    <rect x="170" y="70" width="35" height="22" rx="5" fill="rgba(74,144,226,0.7)"/>
-    <text x="187" y="84" fontSize="8" textAnchor="middle" fill="#fff">&#x1F4C4;</text>
-    <rect x="135" y="97" width="70" height="18" rx="4" fill="rgba(192,132,252,0.5)"/>
-    <text x="170" y="109" fontSize="7" textAnchor="middle" fill="#fff">Trust Passport &#x1F6E1;&#xFE0F;</text>
-    <rect x="135" y="120" width="33" height="20" rx="4" fill="rgba(245,158,11,0.6)"/>
-    <text x="151" y="133" fontSize="7" textAnchor="middle" fill="#fff">&#x1F4B0; Pay</text>
-    <rect x="172" y="120" width="33" height="20" rx="4" fill="rgba(239,68,68,0.5)"/>
-    <text x="188" y="133" fontSize="7" textAnchor="middle" fill="#fff">&#x1F4CC; Tasks</text>
-    {/* Kai orb on screen */}
-    <circle cx="170" cy="158" r="12" fill="linear-gradient(135deg,#7C5CFF,#4A90E2)"/>
-    <circle cx="170" cy="158" r="12" fill="url(#kaig)"/>
-    <text x="170" y="163" fontSize="10" textAnchor="middle">&#x2728;</text>
-    {/* floating chips */}
-    <rect x="20" y="55" width="88" height="26" rx="13" fill={`rgba(124,92,255,0.12)`} stroke="rgba(124,92,255,0.3)" strokeWidth="1.2"/>
-    <text x="64" y="71" fontSize="10" textAnchor="middle" fill={P} fontWeight="600">&#x1F4B3; Invoices</text>
-    <rect x="14" y="100" width="86" height="26" rx="13" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)" strokeWidth="1.2"/>
-    <text x="57" y="116" fontSize="10" textAnchor="middle" fill="#22C55E" fontWeight="600">&#x23F1;&#xFE0F; Track Hours</text>
-    <rect x="22" y="147" width="86" height="26" rx="13" fill="rgba(74,144,226,0.1)" stroke="rgba(74,144,226,0.3)" strokeWidth="1.2"/>
-    <text x="65" y="163" fontSize="10" textAnchor="middle" fill="#4A90E2" fontWeight="600">&#x1F4C5; Schedule</text>
-    <rect x="234" y="55" width="84" height="26" rx="13" fill="rgba(192,132,252,0.12)" stroke="rgba(192,132,252,0.35)" strokeWidth="1.2"/>
-    <text x="276" y="71" fontSize="10" textAnchor="middle" fill={PK} fontWeight="600">&#x1F9E0; Find Clients</text>
-    <rect x="238" y="100" width="84" height="26" rx="13" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" strokeWidth="1.2"/>
-    <text x="280" y="116" fontSize="10" textAnchor="middle" fill="#F59E0B" fontWeight="600">&#x1F4CB; Timesheets</text>
-    <rect x="234" y="147" width="84" height="26" rx="13" fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.25)" strokeWidth="1.2"/>
-    <text x="276" y="163" fontSize="10" textAnchor="middle" fill="#EF4444" fontWeight="600">&#x1F6E1;&#xFE0F; Build Trust</text>
-    {/* connector lines */}
-    <line x1="105" y1="68" x2="125" y2="80" stroke="rgba(124,92,255,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <line x1="100" y1="113" x2="125" y2="108" stroke="rgba(34,197,94,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <line x1="108" y1="160" x2="125" y2="148" stroke="rgba(74,144,226,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <line x1="218" y1="68" x2="215" y2="80" stroke="rgba(192,132,252,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <line x1="238" y1="113" x2="215" y2="110" stroke="rgba(245,158,11,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <line x1="234" y1="160" x2="215" y2="148" stroke="rgba(239,68,68,0.2)" strokeWidth="1" strokeDasharray="3,3"/>
-    <defs>
-      <filter id="ps"><feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="rgba(30,27,75,0.5)"/></filter>
-      <linearGradient id="kaig" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#4A90E2"/></linearGradient>
-    </defs>
-  </svg>
-)
-
 const IlluServices = () => (
   <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Illustrations of different caregiving services such as meals, companionship, and mobility support">
     {[
@@ -265,50 +216,6 @@ const IlluServices = () => (
         <text x={x+36} y={y+62} fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">{label}</text>
       </g>
     ))}
-  </svg>
-)
-
-const IlluSchedule = () => (
-  <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Caregiver schedule with calendar and clock options">
-    {/* calendar card */}
-    <rect x="40" y="20" width="200" height="180" rx="16" fill="#fff" stroke="rgba(124,92,255,0.2)" strokeWidth="1.5" filter="url(#ss)"/>
-    <rect x="40" y="20" width="200" height="42" rx="16" fill="url(#calhdr)"/>
-    <rect x="40" y="47" width="200" height="15" rx="0" fill="url(#calhdr)"/>
-    <text x="140" y="47" fontSize="13" textAnchor="middle" fill="#fff" fontWeight="700">My Schedule</text>
-    {/* day headers */}
-    {['M','T','W','T','F','S','S'].map((d,i) => (
-      <text key={i} x={58+(i*26)} y={78} fontSize="10" textAnchor="middle" fill="rgba(124,92,255,0.7)" fontWeight="600">{d}</text>
-    ))}
-    {/* day cells */}
-    {Array.from({length:28},(_,i) => {
-      const col = i%7; const row = Math.floor(i/7);
-      const x2 = 58+(col*26); const y2 = 96+(row*24);
-      const filled = [2,3,9,10,16,17].includes(i);
-      const today = i===9;
-      return (
-        <g key={i}>
-          {filled && <rect x={x2-10} y={y2-13} width="20" height="20" rx="6" fill={today?P:'rgba(124,92,255,0.15)'}/>}
-          <text x={x2} y={y2} fontSize="10" textAnchor="middle" fill={filled?(today?'#fff':P):'#94a3b8'}>{i+1}</text>
-        </g>
-      )
-    })}
-    {/* right panel - shift chips */}
-    <g>
-      <rect x="258" y="30" width="72" height="26" rx="10" fill="rgba(255,237,180,0.8)" stroke="rgba(251,191,36,0.4)" strokeWidth="1.2"/>
-      <text x="294" y="47" fontSize="9" textAnchor="middle" fill="#92400e" fontWeight="600">☀️ Day</text>
-      <rect x="258" y="64" width="72" height="26" rx="10" fill="rgba(192,132,252,0.2)" stroke="rgba(192,132,252,0.4)" strokeWidth="1.2"/>
-      <text x="294" y="81" fontSize="9" textAnchor="middle" fill="#7C5CFF" fontWeight="600">🌆 Eve</text>
-      <rect x="258" y="98" width="72" height="26" rx="10" fill="rgba(30,27,75,0.15)" stroke="rgba(124,92,255,0.25)" strokeWidth="1.2"/>
-      <text x="294" y="115" fontSize="9" textAnchor="middle" fill="#1e1b4b" fontWeight="600">🌙 Night</text>
-      <rect x="258" y="132" width="72" height="26" rx="10" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.35)" strokeWidth="1.2"/>
-      <text x="294" y="149" fontSize="9" textAnchor="middle" fill="#16a34a" fontWeight="600">&#x1F504; Flex</text>
-      <rect x="258" y="166" width="72" height="26" rx="10" fill="rgba(74,144,226,0.15)" stroke="rgba(74,144,226,0.35)" strokeWidth="1.2"/>
-      <text x="294" y="183" fontSize="9" textAnchor="middle" fill="#1d4ed8" fontWeight="600">&#x1F4C5; FT/PT</text>
-    </g>
-    <defs>
-      <filter id="ss"><feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="rgba(124,92,255,0.15)"/></filter>
-      <linearGradient id="calhdr" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#4A90E2"/></linearGradient>
-    </defs>
   </svg>
 )
 
@@ -341,94 +248,6 @@ const IlluMap = () => (
       <filter id="ms"><feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="rgba(74,144,226,0.15)"/></filter>
       <filter id="ps2"><feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="rgba(124,92,255,0.4)"/></filter>
       <linearGradient id="pgrad" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#4A90E2"/></linearGradient>
-    </defs>
-  </svg>
-)
-
-const IlluOfficeTools = () => (
-  <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Mobile caregiver office showing clock-in, timesheets, invoices, mileage, and client tools">
-    {/* phone frame */}
-    <rect x="115" y="10" width="110" height="200" rx="18" fill="#1e1b4b" stroke="rgba(124,92,255,0.5)" strokeWidth="2" filter="url(#ots)"/>
-    <rect x="121" y="22" width="98" height="182" rx="12" fill="#0f172a"/>
-    {/* notch */}
-    <rect x="148" y="14" width="44" height="8" rx="4" fill="#0f172a"/>
-    {/* top bar */}
-    <rect x="126" y="28" width="88" height="20" rx="6" fill="rgba(124,92,255,0.8)"/>
-    <text x="170" y="42" fontSize="9" textAnchor="middle" fill="#fff" fontWeight="700">Your Office</text>
-    {/* cards grid */}
-    {[
-      { x: 126, y: 54, icon: '⏰', label: 'Clock In', col: 'rgba(34,197,94,0.7)' },
-      { x: 170, y: 54, icon: '📋', label: 'Timesheet', col: 'rgba(74,144,226,0.7)' },
-      { x: 126, y: 108, icon: '💰', label: 'Invoice', col: 'rgba(245,158,11,0.7)' },
-      { x: 170, y: 108, icon: '🚗', label: 'Mileage', col: 'rgba(239,68,68,0.6)' },
-    ].map(({ x, y, icon, label, col }) => (
-      <g key={`${x}-${y}`}>
-        <rect x={x} y={y} width="38" height="46" rx="8" fill={col}/>
-        <text x={x+19} y={y+24} fontSize="14" textAnchor="middle">{icon}</text>
-        <text x={x+19} y={y+39} fontSize="7" textAnchor="middle" fill="#fff" fontWeight="600">{label}</text>
-      </g>
-    ))}
-    {/* bottom bar */}
-    <rect x="126" y="162" width="88" height="36" rx="8" fill="rgba(124,92,255,0.5)"/>
-    <text x="170" y="183" fontSize="8" textAnchor="middle" fill="#fff" fontWeight="600">✨ Kai: What do you need?</text>
-    {/* floating cards - left */}
-    <rect x="14" y="40" width="90" height="52" rx="10" fill="#fff" stroke="rgba(124,92,255,0.2)" strokeWidth="1.2" filter="url(#ots)"/>
-    <text x="59" y="65" fontSize="18" textAnchor="middle">⏱️</text>
-    <text x="59" y="81" fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">2h 15m tracked</text>
-    <rect x="14" y="108" width="90" height="52" rx="10" fill="#fff" stroke="rgba(34,197,94,0.25)" strokeWidth="1.2" filter="url(#ots)"/>
-    <text x="59" y="133" fontSize="18" textAnchor="middle">📄</text>
-    <text x="59" y="149" fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">Invoice ready</text>
-    <rect x="14" y="160" width="90" height="42" rx="10" fill="#fff" stroke="rgba(74,144,226,0.25)" strokeWidth="1.2" filter="url(#ots)"/>
-    <text x="59" y="184" fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">👥 3 Clients</text>
-    {/* floating cards - right */}
-    <rect x="236" y="40" width="90" height="52" rx="10" fill="#fff" stroke="rgba(245,158,11,0.25)" strokeWidth="1.2" filter="url(#ots)"/>
-    <text x="281" y="65" fontSize="18" textAnchor="middle">🗺️</text>
-    <text x="281" y="81" fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">12.4 mi tracked</text>
-    <rect x="236" y="108" width="90" height="52" rx="10" fill="#fff" stroke="rgba(192,132,252,0.25)" strokeWidth="1.2" filter="url(#ots)"/>
-    <text x="281" y="133" fontSize="18" textAnchor="middle">📊</text>
-    <text x="281" y="149" fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">Work history</text>
-    <defs>
-      <filter id="ots"><feDropShadow dx="0" dy="3" stdDeviation="6" floodColor="rgba(124,92,255,0.15)"/></filter>
-    </defs>
-  </svg>
-)
-
-const IlluTrustPassport = () => (
-  <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Caregiver profile, trust badge, resume timeline, and shareable profile link">
-    {/* main profile card */}
-    <rect x="60" y="15" width="220" height="195" rx="18" fill="#fff" stroke="rgba(124,92,255,0.2)" strokeWidth="1.5" filter="url(#tps)"/>
-    {/* gradient header */}
-    <rect x="60" y="15" width="220" height="75" rx="18" fill="url(#tphdr)"/>
-    <rect x="60" y="71" width="220" height="15" rx="0" fill="url(#tphdr)"/>
-    {/* avatar */}
-    <circle cx="170" cy="58" r="28" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
-    <text x="170" y="68" fontSize="26" textAnchor="middle">👩‍⚕️</text>
-    {/* name area */}
-    <text x="170" y="110" fontSize="13" textAnchor="middle" fill="#0f172a" fontWeight="700">Your Caregiver Profile</text>
-    <text x="170" y="126" fontSize="10" textAnchor="middle" fill="#64748b">Carehia Verified Professional</text>
-    {/* trust badge */}
-    <circle cx="170" cy="152" r="22" fill="url(#badgeg)" filter="url(#bs)"/>
-    <text x="170" y="148" fontSize="11" textAnchor="middle" fill="#fff">🛡️</text>
-    <text x="170" y="163" fontSize="7" textAnchor="middle" fill="#fff" fontWeight="700">TRUSTED</text>
-    {/* badge glow ring */}
-    <circle cx="170" cy="152" r="28" fill="none" stroke="rgba(124,92,255,0.3)" strokeWidth="3" strokeDasharray="4,3"/>
-    {/* share link bar */}
-    <rect x="75" y="184" width="190" height="20" rx="8" fill="rgba(124,92,255,0.08)" stroke="rgba(124,92,255,0.2)" strokeWidth="1"/>
-    <text x="170" y="197" fontSize="8" textAnchor="middle" fill={P} fontWeight="600">🔗 carehia.com/cg/your-name</text>
-    {/* floating star reviews */}
-    <rect x="14" y="50" width="36" height="36" rx="10" fill="#fff" stroke="rgba(245,158,11,0.3)" strokeWidth="1.2" filter="url(#tps)"/>
-    <text x="32" y="73" fontSize="14" textAnchor="middle">⭐</text>
-    <rect x="290" y="50" width="36" height="36" rx="10" fill="#fff" stroke="rgba(34,197,94,0.3)" strokeWidth="1.2" filter="url(#tps)"/>
-    <text x="308" y="73" fontSize="14" textAnchor="middle">✅</text>
-    <rect x="14" y="140" width="36" height="36" rx="10" fill="#fff" stroke="rgba(192,132,252,0.3)" strokeWidth="1.2" filter="url(#tps)"/>
-    <text x="32" y="163" fontSize="14" textAnchor="middle">📜</text>
-    <rect x="290" y="140" width="36" height="36" rx="10" fill="#fff" stroke="rgba(74,144,226,0.3)" strokeWidth="1.2" filter="url(#tps)"/>
-    <text x="308" y="163" fontSize="14" textAnchor="middle">🏅</text>
-    <defs>
-      <filter id="tps"><feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="rgba(124,92,255,0.15)"/></filter>
-      <filter id="bs"><feDropShadow dx="0" dy="3" stdDeviation="6" floodColor="rgba(124,92,255,0.4)"/></filter>
-      <linearGradient id="tphdr" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#C084FC"/></linearGradient>
-      <linearGradient id="badgeg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#4A90E2"/></linearGradient>
     </defs>
   </svg>
 )
@@ -470,7 +289,7 @@ const IlluOfficeReady = ({ name }: { name: string }) => (
   </svg>
 )
 
-// ── Screen definitions ─────────────────────────────────────────────────────────
+// ── Screen definitions (merged 9 → 5) ────────────────────────────────────────
 const SCREENS = [
   {
     id: 'welcome',
@@ -479,46 +298,22 @@ const SCREENS = [
     kaiHint: 'Hi, I\'m Kai. I\'ll help set up your caregiver office step by step.',
   },
   {
-    id: 'type',
+    id: 'type-goals',
     gradient: 'linear-gradient(145deg,#4A90E2 0%,#7C5CFF 100%)',
     Illustration: IlluTypes,
-    kaiHint: 'Your answers help me guide you to the right setup.',
+    kaiHint: 'Your answers help me guide you to the right setup. Pick what matters most!',
   },
   {
-    id: 'goals',
-    gradient: 'linear-gradient(145deg,#C084FC 0%,#7C5CFF 80%,#4A90E2 100%)',
-    Illustration: IlluGoals,
-    kaiHint: 'Pick what matters most. I\'ll use this to build your first action plan.',
-  },
-  {
-    id: 'services',
+    id: 'services-prefs',
     gradient: 'linear-gradient(145deg,#7C5CFF 0%,#4A90E2 100%)',
     Illustration: IlluServices,
     kaiHint: 'These services help families understand how you can support them.',
-  },
-  {
-    id: 'schedule',
-    gradient: 'linear-gradient(145deg,#4A90E2 0%,#C084FC 100%)',
-    Illustration: IlluSchedule,
-    kaiHint: 'Your work preferences help me recommend the right next steps.',
   },
   {
     id: 'location',
     gradient: 'linear-gradient(145deg,#22C55E 0%,#4A90E2 100%)',
     Illustration: IlluMap,
     kaiHint: 'You control your service area. We will not show your exact address.',
-  },
-  {
-    id: 'tools',
-    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 100%)',
-    Illustration: IlluOfficeTools,
-    kaiHint: 'I can help you set up these tools once you enter your office.',
-  },
-  {
-    id: 'trust',
-    gradient: 'linear-gradient(145deg,#C084FC 0%,#7C5CFF 50%,#4A90E2 100%)',
-    Illustration: IlluTrustPassport,
-    kaiHint: 'Your Trust Passport helps families feel more confident choosing you.',
   },
   {
     id: 'ready',
@@ -552,22 +347,56 @@ const WORK_PREFS = [
   'Weekends','Flexible','Live-in','Part-time','Full-time',
 ]
 
-const OFFICE_TOOLS = [
-  'Clock in/out','Timesheets','Invoices','Mileage','Work history','Client list',
-]
+// ── Fix 6: Smart defaults map ─────────────────────────────────────────────────
+const TYPE_SERVICE_DEFAULTS: Record<string, string[]> = {
+  'CNA': ['Personal care', 'Medication reminders', 'Mobility support'],
+  'HHA': ['Personal care', 'Medication reminders', 'Mobility support'],
+  'Companion caregiver': ['Companion care', 'Meal prep', 'Transportation'],
+  'Live-in caregiver': ['Companion care', 'Personal care', 'Overnight care', 'Household support', 'Meal prep'],
+  'Agency caregiver': ['Personal care', 'Medication reminders'],
+  'Facility caregiver': ['Personal care', 'Medication reminders'],
+  'Private caregiver': ['Companion care', 'Personal care'],
+  'Independent caregiver': ['Companion care', 'Personal care'],
+  'I\'m exploring caregiving': [],
+}
 
-const TRUST_STEPS = [
-  'Add profile photo','Add bio','Upload Government ID',
-  'Add CPR / First Aid','Add work experience','Build public profile link',
-]
+function getSmartDefaults(caregiverTypes: string[]): string[] {
+  const defaults = new Set<string>()
+  for (const t of caregiverTypes) {
+    for (const s of (TYPE_SERVICE_DEFAULTS[t] || [])) {
+      defaults.add(s)
+    }
+  }
+  return Array.from(defaults)
+}
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) => {
-  const [step, setStep]   = useState<number>(() => readStep())
-  const [data, setData]   = useState<OnboardingData>(() => blankData(profile))
+  // Fix 2: Determine if we should skip the name step
+  const skipNameStep = !!profile?.firstName && profile.firstName !== (profile?.email || '').split('@')[0]
+
+  const [step, setStep]   = useState<number>(() => {
+    const saved = readStep()
+    // If skipping name step and saved step is 0, start from 1
+    if (skipNameStep && saved === 0) return 1
+    return saved
+  })
+  const [data, setData]   = useState<OnboardingData>(() => {
+    const d = blankData(profile)
+    // Fix 2: If skipping name step, ensure firstName is set from profile
+    if (skipNameStep && !d.firstName) {
+      d.firstName = profile.firstName
+    }
+    return d
+  })
   const [err, setErr]     = useState('')
   const [busy, setBusy]   = useState(false)
   const scrollRef         = useRef<HTMLDivElement>(null)
+
+  // Fix 2: Calculate total screens and display step
+  const totalScreens = skipNameStep ? 4 : 5
+  const displayStep = skipNameStep ? step : step + 1
+  const minStep = skipNameStep ? 1 : 0
 
   // Persist on every change
   useEffect(() => { save(data, step) }, [data, step])
@@ -594,24 +423,34 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
 
   const validate = (): boolean => {
     if (step === 0 && !data.firstName.trim()) { setErr('Please enter your first name'); return false }
-    if (step === 1 && data.caregiverTypes.length === 0) { setErr('Please select at least one type'); return false }
-    if (step === 2 && data.caregiverGoals.length === 0) { setErr('Please choose at least one goal'); return false }
-    if (step === 3 && data.careServices.length === 0) { setErr('Please select at least one service'); return false }
-    if (step === 4 && data.workPreferences.length === 0) { setErr('Please choose at least one preference'); return false }
-    if (step === 5) {
+    if (step === 1) {
+      if (data.caregiverTypes.length === 0) { setErr('Please select at least one type'); return false }
+      if (data.caregiverGoals.length === 0) { setErr('Please choose at least one goal'); return false }
+    }
+    if (step === 2) {
+      if (data.careServices.length === 0) { setErr('Please select at least one service'); return false }
+      if (data.workPreferences.length === 0) { setErr('Please choose at least one preference'); return false }
+    }
+    if (step === 3) {
       if (!data.serviceArea.trim()) { setErr('Please enter your ZIP code or city'); return false }
     }
-    if (step === 7 && !data.firstTrustStep) { setErr('Please choose your first trust step'); return false }
     return true
   }
 
   const next = async () => {
     setErr('')
     if (!validate()) return
-    if (step < 8) { setStep(s => s + 1); return }
-    // Step 8 = final — complete
+    // Fix 6: Apply smart defaults when moving from Type+Goals (step 1) to Services+Prefs (step 2)
+    if (step === 1 && data.careServices.length === 0) {
+      const defaults = getSmartDefaults(data.caregiverTypes)
+      if (defaults.length > 0) {
+        setData(prev => ({ ...prev, careServices: defaults }))
+      }
+    }
+    if (step < 4) { setStep(s => s + 1); return }
+    // Step 4 = final — complete
     setBusy(true)
-    const final = { ...data }
+    const final = { ...data, officeTools: [], firstTrustStep: '' }
     try {
       localStorage.setItem(COMPLETE_KEY, 'true')
       localStorage.setItem(COMPLETE_AT, new Date().toISOString())
@@ -621,11 +460,28 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
     }
   }
 
-  const back = () => { if (step > 0) setStep(s => s - 1) }
+  const back = () => { if (step > minStep) setStep(s => s - 1) }
+
+  // Fix 5: Skip for now — complete with current data + defaults
+  const skipForNow = () => {
+    const final = {
+      ...data,
+      officeTools: [],
+      firstTrustStep: '',
+    }
+    setBusy(true)
+    try {
+      localStorage.setItem(COMPLETE_KEY, 'true')
+      localStorage.setItem(COMPLETE_AT, new Date().toISOString())
+      onComplete(final)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const scr = SCREENS[step]
   const name = data.firstName.trim() || profile?.firstName || 'there'
-  const progress = ((step + 1) / 9) * 100
+  const progress = ((displayStep) / totalScreens) * 100
 
   // ── Shared layout ─────────────────────────────────────────────────────────────
   return (
@@ -665,7 +521,7 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
             background: 'rgba(255,255,255,0.05)', bottom: -40, left: -30,
           }}/>
           <div style={{ width: '100%', maxWidth: 340, height: '100%', maxHeight: 220, position: 'relative', zIndex: 1 }}>
-            {step === 8
+            {step === 4
               ? <IlluOfficeReady name={name} />
               : React.createElement(scr.Illustration)
             }
@@ -680,25 +536,21 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
             fontSize: 12, fontWeight: 600, color: P,
             boxShadow: '0 2px 8px rgba(124,92,255,0.12)',
           }}>
-            Step {step + 1} of 9
+            Step {displayStep} of {totalScreens}
           </div>
         </div>
 
         {/* ── Content ── */}
         <div style={{ padding: '20px 24px 24px' }}>
           {step === 0 && <Screen1 name={name} data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 1 && <Screen2 data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 2 && <Screen3 data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 3 && <Screen4 data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 4 && <Screen5 data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 5 && <Screen6 data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 6 && <Screen7 data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 7 && <Screen8 data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 8 && <Screen9 data={data} name={name} />}
+          {step === 1 && <ScreenTypeGoals data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
+          {step === 2 && <ScreenServicesPrefs data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
+          {step === 3 && <ScreenLocation data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
+          {step === 4 && <ScreenReady data={data} name={name} />}
         </div>
 
         {/* bottom spacer so content clears the fixed CTA */}
-        <div style={{ height: 120 }} />
+        <div style={{ height: 140 }} />
       </div>
 
       {/* ── Fixed CTA bar ── */}
@@ -712,7 +564,7 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
       }}>
         {/* Progress dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
-          {SCREENS.map((_, i) => <Dot key={i} active={i === step} />)}
+          {SCREENS.slice(skipNameStep ? 1 : 0).map((_, i) => <Dot key={i} active={i === (step - minStep)} />)}
         </div>
 
         {/* Error */}
@@ -738,12 +590,12 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
         >
           {busy
             ? <><span style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'ob-spin 0.7s linear infinite' }}/> Setting up your office...</>
-            : step === 8 ? '✨ Enter my office' : 'Continue →'
+            : step === 4 ? '✨ Enter my office' : 'Continue →'
           }
         </button>
 
         {/* Back link */}
-        {step > 0 && (
+        {step > minStep && (
           <button
             onClick={back}
             style={{
@@ -753,6 +605,20 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
             }}
           >
             ← Back
+          </button>
+        )}
+
+        {/* Fix 5: Skip for now escape hatch — show on screens 1-3 (Type+Goals, Services+Prefs, Location) */}
+        {step >= 1 && step <= 3 && (
+          <button
+            onClick={skipForNow}
+            style={{
+              display: 'block', width: '100%', marginTop: 8,
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, color: '#94a3b8', textDecoration: 'underline', textAlign: 'center',
+            }}
+          >
+            Skip setup for now →
           </button>
         )}
       </div>
@@ -778,6 +644,13 @@ function Headline({ title, copy }: { title: string; copy: string }) {
   )
 }
 
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <h2 style={{ margin: '24px 0 12px', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{text}</h2>
+  )
+}
+
+// Screen 0: Welcome + Name (skipped if name already known)
 function Screen1({ name, data, patch, err, kaiHint }: any) {
   return (
     <>
@@ -808,7 +681,8 @@ function Screen1({ name, data, patch, err, kaiHint }: any) {
   )
 }
 
-function Screen2({ data, toggleArr, err, kaiHint }: any) {
+// Screen 1: Caregiver Type + Goals (merged)
+function ScreenTypeGoals({ data, toggleArr, err, kaiHint }: any) {
   return (
     <>
       <Headline
@@ -821,23 +695,12 @@ function Screen2({ data, toggleArr, err, kaiHint }: any) {
         selected={data.caregiverTypes}
         onToggle={v => toggleArr('caregiverTypes', v)}
       />
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
 
-function Screen3({ data, toggleArr, err, kaiHint }: any) {
-  return (
-    <>
-      <Headline
-        title="What would you like Carehia to help with?"
-        copy="Choose up to three. Kai will use this to guide your first steps."
-      />
+      <SectionLabel text="What would you like Carehia to help with?" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: 13, color: '#64748b' }}>Select up to 3</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: P }}>{data.caregiverGoals.length}/3</span>
       </div>
-      {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
       <MultiChip
         options={CAREGIVER_GOALS}
         selected={data.caregiverGoals}
@@ -849,7 +712,8 @@ function Screen3({ data, toggleArr, err, kaiHint }: any) {
   )
 }
 
-function Screen4({ data, toggleArr, err, kaiHint }: any) {
+// Screen 2: Care Services + Work Preferences (merged)
+function ScreenServicesPrefs({ data, toggleArr, err, kaiHint }: any) {
   return (
     <>
       <Headline
@@ -862,19 +726,11 @@ function Screen4({ data, toggleArr, err, kaiHint }: any) {
         selected={data.careServices}
         onToggle={v => toggleArr('careServices', v)}
       />
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
 
-function Screen5({ data, toggleArr, err, kaiHint }: any) {
-  return (
-    <>
-      <Headline
-        title="Tell us how you like to work"
-        copy="Carehia works better when it understands your real schedule."
-      />
-      {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
+      <SectionLabel text="Tell us how you like to work" />
+      <p style={{ margin: '0 0 12px', fontSize: 14, color: '#64748b' }}>
+        Carehia works better when it understands your real schedule.
+      </p>
       <MultiChip
         options={WORK_PREFS}
         selected={data.workPreferences}
@@ -885,7 +741,8 @@ function Screen5({ data, toggleArr, err, kaiHint }: any) {
   )
 }
 
-function Screen6({ data, patch, err, kaiHint }: any) {
+// Screen 3: Location
+function ScreenLocation({ data, patch, err, kaiHint }: any) {
   return (
     <>
       <Headline
@@ -935,103 +792,8 @@ function Screen6({ data, patch, err, kaiHint }: any) {
   )
 }
 
-function Screen7({ data, toggleArr, err, kaiHint }: any) {
-  return (
-    <>
-      <Headline
-        title="Carehia helps with the work behind the care"
-        copy="Clock in, track mileage, send timesheets, create invoices, and stay organized."
-      />
-      <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>Choose what you want ready first:</p>
-      {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {OFFICE_TOOLS.map(tool => {
-          const active = data.officeTools.includes(tool)
-          const icons: Record<string,string> = {
-            'Clock in/out':'⏰','Timesheets':'📋','Invoices':'💰',
-            'Mileage':'🚗','Work history':'📊','Client list':'👥',
-          }
-          return (
-            <button
-              key={tool}
-              onClick={() => toggleArr('officeTools', tool)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 16px', borderRadius: 14,
-                border: `1.5px solid ${active ? P : 'rgba(148,163,184,0.35)'}`,
-                background: active ? 'linear-gradient(135deg,rgba(124,92,255,0.08),rgba(74,144,226,0.05))' : '#fff',
-                cursor: 'pointer', textAlign: 'left',
-                boxShadow: active ? '0 2px 10px rgba(124,92,255,0.12)' : '0 1px 4px rgba(0,0,0,0.04)',
-                transition: 'all 0.18s',
-              }}
-            >
-              <span style={{ fontSize: 20 }}>{icons[tool]}</span>
-              <span style={{ fontSize: 14, fontWeight: active ? 700 : 500, color: active ? P : '#374151', flex: 1 }}>{tool}</span>
-              {active && <span style={{ fontSize: 18, color: P }}>&#x2713;</span>}
-            </button>
-          )
-        })}
-      </div>
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
-
-function Screen8({ data, patch, err, kaiHint }: any) {
-  const icons: Record<string,string> = {
-    'Add profile photo':'📸',
-    'Add bio':'✍️',
-    'Upload Government ID':'🪪',
-    'Add CPR / First Aid':'🏥',
-    'Add work experience':'💼',
-    'Build public profile link':'🔗',
-  }
-  return (
-    <>
-      <Headline
-        title="Build your caregiver profile while you work"
-        copy="Every skill, shift, review, and trust badge helps build a stronger caregiver story."
-      />
-      <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>Choose your first trust step:</p>
-      {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {TRUST_STEPS.map(step => {
-          const active = data.firstTrustStep === step
-          return (
-            <button
-              key={step}
-              onClick={() => patch({ firstTrustStep: step })}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 16px', borderRadius: 14,
-                border: `1.5px solid ${active ? P : 'rgba(148,163,184,0.35)'}`,
-                background: active ? 'linear-gradient(135deg,rgba(124,92,255,0.1),rgba(192,132,252,0.06))' : '#fff',
-                cursor: 'pointer', textAlign: 'left',
-                boxShadow: active ? '0 2px 10px rgba(124,92,255,0.15)' : '0 1px 4px rgba(0,0,0,0.04)',
-                transition: 'all 0.18s',
-              }}
-            >
-              <span style={{ fontSize: 20 }}>{icons[step]}</span>
-              <span style={{ fontSize: 14, fontWeight: active ? 700 : 500, color: active ? P : '#374151', flex: 1 }}>{step}</span>
-              {active && (
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#7C5CFF,#4A90E2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <span style={{ fontSize: 11, color: '#fff' }}>&#x2713;</span>
-                </div>
-              )}
-            </button>
-          )
-        })}
-      </div>
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
-
-function Screen9({ data, name }: { data: OnboardingData; name: string }) {
+// Screen 4: Ready!
+function ScreenReady({ data, name }: { data: OnboardingData; name: string }) {
   const goals = data.caregiverGoals
   const goalMap: Record<string, { icon: string; next: string }> = {
     'Find more clients':         { icon: '🔍', next: 'Complete your public caregiver profile' },
@@ -1046,7 +808,7 @@ function Screen9({ data, name }: { data: OnboardingData; name: string }) {
     'Manage my schedule':        { icon: '📅', next: 'Set your availability in Work' },
   }
   const nextSteps = [
-    ...(data.firstTrustStep ? [{ icon: '🛡️', text: data.firstTrustStep }] : [{ icon: '📸', text: 'Add your profile photo' }]),
+    { icon: '📸', text: 'Add your profile photo' },
     ...(goals.slice(0,2).map(g => ({ icon: goalMap[g]?.icon || '✅', text: goalMap[g]?.next || g }))),
     { icon: '🟢', text: 'Go online for work requests' },
   ].slice(0, 4)

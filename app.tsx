@@ -667,9 +667,41 @@ const App: React.FC<{}> = () => {
       .then(r => r.json())
       .then(d => {
         if (d.success && d.account) {
+          const a = d.account
+          // Phase 23H-hotfix: auto-detect onboarding completion on session restore
+          try {
+            if (localStorage.getItem('cgp_onboarding_complete') !== 'true') {
+              const hasSkills = a.skills && a.skills.length > 0
+              const hasLocation = !!a.city
+              if (a.setupComplete || hasSkills || hasLocation) {
+                localStorage.setItem('cgp_onboarding_complete', 'true')
+                setOnboardingComplete(true)
+              }
+            }
+          } catch {}
           setProfile(prev => {
-            if (!prev) return prev
-            const a = d.account
+            if (!prev) {
+              // Fix 3: Build profile from API data when none exists
+              const newProfile: CaregiverProfile = {
+                id: a.id || a.email,
+                firstName: a.name?.split(' ')[0] || a.email?.split('@')[0] || 'Caregiver',
+                lastName: a.name?.split(' ').slice(1).join(' ') || '',
+                email: a.email || '',
+                phone: a.phone || '',
+                status: 'active',
+                hourlyRate: a.hourlyRate || 0,
+                skills: a.skills || [],
+                languages: a.languages || [],
+                rating: a.avgRating || null,
+                totalJobs: a.totalJobs || 0,
+                totalReviews: a.reviewCount || 0,
+                bio: a.bio || '',
+                location: (a.city || a.state) ? { city: a.city || '', state: a.state || '' } : undefined,
+                profilePhoto: a.photoUrl || undefined,
+              }
+              try { localStorage.setItem('cgp_account', JSON.stringify(newProfile)) } catch {}
+              return newProfile
+            }
             const updated = {
               ...prev,
               // Phase 20 Bug #2: merge ALL profile fields from API on session restore

@@ -13,7 +13,7 @@ type LoginScreenMode = 'choose' | 'register' | 'signin' | 'agency' | 'verify-pen
 function getSavedLoginScreen(): LoginScreenMode {
   try {
     const saved = localStorage.getItem(LOGIN_SCREEN_KEY) as LoginScreenMode | null
-    if (saved && ['choose', 'register', 'signin', 'agency', 'verify-pending', 'forgot', 'reset-sent', 'reset'].includes(saved)) return saved
+    if (saved && ['choose', 'register', 'signin', 'agency', 'forgot', 'reset-sent', 'reset'].includes(saved)) return saved
   } catch {}
   return 'choose'
 }
@@ -141,11 +141,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         })()),
       })
       const data = await res.json()
-      if (data.success && data.emailVerificationRequired) {
-        setPendingEmail(email.trim().toLowerCase())
-        navigateToScreen('verify-pending')
-      } else if (data.success && data.token) {
-        onMarketplaceAuth(data.token, data.account)
+      if (data.success && data.token) {
+        // Fix 1: Skip email verification wall — proceed immediately with token
+        if (data.emailVerificationRequired) {
+          localStorage.setItem('cgp_email_unverified', 'true')
+        }
+        onMarketplaceAuth(data.token, data.account || { email: email.trim().toLowerCase(), name: name.trim() })
       } else {
         setError(data.error || 'Registration failed. Please try again.')
       }

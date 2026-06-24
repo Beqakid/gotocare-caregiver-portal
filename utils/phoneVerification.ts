@@ -9,7 +9,8 @@ const OTP_LENGTH = 6
 const OTP_EXPIRY_MS = 5 * 60 * 1000        // 5 minutes
 const RESEND_DELAY_MS = 30 * 1000           // 30 seconds
 const MAX_ATTEMPTS = 5
-const DEV_MODE = true                       // Flip to false when SMS provider is wired
+const DEV_MODE = typeof window !== 'undefined'
+  && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type PhoneVerifSendResult = {

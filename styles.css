@@ -470,3 +470,229 @@ nav[role="navigation"],
 .kai-mini-progress svg circle {
   transition: stroke-dashoffset 0.5s ease;
 }
+
+/* Phase 24C: Kai Guided Walkthroughs */
+
+.kai-guide-btn {
+  margin-top: 8px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #7C5CFF;
+  border: 1.5px solid #7C5CFF;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.kai-guide-btn:hover { background: rgba(124,92,255,0.06); }
+.kai-guide-btn:active { background: rgba(124,92,255,0.12); transform: scale(0.97); }
+
+.kai-guide-btn-sm {
+  margin-top: 6px;
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: transparent;
+  color: #7C5CFF;
+  border: 1.5px solid rgba(124,92,255,0.3);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.kai-guide-btn-sm:hover { background: rgba(124,92,255,0.06); }
+.kai-guide-btn-sm:active { background: rgba(124,92,255,0.12); }
+
+.kai-wt-container {
+  padding: 0 20px 100px;
+}
+
+.kai-wt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 8px;
+}
+
+.kai-wt-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.kai-wt-exit {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.kai-wt-exit:hover { color: #64748b; }
+
+.kai-wt-progress {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+
+.kai-wt-progress-bar {
+  height: 4px;
+  background: rgba(124,92,255,0.12);
+  border-radius: 2px;
+  margin: 0 0 16px;
+  overflow: hidden;
+}
+
+.kai-wt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7C5CFF, #9B7BFF);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.kai-wt-step-card {
+  background: linear-gradient(135deg, rgba(124,92,255,0.06), rgba(74,144,226,0.04));
+  border: 1px solid rgba(124,92,255,0.12);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.kai-wt-step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.kai-wt-step-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+
+.kai-wt-step-fallback {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+.kai-wt-step-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #7C5CFF, #6B4FE0);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.kai-wt-step-cta:active { transform: scale(0.97); opacity: 0.9; }
+
+.kai-wt-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  gap: 12px;
+}
+
+.kai-wt-nav-btn {
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.kai-wt-nav-back {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.kai-wt-nav-back:hover { background: #e2e8f0; }
+.kai-wt-nav-back:disabled { opacity: 0.4; cursor: default; }
+
+.kai-wt-nav-next {
+  background: linear-gradient(135deg, #7C5CFF, #6B4FE0);
+  color: #fff;
+  flex: 1;
+  max-width: 180px;
+}
+.kai-wt-nav-next:active { transform: scale(0.97); }
+
+.kai-wt-completion {
+  text-align: center;
+  padding: 24px 16px;
+  background: linear-gradient(135deg, rgba(124,92,255,0.08), rgba(34,197,94,0.06));
+  border: 1px solid rgba(124,92,255,0.12);
+  border-radius: 16px;
+}
+
+.kai-wt-completion-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.kai-wt-completion-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.kai-wt-completion-msg {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+.kai-wt-resume-card {
+  background: rgba(124,92,255,0.06);
+  border: 1px solid rgba(124,92,255,0.15);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kai-wt-resume-text {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+  margin: 0;
+}
+
+.kai-wt-resume-btn {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #7C5CFF, #6B4FE0);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}

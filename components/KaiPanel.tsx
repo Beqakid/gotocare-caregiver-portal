@@ -1,9 +1,11 @@
 // @ts-nocheck
-// Phase 24B: Kai Guided Assistant Panel — Context Engine + Next Best Action
+// Phase 24C: Kai Guided Assistant Panel — Context Engine + Next Best Action + Guided Walkthroughs
 import React, { useState, useEffect, useMemo } from 'react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { buildCaregiverContext, getCaregiverNextBestAction, getContextBasedQuickActions } from '../utils/kaiContext'
 import type { CaregiverKaiContext, KaiQuickAction } from '../utils/kaiContext'
+import { walkthroughs, walkthroughMap, getWalkthrough } from '../utils/kaiWalkthroughs'
+import type { KaiWalkthrough, KaiWalkthroughStep } from '../utils/kaiWalkthroughs'
 
 interface KaiPanelProps {
   profile: CaregiverProfile | null
@@ -44,13 +46,6 @@ function StatusSummary({ context }: { context: CaregiverKaiContext }) {
   const phoneOk = context.phoneVerified ?? false
   const uninvoicedHrs = context.uninvoicedHours ?? 0
 
-  const gridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 10,
-    padding: '0 20px 4px',
-  }
-
   const outerStyle: React.CSSProperties = {
     background: 'rgba(124,92,255,0.04)',
     border: '1px solid rgba(124,92,255,0.08)',
@@ -89,7 +84,7 @@ function StatusSummary({ context }: { context: CaregiverKaiContext }) {
         <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', paddingLeft: 2 }}>
           Your status
         </p>
-        <div style={gridStyle.gap ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 } : gridStyle}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {/* Profile */}
           <div style={cellStyle}>
             <MiniProgress percent={profilePct} size={34} color="#7C5CFF" />
@@ -283,8 +278,27 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   const [expandedAction, setExpandedAction] = useState<string | null>(null)
   const [animateIn, setAnimateIn] = useState(false)
 
+  // Phase 24C: Walkthrough state
+  const [activeWalkthrough, setActiveWalkthrough] = useState<KaiWalkthrough | null>(null)
+  const [walkthroughStep, setWalkthroughStep] = useState(0)
+  const [walkthroughCompleted, setWalkthroughCompleted] = useState(false)
+  const [savedWalkthroughId, setSavedWalkthroughId] = useState<string | null>(null)
+
   useEffect(() => {
     requestAnimationFrame(() => setAnimateIn(true))
+
+    // Resume walkthrough from sessionStorage
+    try {
+      const savedId = sessionStorage.getItem('carehia_kai_active_walkthrough')
+      const savedStep = sessionStorage.getItem('carehia_kai_walkthrough_step')
+      if (savedId) {
+        const wt = getWalkthrough(savedId)
+        if (wt) {
+          setSavedWalkthroughId(savedId)
+          // Don't auto-resume — show resume card instead
+        }
+      }
+    } catch {}
   }, [])
 
   const handleClose = () => {
@@ -330,6 +344,169 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   const isRestricted = ['suspended', 'blocked', 'deactivated'].includes(
     (context.accountStatus || 'active').toLowerCase()
   )
+
+  // ── Phase 24C: Walkthrough Handlers ──────────────────────────────────
+
+  const startWalkthrough = (walkthroughId: string) => {
+    const wt = getWalkthrough(walkthroughId)
+    if (!wt) return
+    // Safety: don't allow restricted accounts to start work/money walkthroughs
+    if (isRestricted && wt.restrictedAccountBlock) return
+    setActiveWalkthrough(wt)
+    setWalkthroughStep(0)
+    setWalkthroughCompleted(false)
+    setExpandedAction(null)
+    setSavedWalkthroughId(null)
+    // Save to sessionStorage
+    try {
+      sessionStorage.setItem('carehia_kai_active_walkthrough', walkthroughId)
+      sessionStorage.setItem('carehia_kai_walkthrough_step', '0')
+    } catch {}
+  }
+
+  const exitWalkthrough = () => {
+    setActiveWalkthrough(null)
+    setWalkthroughStep(0)
+    setWalkthroughCompleted(false)
+    try {
+      sessionStorage.removeItem('carehia_kai_active_walkthrough')
+      sessionStorage.removeItem('carehia_kai_walkthrough_step')
+    } catch {}
+  }
+
+  const nextWalkthroughStep = () => {
+    if (!activeWalkthrough) return
+    const next = walkthroughStep + 1
+    if (next >= activeWalkthrough.steps.length) {
+      setWalkthroughCompleted(true)
+      try { sessionStorage.removeItem('carehia_kai_active_walkthrough') } catch {}
+    } else {
+      setWalkthroughStep(next)
+      try { sessionStorage.setItem('carehia_kai_walkthrough_step', String(next)) } catch {}
+    }
+  }
+
+  const prevWalkthroughStep = () => {
+    if (walkthroughStep > 0) {
+      const prev = walkthroughStep - 1
+      setWalkthroughStep(prev)
+      try { sessionStorage.setItem('carehia_kai_walkthrough_step', String(prev)) } catch {}
+    }
+  }
+
+  // Execute a step's CTA action (navigate)
+  const executeStepAction = (step: KaiWalkthroughStep) => {
+    if (!step.ctaAction) return
+    if (step.ctaAction === 'profile') navHandlers.onNavigateToProfile()
+    else if (step.ctaAction === 'trust') navHandlers.onNavigateToTrust()
+    else if (step.ctaAction === 'earnings') navHandlers.onNavigateToEarnings()
+    else if (step.ctaAction === 'work') navHandlers.onNavigateToWork()
+    else if (step.ctaAction === 'schedule') navHandlers.onNavigateToSchedule()
+    else if (step.ctaAction === 'home') navHandlers.onNavigateToHome()
+    else if (step.ctaAction === 'close') handleClose()
+    else if (step.ctaAction.startsWith('section:')) {
+      const parts = step.ctaAction.split(':')
+      navHandlers.onNavigateToSection(parts[1], parts[2])
+    }
+  }
+
+  const resumeWalkthrough = () => {
+    if (!savedWalkthroughId) return
+    const wt = getWalkthrough(savedWalkthroughId)
+    if (!wt) return
+    if (isRestricted && wt.restrictedAccountBlock) return
+    let step = 0
+    try {
+      const savedStep = sessionStorage.getItem('carehia_kai_walkthrough_step')
+      if (savedStep) step = parseInt(savedStep, 10) || 0
+    } catch {}
+    setActiveWalkthrough(wt)
+    setWalkthroughStep(Math.min(step, wt.steps.length - 1))
+    setWalkthroughCompleted(false)
+    setSavedWalkthroughId(null)
+  }
+
+  // ── Walkthrough Panel Render ─────────────────────────────────────────
+
+  const renderWalkthroughPanel = () => {
+    if (!activeWalkthrough) return null
+
+    // Completion screen
+    if (walkthroughCompleted) {
+      return (
+        <div className="kai-wt-container">
+          <div className="kai-wt-header">
+            <h3 className="kai-wt-title">{activeWalkthrough.title}</h3>
+            <button className="kai-wt-exit" onClick={exitWalkthrough}>Done</button>
+          </div>
+          <div className="kai-wt-completion">
+            <div className="kai-wt-completion-icon">🎉</div>
+            <h4 className="kai-wt-completion-title">All done!</h4>
+            <p className="kai-wt-completion-msg">{activeWalkthrough.completionMessage}</p>
+            <button className="kai-wt-step-cta" onClick={exitWalkthrough}>
+              Back to Kai
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    const currentStep = activeWalkthrough.steps[walkthroughStep]
+    const totalSteps = activeWalkthrough.steps.length
+    const progressPercent = ((walkthroughStep + 1) / totalSteps) * 100
+
+    return (
+      <div className="kai-wt-container">
+        {/* Header */}
+        <div className="kai-wt-header">
+          <h3 className="kai-wt-title">{activeWalkthrough.icon} {activeWalkthrough.title}</h3>
+          <button className="kai-wt-exit" onClick={exitWalkthrough}>Exit guide</button>
+        </div>
+
+        {/* Progress */}
+        <p className="kai-wt-progress">Step {walkthroughStep + 1} of {totalSteps}</p>
+        <div className="kai-wt-progress-bar">
+          <div className="kai-wt-progress-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+
+        {/* Step Card */}
+        <div className="kai-wt-step-card">
+          <h4 className="kai-wt-step-title">{currentStep.title}</h4>
+          <p className="kai-wt-step-desc">{currentStep.description}</p>
+
+          {currentStep.fallbackText && (
+            <p className="kai-wt-step-fallback">{currentStep.fallbackText}</p>
+          )}
+
+          {currentStep.ctaLabel && currentStep.ctaAction && (
+            <button
+              className="kai-wt-step-cta"
+              onClick={() => executeStepAction(currentStep)}
+            >
+              {currentStep.ctaLabel}
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="kai-wt-nav">
+          <button
+            className="kai-wt-nav-btn kai-wt-nav-back"
+            onClick={prevWalkthroughStep}
+            disabled={walkthroughStep === 0}
+          >
+            Back
+          </button>
+          <button
+            className="kai-wt-nav-btn kai-wt-nav-next"
+            onClick={nextWalkthroughStep}
+          >
+            {walkthroughStep === totalSteps - 1 ? 'Done' : 'Next'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -377,155 +554,195 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
             border: '1px solid rgba(124,92,255,0.12)',
           }}>
             <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: '1.55' }}>
-              {greeting}
+              {activeWalkthrough ? activeWalkthrough.intro : greeting}
             </p>
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
-              Let's take this one step at a time. 💜
-            </p>
+            {!activeWalkthrough && (
+              <p style={{ margin: '8px 0 0', fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                Let's take this one step at a time. 💜
+              </p>
+            )}
           </div>
         </div>
 
         {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
 
-          {/* ── Status Summary Grid ─────────────────────────── */}
-          <div style={{ marginTop: 4 }}>
-            <StatusSummary context={context} />
-          </div>
-
-          {/* ── Account Restricted Warning ───────────────────── */}
-          {isRestricted && (
-            <div style={{ padding: '0 20px', marginTop: 12 }}>
-              <div style={{
-                background: 'rgba(239,68,68,0.06)',
-                border: '1px solid rgba(239,68,68,0.15)',
-                borderRadius: 14,
-                padding: '14px 16px',
-              }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#EF4444' }}>
-                  ⚠️ Account needs attention
-                </p>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                  Your account is currently restricted. Please contact our support team so we can help resolve this quickly.
-                </p>
-                <button
-                  onClick={() => { window.location.href = 'mailto:support@carehia.com' }}
-                  className="kai-action-btn"
-                  style={{ marginTop: 10, background: '#EF4444' }}
-                >
-                  Contact Support
-                </button>
+          {/* ── WALKTHROUGH MODE ──────────────────────────── */}
+          {activeWalkthrough ? (
+            renderWalkthroughPanel()
+          ) : (
+            <>
+              {/* ── Status Summary Grid ─────────────────────────── */}
+              <div style={{ marginTop: 4 }}>
+                <StatusSummary context={context} />
               </div>
-            </div>
-          )}
 
-          {/* ── Next Best Action ─────────────────────────────── */}
-          <div style={{ marginTop: 12, padding: '0 20px' }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
-              Recommended next step
-            </p>
-            <div className="kai-next-action-card">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{nextAction.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                    <PriorityDot priority={nextAction.priority} />
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-                      {nextAction.title}
+              {/* ── Account Restricted Warning ───────────────────── */}
+              {isRestricted && (
+                <div style={{ padding: '0 20px', marginTop: 12 }}>
+                  <div style={{
+                    background: 'rgba(239,68,68,0.06)',
+                    border: '1px solid rgba(239,68,68,0.15)',
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                  }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#EF4444' }}>
+                      ⚠️ Account needs attention
                     </p>
-                  </div>
-                  <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
-                    {nextAction.description}
-                  </p>
-                  {nextAction.reason && (
-                    <p className="kai-reason-text" style={{
-                      margin: '8px 0 0',
-                      fontSize: 12,
-                      color: '#64748b',
-                      fontStyle: 'italic',
-                      lineHeight: '1.45',
-                    }}>
-                      Why this matters: {nextAction.reason}
+                    <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                      Your account is currently restricted. Please contact our support team so we can help resolve this quickly.
                     </p>
-                  )}
-                  {nextAction.fallbackMessage && (
-                    <p style={{
-                      margin: '6px 0 0',
-                      fontSize: 12,
-                      color: '#94a3b8',
-                      fontStyle: 'italic',
-                    }}>
-                      {nextAction.fallbackMessage}
-                    </p>
-                  )}
-                  <button
-                    onClick={nextAction.action}
-                    className="kai-action-btn"
-                  >
-                    {nextAction.ctaLabel}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Quick Actions ─────────────────────────────── */}
-          <div style={{ marginTop: 20, padding: '0 20px' }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>
-              Quick actions
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {quickActions.map((qa) => {
-                const isExpanded = expandedAction === qa.id
-                return (
-                  <div key={qa.id} className="kai-quick-action">
                     <button
-                      onClick={() => setExpandedAction(isExpanded ? null : qa.id)}
-                      style={{
-                        width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '11px 14px', textAlign: 'left',
-                      }}
+                      onClick={() => { window.location.href = 'mailto:support@carehia.com' }}
+                      className="kai-action-btn"
+                      style={{ marginTop: 10, background: '#EF4444' }}
                     >
-                      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{qa.icon}</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', flex: 1 }}>{qa.label}</span>
-                      <span style={{
-                        fontSize: 12, color: '#94a3b8', transition: 'transform 0.2s',
-                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                      }}>▼</span>
+                      Contact Support
                     </button>
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px 42px' }}>
-                        <p style={{ margin: '0 0 10px', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
-                          {qa.description}
-                        </p>
-                        <button
-                          onClick={qa.action}
-                          className="kai-action-btn"
-                        >
-                          {qa.buttonLabel}
-                        </button>
-                      </div>
-                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Resume Guide Card ────────────────────────────── */}
+              {savedWalkthroughId && !isRestricted && (() => {
+                const savedWt = getWalkthrough(savedWalkthroughId)
+                if (!savedWt) return null
+                if (isRestricted && savedWt.restrictedAccountBlock) return null
+                return (
+                  <div style={{ padding: '0 20px', marginTop: 12 }}>
+                    <div className="kai-wt-resume-card">
+                      <p className="kai-wt-resume-text">
+                        {savedWt.icon} Resume: {savedWt.title}
+                      </p>
+                      <button className="kai-wt-resume-btn" onClick={resumeWalkthrough}>
+                        Resume guide
+                      </button>
+                    </div>
                   </div>
                 )
-              })}
-            </div>
-          </div>
+              })()}
 
-          {/* ── Kai Tip ──────────────────────────────────── */}
-          <div style={{
-            margin: '24px 20px 0',
-            padding: '14px 16px',
-            background: 'rgba(124,92,255,0.04)',
-            borderRadius: 14,
-            border: '1px solid rgba(124,92,255,0.08)',
-            textAlign: 'center',
-          }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: '1.5' }}>
-              💡 You don't have to finish everything today. I'll be here whenever you're ready.
-            </p>
-          </div>
+              {/* ── Next Best Action ─────────────────────────────── */}
+              <div style={{ marginTop: 12, padding: '0 20px' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                  Recommended next step
+                </p>
+                <div className="kai-next-action-card">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{nextAction.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                        <PriorityDot priority={nextAction.priority} />
+                        <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+                          {nextAction.title}
+                        </p>
+                      </div>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
+                        {nextAction.description}
+                      </p>
+                      {nextAction.reason && (
+                        <p className="kai-reason-text" style={{
+                          margin: '8px 0 0',
+                          fontSize: 12,
+                          color: '#64748b',
+                          fontStyle: 'italic',
+                          lineHeight: '1.45',
+                        }}>
+                          Why this matters: {nextAction.reason}
+                        </p>
+                      )}
+                      {nextAction.fallbackMessage && (
+                        <p style={{
+                          margin: '6px 0 0',
+                          fontSize: 12,
+                          color: '#94a3b8',
+                          fontStyle: 'italic',
+                        }}>
+                          {nextAction.fallbackMessage}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
+                        <button
+                          onClick={nextAction.action}
+                          className="kai-action-btn"
+                        >
+                          {nextAction.ctaLabel}
+                        </button>
+                        {walkthroughMap[nextAction.id] && !isRestricted && (
+                          <button onClick={() => startWalkthrough(walkthroughMap[nextAction.id])} className="kai-guide-btn">
+                            ✨ Guide me
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Quick Actions ─────────────────────────────── */}
+              <div style={{ marginTop: 20, padding: '0 20px' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>
+                  Quick actions
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {quickActions.map((qa) => {
+                    const isExpanded = expandedAction === qa.id
+                    return (
+                      <div key={qa.id} className="kai-quick-action">
+                        <button
+                          onClick={() => setExpandedAction(isExpanded ? null : qa.id)}
+                          style={{
+                            width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '11px 14px', textAlign: 'left',
+                          }}
+                        >
+                          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{qa.icon}</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', flex: 1 }}>{qa.label}</span>
+                          <span style={{
+                            fontSize: 12, color: '#94a3b8', transition: 'transform 0.2s',
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          }}>▼</span>
+                        </button>
+                        {isExpanded && (
+                          <div style={{ padding: '0 14px 14px 42px' }}>
+                            <p style={{ margin: '0 0 10px', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
+                              {qa.description}
+                            </p>
+                            <button
+                              onClick={qa.action}
+                              className="kai-action-btn"
+                            >
+                              {qa.buttonLabel}
+                            </button>
+                            {walkthroughMap[qa.id] && !isRestricted && (
+                              <button onClick={() => startWalkthrough(walkthroughMap[qa.id])} className="kai-guide-btn-sm">
+                                ✨ Guide me
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Kai Tip ──────────────────────────────────── */}
+              <div style={{
+                margin: '24px 20px 0',
+                padding: '14px 16px',
+                background: 'rgba(124,92,255,0.04)',
+                borderRadius: 14,
+                border: '1px solid rgba(124,92,255,0.08)',
+                textAlign: 'center',
+              }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: '1.5' }}>
+                  💡 You don't have to finish everything today. I'll be here whenever you're ready.
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

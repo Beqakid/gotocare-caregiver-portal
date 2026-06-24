@@ -6,6 +6,7 @@ import { buildCaregiverContext, getCaregiverNextBestAction, getContextBasedQuick
 import type { CaregiverKaiContext, KaiQuickAction } from '../utils/kaiContext'
 import { walkthroughs, walkthroughMap, getWalkthrough } from '../utils/kaiWalkthroughs'
 import type { KaiWalkthrough, KaiWalkthroughStep } from '../utils/kaiWalkthroughs'
+import { PhoneVerificationPanel } from './PhoneVerificationPanel'
 
 interface KaiPanelProps {
   profile: CaregiverProfile | null
@@ -198,9 +199,9 @@ function buildQuickActions(
       id: 'phone',
       label: 'Verify my phone',
       icon: '📱',
-      description: 'Phone verification is coming next. This will help protect your account and strengthen your Trust Passport.',
-      buttonLabel: 'Got it',
-      action: handlers.onClose,
+      description: 'Verify your phone number to protect your account and strengthen your Trust Passport.',
+      buttonLabel: 'Verify Now',
+      action: () => {}, // Overridden by KaiPanel to open PhoneVerificationPanel
     },
     {
       id: 'availability',
@@ -284,6 +285,9 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   const [walkthroughCompleted, setWalkthroughCompleted] = useState(false)
   const [savedWalkthroughId, setSavedWalkthroughId] = useState<string | null>(null)
 
+  // Phase 24D: Phone Verification panel state
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false)
+
   useEffect(() => {
     requestAnimationFrame(() => setAnimateIn(true))
 
@@ -334,11 +338,34 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     [context]
   )
 
+  // Phase 24D: Override verify-phone NBA to open PhoneVerificationPanel
+  const adjustedNextAction = useMemo(() => {
+    if (nextAction.id === 'verify-phone') {
+      return {
+        ...nextAction,
+        ctaLabel: 'Verify Now',
+        fallbackMessage: undefined,
+        action: () => setShowPhoneVerification(true),
+      }
+    }
+    return nextAction
+  }, [nextAction])
+
   // Build quick actions and reorder based on context
   const quickActions = useMemo(() => {
     const baseActions = buildQuickActions(profile, context, navHandlers)
     return getContextBasedQuickActions(context, baseActions)
   }, [profile, context])
+
+  // Phase 24D: Override phone quick action to open PhoneVerificationPanel
+  const adjustedQuickActions = useMemo(() => {
+    return quickActions.map(qa => {
+      if (qa.id === 'phone') {
+        return { ...qa, action: () => setShowPhoneVerification(true) }
+      }
+      return qa
+    })
+  }, [quickActions])
 
   // Safety: check if account is restricted
   const isRestricted = ['suspended', 'blocked', 'deactivated'].includes(
@@ -567,8 +594,16 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
         {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
 
-          {/* ── WALKTHROUGH MODE ──────────────────────────── */}
-          {activeWalkthrough ? (
+          {/* ── PHONE VERIFICATION MODE (Phase 24D) ─────── */}
+          {showPhoneVerification ? (
+            <PhoneVerificationPanel
+              profile={profile}
+              onClose={() => setShowPhoneVerification(false)}
+              onVerified={() => {
+                // Context will re-compute on next render via buildCaregiverContext
+              }}
+            />
+          ) : activeWalkthrough ? (
             renderWalkthroughPanel()
           ) : (
             <>
@@ -629,18 +664,18 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                 </p>
                 <div className="kai-next-action-card">
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{nextAction.icon}</div>
+                    <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{adjustedNextAction.icon}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                        <PriorityDot priority={nextAction.priority} />
+                        <PriorityDot priority={adjustedNextAction.priority} />
                         <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-                          {nextAction.title}
+                          {adjustedNextAction.title}
                         </p>
                       </div>
                       <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
-                        {nextAction.description}
+                        {adjustedNextAction.description}
                       </p>
-                      {nextAction.reason && (
+                      {adjustedNextAction.reason && (
                         <p className="kai-reason-text" style={{
                           margin: '8px 0 0',
                           fontSize: 12,
@@ -648,28 +683,28 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                           fontStyle: 'italic',
                           lineHeight: '1.45',
                         }}>
-                          Why this matters: {nextAction.reason}
+                          Why this matters: {adjustedNextAction.reason}
                         </p>
                       )}
-                      {nextAction.fallbackMessage && (
+                      {adjustedNextAction.fallbackMessage && (
                         <p style={{
                           margin: '6px 0 0',
                           fontSize: 12,
                           color: '#94a3b8',
                           fontStyle: 'italic',
                         }}>
-                          {nextAction.fallbackMessage}
+                          {adjustedNextAction.fallbackMessage}
                         </p>
                       )}
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
                         <button
-                          onClick={nextAction.action}
+                          onClick={adjustedNextAction.action}
                           className="kai-action-btn"
                         >
-                          {nextAction.ctaLabel}
+                          {adjustedNextAction.ctaLabel}
                         </button>
-                        {walkthroughMap[nextAction.id] && !isRestricted && (
-                          <button onClick={() => startWalkthrough(walkthroughMap[nextAction.id])} className="kai-guide-btn">
+                        {walkthroughMap[adjustedNextAction.id] && !isRestricted && (
+                          <button onClick={() => startWalkthrough(walkthroughMap[adjustedNextAction.id])} className="kai-guide-btn">
                             ✨ Guide me
                           </button>
                         )}
@@ -685,7 +720,7 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                   Quick actions
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {quickActions.map((qa) => {
+                  {adjustedQuickActions.map((qa) => {
                     const isExpanded = expandedAction === qa.id
                     return (
                       <div key={qa.id} className="kai-quick-action">

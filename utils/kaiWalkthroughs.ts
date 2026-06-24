@@ -159,31 +159,29 @@ const trustPassport: KaiWalkthrough = {
 
 const phoneVerification: KaiWalkthrough = {
   id: 'phone-verification',
-  title: 'Phone Verification',
-  intro: 'Phone verification will help protect your Carehia account and strengthen your Trust Passport. For now, you can continue building your profile and Trust Passport.',
+  title: 'Verify Your Phone',
+  intro: 'Phone verification protects your account and adds a trust signal to your Trust Passport. It only takes a minute.',
   icon: '📱',
   steps: [
     {
       id: 'pv-intro',
-      title: 'Phone verification is coming next',
-      description: 'We\'re building phone verification to help keep your account secure and boost your Trust Passport score. It\'s not available just yet, but it will be soon.',
-      fallbackText: 'This feature is currently in development. You\'ll be notified when it\'s ready. In the meantime, you can strengthen your profile in other ways.',
+      title: 'Why verify your phone?',
+      description: 'A verified phone number helps Carehia and families trust that your account is real and secure. It also strengthens your Trust Passport score.',
     },
     {
-      id: 'pv-what',
-      title: 'What phone verification will do',
-      description: 'Once available, phone verification will confirm your phone number and add a verified badge to your Trust Passport. It\'s a quick step that adds real credibility.',
-      fallbackText: 'No action needed right now — we\'ll let you know as soon as this is ready.',
+      id: 'pv-how',
+      title: 'How it works',
+      description: 'You\'ll enter your phone number, receive a 6-digit code, and type it in to confirm. Your number is never displayed publicly — it stays private and secure.',
     },
     {
-      id: 'pv-alternatives',
-      title: 'What you can do right now',
-      description: 'While you wait, there are great ways to strengthen your profile. You can add proof to your Trust Passport or complete your caregiver profile.',
-      ctaLabel: 'Open Trust Passport',
-      ctaAction: 'trust',
+      id: 'pv-start',
+      title: 'Ready to verify?',
+      description: 'Open Kai and tap "Verify Now" on the phone verification card. You\'ll be guided through each step. It only takes about 30 seconds.',
+      ctaLabel: 'Back to Kai',
+      ctaAction: 'close',
     },
   ],
-  completionMessage: 'You\'re all set for now. We\'ll let you know when phone verification is ready.',
+  completionMessage: 'You know how phone verification works. Tap "Verify Now" in Kai to get started!',
 }
 
 const serviceArea: KaiWalkthrough = {

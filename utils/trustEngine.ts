@@ -239,9 +239,17 @@ export function buildTrustModules(profile: any, documents: any[], workData?: Wor
     basicCount >= 2 ? 'In Progress' :
     'Not Started'
 
-  // ── Contact Verification ──
+  // ── Contact Verification (Phase 24D: + phone verified) ──
   const emailVerified = !!(profile?.email_verified || profile?.emailVerified)
-  const contactStatus: ModuleStatus = emailVerified ? 'Verified' : 'In Progress'
+  let phoneVerifiedForTrust = !!(profile?.phoneVerified)
+  try {
+    if (!phoneVerifiedForTrust && typeof localStorage !== 'undefined') {
+      phoneVerifiedForTrust = localStorage.getItem('cgp_phone_verified') === 'true'
+    }
+  } catch {}
+  const contactBothVerified = emailVerified && phoneVerifiedForTrust
+  const contactEitherVerified = emailVerified || phoneVerifiedForTrust
+  const contactStatus: ModuleStatus = contactBothVerified ? 'Verified' : contactEitherVerified ? 'In Progress' : 'Not Started'
 
   // ── Selfie & Intro ──
   const selfieOk = hasPhoto && hasBio
@@ -312,11 +320,11 @@ export function buildTrustModules(profile: any, documents: any[], workData?: Wor
     {
       moduleType: 'contact_verification',
       title: 'Contact Verification',
-      description: 'Confirm your email so Carehia and families know you are reachable.',
+      description: 'Confirm your email and phone so Carehia and families know you are reachable.',
       status: contactStatus,
-      completionPercentage: emailVerified ? 100 : 50,
+      completionPercentage: contactBothVerified ? 100 : (emailVerified ? 70 : (phoneVerifiedForTrust ? 50 : 30)),
       estimatedTime: '2 min',
-      nextAction: emailVerified ? 'Verified' : 'Verify Email',
+      nextAction: contactBothVerified ? 'Verified' : (!emailVerified ? 'Verify Email' : 'Verify Phone'),
       unlockMessage: 'Builds client confidence that your contact info is real.',
       publicBadgeEligibility: true,
       lastUpdatedAt: new Date().toISOString(),
@@ -566,7 +574,11 @@ export function getNextTrustStep(modules: TrustPassportModule[]): NextTrustStep 
 export function getPublicBadges(modules: TrustPassportModule[]): string[] {
   const s = Object.fromEntries(modules.map(m => [m.moduleType, m.status])) as Record<ModuleType, ModuleStatus>
   const badges: string[] = []
-  if (s['contact_verification'] === 'Verified') badges.push('Email Verified')
+  if (s['contact_verification'] === 'Verified') badges.push('Contact Verified')
+  // Phase 24D: phone-only badge when contact_verification isn't fully Verified yet
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('cgp_phone_verified') === 'true' && s['contact_verification'] !== 'Verified') badges.push('Phone Verified')
+  } catch {}
   if (
     s['basic_profile'] === 'Verified' &&
     ['Verified', 'Submitted'].includes(s['contact_verification'] || '')

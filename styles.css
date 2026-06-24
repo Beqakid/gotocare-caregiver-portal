@@ -404,3 +404,69 @@ nav[role="navigation"],
     top: -10px;
   }
 }
+
+/* Phase 24B: Kai Context Engine — CSS Additions */
+/* APPEND to existing styles.css — no duplicate .kai-* classes */
+
+.kai-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.kai-status-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kai-status-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.kai-status-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.kai-priority-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.kai-priority-dot--critical { background: #EF4444; }
+.kai-priority-dot--high     { background: #F59E0B; }
+.kai-priority-dot--medium   { background: #3B82F6; }
+.kai-priority-dot--low      { background: #22C55E; }
+
+.kai-reason-text {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+/* Mini circular progress host */
+.kai-mini-progress {
+  flex-shrink: 0;
+}
+
+.kai-mini-progress svg circle {
+  transition: stroke-dashoffset 0.5s ease;
+}

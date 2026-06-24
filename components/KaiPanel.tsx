@@ -1,7 +1,9 @@
 // @ts-nocheck
-// Phase 24A: Kai Guided Assistant Panel
+// Phase 24B: Kai Guided Assistant Panel — Context Engine + Next Best Action
 import React, { useState, useEffect, useMemo } from 'react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
+import { buildCaregiverContext, getCaregiverNextBestAction, getContextBasedQuickActions } from '../utils/kaiContext'
+import type { CaregiverKaiContext, KaiQuickAction } from '../utils/kaiContext'
 
 interface KaiPanelProps {
   profile: CaregiverProfile | null
@@ -16,170 +18,175 @@ interface KaiPanelProps {
   onNavigateToSection: (section: string, scrollTo: string) => void
 }
 
-// ── Next-Best-Action Priority Logic ──────────────────────────────────────
-interface NextAction {
-  title: string
-  description: string
-  buttonLabel: string
-  action: () => void
-  icon: string
+// ── Mini Circular Progress ───────────────────────────────────────────────
+function MiniProgress({ percent, size = 32, strokeWidth = 3, color = '#7C5CFF' }: {
+  percent: number; size?: number; strokeWidth?: number; color?: string
+}) {
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (Math.min(Math.max(percent, 0), 100) / 100) * circumference
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+        stroke="rgba(124,92,255,0.12)" strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+        stroke={color} strokeWidth={strokeWidth}
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
+    </svg>
+  )
 }
 
-function getNextBestAction(profile: CaregiverProfile | null, documents: CaregiverDocument[], handlers: {
-  onNavigateToProfile: () => void
-  onNavigateToTrust: () => void
-  onNavigateToEarnings: () => void
-  onNavigateToWork: () => void
-  onNavigateToHome: () => void
-  onNavigateToSection: (section: string, scrollTo: string) => void
-}): NextAction {
-  // 1. Onboarding incomplete
-  try {
-    const obComplete = localStorage.getItem('cgp_onboarding_complete') === 'true'
-    if (!obComplete) {
-      return {
-        title: 'Continue onboarding',
-        description: 'Let\'s finish setting up your Carehia office so families can find you.',
-        buttonLabel: 'Continue Setup',
-        action: handlers.onNavigateToHome,
-        icon: '🚀',
-      }
-    }
-  } catch {}
+// ── Status Summary Grid ─────────────────────────────────────────────────
+function StatusSummary({ context }: { context: CaregiverKaiContext }) {
+  const profilePct = context.profileCompletePercent ?? 0
+  const trustPct = context.trustPassportPercent ?? 0
+  const phoneOk = context.phoneVerified ?? false
+  const uninvoicedHrs = context.uninvoicedHours ?? 0
 
-  // 2. Profile incomplete (< 70%)
-  const completeness = profile?.completenessScore ?? null
-  const missingFields = profile?.missingFields ?? []
-  if (completeness !== null && completeness < 70) {
-    const missingHint = missingFields.length > 0
-      ? ` Consider adding: ${missingFields.slice(0, 3).join(', ')}.`
-      : ''
-    return {
-      title: 'Complete your profile',
-      description: `Your profile is ${completeness}% complete. Reaching 70% helps families find you in search.${missingHint}`,
-      buttonLabel: 'Open Profile',
-      action: handlers.onNavigateToProfile,
-      icon: '📝',
-    }
+  const gridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 10,
+    padding: '0 20px 4px',
   }
 
-  // 3. No profile photo
-  if (!profile?.profilePhoto) {
-    return {
-      title: 'Add a profile photo',
-      description: 'Caregivers with photos get up to 3× more care requests. A friendly headshot goes a long way!',
-      buttonLabel: 'Open Profile',
-      action: handlers.onNavigateToProfile,
-      icon: '📸',
-    }
+  const outerStyle: React.CSSProperties = {
+    background: 'rgba(124,92,255,0.04)',
+    border: '1px solid rgba(124,92,255,0.08)',
+    borderRadius: 14,
+    padding: 10,
+    margin: '0 0 4px',
   }
 
-  // 4. No bio
-  if (!profile?.bio) {
-    return {
-      title: 'Write a short bio',
-      description: 'Tell families a little about yourself — your experience, personality, and what makes you a great caregiver.',
-      buttonLabel: 'Open Profile',
-      action: handlers.onNavigateToProfile,
-      icon: '✍️',
-    }
+  const cellStyle: React.CSSProperties = {
+    background: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
   }
 
-  // 5. No hourly rate
-  if (!profile?.hourlyRate) {
-    return {
-      title: 'Set your hourly rate',
-      description: 'A clear rate helps families know what to expect and speeds up the booking process.',
-      buttonLabel: 'Open Profile',
-      action: () => handlers.onNavigateToSection('overview', 'section-rate'),
-      icon: '💵',
-    }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: 500,
+    margin: 0,
+    lineHeight: 1.3,
   }
 
-  // 6. Trust Passport — check documents
-  if (documents.length === 0) {
-    return {
-      title: 'Start your Trust Passport',
-      description: 'Trust Passport helps you build trust step by step with verified information, proof, and profile strength.',
-      buttonLabel: 'Open Trust Passport',
-      action: handlers.onNavigateToTrust,
-      icon: '🛡️',
-    }
+  const valueStyle: React.CSSProperties = {
+    fontSize: 15,
+    fontWeight: 700,
+    margin: 0,
+    lineHeight: 1.2,
   }
 
-  // 7. No location
-  if (!profile?.location?.city) {
-    return {
-      title: 'Set your service area',
-      description: 'Your service area helps Carehia show you local opportunities without revealing your exact address.',
-      buttonLabel: 'Set Service Area',
-      action: () => handlers.onNavigateToSection('overview', 'section-service-area'),
-      icon: '📍',
-    }
-  }
+  return (
+    <div style={{ padding: '0 20px' }}>
+      <div style={outerStyle}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px', paddingLeft: 2 }}>
+          Your status
+        </p>
+        <div style={gridStyle.gap ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 } : gridStyle}>
+          {/* Profile */}
+          <div style={cellStyle}>
+            <MiniProgress percent={profilePct} size={34} color="#7C5CFF" />
+            <div>
+              <p style={{ ...valueStyle, color: '#0f172a' }}>{profilePct}%</p>
+              <p style={labelStyle}>Profile</p>
+            </div>
+          </div>
 
-  // 8. No skills
-  if (!profile?.skills || profile.skills.length === 0) {
-    return {
-      title: 'Add your care skills',
-      description: 'Let families know what types of care you can provide — personal care, companionship, medical support, and more.',
-      buttonLabel: 'Open Profile',
-      action: handlers.onNavigateToProfile,
-      icon: '🩺',
-    }
-  }
+          {/* Trust */}
+          <div style={cellStyle}>
+            <MiniProgress percent={trustPct} size={34} color="#7C5CFF" />
+            <div>
+              <p style={{ ...valueStyle, color: '#0f172a' }}>{trustPct}%</p>
+              <p style={labelStyle}>Trust</p>
+            </div>
+          </div>
 
-  // 9. Check for uninvoiced hours
-  try {
-    const readyAmt = localStorage.getItem('cgp_ready_to_invoice_amount')
-    if (readyAmt && parseFloat(readyAmt) > 0) {
-      return {
-        title: 'Create an invoice',
-        description: `You have $${parseFloat(readyAmt).toFixed(2)} ready to invoice. Turn your tracked hours into a professional invoice.`,
-        buttonLabel: 'Open Money',
-        action: handlers.onNavigateToEarnings,
-        icon: '💰',
-      }
-    }
-  } catch {}
+          {/* Phone */}
+          <div style={cellStyle}>
+            <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>{phoneOk ? '✓' : '○'}</span>
+            <div>
+              <p style={{ ...valueStyle, color: phoneOk ? '#22C55E' : '#F59E0B' }}>
+                {phoneOk ? 'Verified' : 'Not verified'}
+              </p>
+              <p style={labelStyle}>Phone</p>
+            </div>
+          </div>
 
-  // 10. Default
-  return {
-    title: 'Review your Today screen',
-    description: 'You\'re in great shape! Check your Today screen for any new opportunities, scheduled visits, or updates.',
-    buttonLabel: 'Open Today',
-    action: handlers.onNavigateToHome,
-    icon: '✨',
-  }
+          {/* Money */}
+          <div style={cellStyle}>
+            <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>
+              {uninvoicedHrs > 0 ? '💰' : '✨'}
+            </span>
+            <div>
+              <p style={{ ...valueStyle, color: uninvoicedHrs > 0 ? '#F59E0B' : '#22C55E' }}>
+                {uninvoicedHrs > 0
+                  ? `${Math.round(uninvoicedHrs * 10) / 10} hrs ready`
+                  : 'All clear'}
+              </p>
+              <p style={labelStyle}>Money</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-// ── Quick Actions ────────────────────────────────────────────────────────
-interface QuickAction {
-  id: string
-  label: string
-  icon: string
-  description: string
-  buttonLabel: string
-  action: () => void
+// ── Priority Dot ─────────────────────────────────────────────────────────
+function PriorityDot({ priority }: { priority: 'critical' | 'high' | 'medium' | 'low' }) {
+  const colors: Record<string, string> = {
+    critical: '#EF4444',
+    high: '#F59E0B',
+    medium: '#3B82F6',
+    low: '#22C55E',
+  }
+  return (
+    <span style={{
+      display: 'inline-block',
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: colors[priority] || '#94a3b8',
+      marginRight: 6,
+      flexShrink: 0,
+      verticalAlign: 'middle',
+    }} />
+  )
 }
 
-function getQuickActions(profile: CaregiverProfile | null, handlers: {
-  onNavigateToProfile: () => void
-  onNavigateToTrust: () => void
-  onNavigateToEarnings: () => void
-  onNavigateToWork: () => void
-  onNavigateToSchedule: () => void
-  onNavigateToHome: () => void
-  onNavigateToSection: (section: string, scrollTo: string) => void
-  onClose: () => void
-}): QuickAction[] {
-  return [
+// ── Quick Actions (same list as Phase 24A) ───────────────────────────────
+function buildQuickActions(
+  profile: CaregiverProfile | null,
+  context: CaregiverKaiContext,
+  handlers: {
+    onNavigateToProfile: () => void
+    onNavigateToTrust: () => void
+    onNavigateToEarnings: () => void
+    onNavigateToWork: () => void
+    onNavigateToSchedule: () => void
+    onNavigateToHome: () => void
+    onNavigateToSection: (section: string, scrollTo: string) => void
+    onClose: () => void
+  }
+): KaiQuickAction[] {
+  const accountRestricted = ['suspended', 'blocked', 'deactivated'].includes(
+    (context.accountStatus || 'active').toLowerCase()
+  )
+
+  const actions: KaiQuickAction[] = [
     {
       id: 'profile',
       label: 'Complete my profile',
       icon: '📝',
-      description: profile?.completenessScore
-        ? `Your profile is ${profile.completenessScore}% complete. Add a photo, bio, services, and availability to improve your Carehia presence.`
+      description: (context.profileCompletePercent != null)
+        ? `Your profile is ${context.profileCompletePercent}% complete. Add a photo, bio, services, and availability to improve your Carehia presence.`
         : 'Add a photo, bio, services, and availability to help families find you.',
       buttonLabel: 'Open Profile',
       action: handlers.onNavigateToProfile,
@@ -216,39 +223,48 @@ function getQuickActions(profile: CaregiverProfile | null, handlers: {
       buttonLabel: 'Set Service Area',
       action: () => handlers.onNavigateToSection('overview', 'section-service-area'),
     },
-    {
-      id: 'timer',
-      label: 'Clock in / Track hours',
-      icon: '⏱️',
-      description: 'Track your hours as you work so your timesheets and invoices are easier to manage.',
-      buttonLabel: 'Open Time Tracker',
-      action: handlers.onNavigateToWork,
-    },
-    {
-      id: 'invoice',
-      label: 'Create invoice',
-      icon: '💰',
-      description: 'Carehia can help you turn tracked hours into timesheets or invoices.',
-      buttonLabel: 'Open Money',
-      action: handlers.onNavigateToEarnings,
-    },
-    {
-      id: 'share',
-      label: 'Share my profile',
-      icon: '🔗',
-      description: 'Your public caregiver profile helps interested families or clients understand your skills, trust, and experience.',
-      buttonLabel: 'Open Profile',
-      action: handlers.onNavigateToProfile,
-    },
-    {
-      id: 'support',
-      label: 'Contact support',
-      icon: '💬',
-      description: 'Need help? Reach us at support@carehia.com — we\'re here for you.',
-      buttonLabel: 'Email Support',
-      action: () => { window.location.href = 'mailto:support@carehia.com' },
-    },
   ]
+
+  // Only show work/invoice actions if account is not restricted
+  if (!accountRestricted) {
+    actions.push(
+      {
+        id: 'timer',
+        label: 'Clock in / Track hours',
+        icon: '⏱️',
+        description: 'Track your hours as you work so your timesheets and invoices are easier to manage.',
+        buttonLabel: 'Open Time Tracker',
+        action: handlers.onNavigateToWork,
+      },
+      {
+        id: 'invoice',
+        label: 'Create invoice',
+        icon: '💰',
+        description: 'Carehia can help you turn tracked hours into timesheets or invoices.',
+        buttonLabel: 'Open Money',
+        action: handlers.onNavigateToEarnings,
+      },
+      {
+        id: 'share',
+        label: 'Share my profile',
+        icon: '🔗',
+        description: 'Your public caregiver profile helps interested families or clients understand your skills, trust, and experience.',
+        buttonLabel: 'Open Profile',
+        action: handlers.onNavigateToProfile,
+      },
+    )
+  }
+
+  actions.push({
+    id: 'support',
+    label: 'Contact support',
+    icon: '💬',
+    description: 'Need help? Reach us at support@carehia.com — we\'re here for you.',
+    buttonLabel: 'Email Support',
+    action: () => { window.location.href = 'mailto:support@carehia.com' },
+  })
+
+  return actions
 }
 
 // ── Main Component ───────────────────────────────────────────────────────
@@ -292,14 +308,27 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     onClose: handleClose,
   }
 
-  const nextAction = useMemo(
-    () => getNextBestAction(profile, documents, navHandlers),
+  // Build context from profile + documents + localStorage + storage utils
+  const context = useMemo(
+    () => buildCaregiverContext(profile, documents),
     [profile, documents]
   )
 
-  const quickActions = useMemo(
-    () => getQuickActions(profile, navHandlers),
-    [profile]
+  // Get NBA from context
+  const nextAction = useMemo(
+    () => getCaregiverNextBestAction(context, navHandlers),
+    [context]
+  )
+
+  // Build quick actions and reorder based on context
+  const quickActions = useMemo(() => {
+    const baseActions = buildQuickActions(profile, context, navHandlers)
+    return getContextBasedQuickActions(context, baseActions)
+  }, [profile, context])
+
+  // Safety: check if account is restricted
+  const isRestricted = ['suspended', 'blocked', 'deactivated'].includes(
+    (context.accountStatus || 'active').toLowerCase()
   )
 
   return (
@@ -357,10 +386,41 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
         </div>
 
         {/* Scrollable content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 100px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 100px' }}>
+
+          {/* ── Status Summary Grid ─────────────────────────── */}
+          <div style={{ marginTop: 4 }}>
+            <StatusSummary context={context} />
+          </div>
+
+          {/* ── Account Restricted Warning ───────────────────── */}
+          {isRestricted && (
+            <div style={{ padding: '0 20px', marginTop: 12 }}>
+              <div style={{
+                background: 'rgba(239,68,68,0.06)',
+                border: '1px solid rgba(239,68,68,0.15)',
+                borderRadius: 14,
+                padding: '14px 16px',
+              }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#EF4444' }}>
+                  ⚠️ Account needs attention
+                </p>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                  Your account is currently restricted. Please contact our support team so we can help resolve this quickly.
+                </p>
+                <button
+                  onClick={() => { window.location.href = 'mailto:support@carehia.com' }}
+                  className="kai-action-btn"
+                  style={{ marginTop: 10, background: '#EF4444' }}
+                >
+                  Contact Support
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Next Best Action ─────────────────────────────── */}
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, padding: '0 20px' }}>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
               Recommended next step
             </p>
@@ -368,17 +428,41 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{nextAction.icon}</div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-                    {nextAction.title}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                    <PriorityDot priority={nextAction.priority} />
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+                      {nextAction.title}
+                    </p>
+                  </div>
                   <p style={{ margin: '6px 0 0', fontSize: 13, color: '#475569', lineHeight: '1.5' }}>
                     {nextAction.description}
                   </p>
+                  {nextAction.reason && (
+                    <p className="kai-reason-text" style={{
+                      margin: '8px 0 0',
+                      fontSize: 12,
+                      color: '#64748b',
+                      fontStyle: 'italic',
+                      lineHeight: '1.45',
+                    }}>
+                      Why this matters: {nextAction.reason}
+                    </p>
+                  )}
+                  {nextAction.fallbackMessage && (
+                    <p style={{
+                      margin: '6px 0 0',
+                      fontSize: 12,
+                      color: '#94a3b8',
+                      fontStyle: 'italic',
+                    }}>
+                      {nextAction.fallbackMessage}
+                    </p>
+                  )}
                   <button
                     onClick={nextAction.action}
                     className="kai-action-btn"
                   >
-                    {nextAction.buttonLabel}
+                    {nextAction.ctaLabel}
                   </button>
                 </div>
               </div>
@@ -386,7 +470,7 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
           </div>
 
           {/* ── Quick Actions ─────────────────────────────── */}
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 20, padding: '0 20px' }}>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>
               Quick actions
             </p>
@@ -431,7 +515,8 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
 
           {/* ── Kai Tip ──────────────────────────────────── */}
           <div style={{
-            marginTop: 24, padding: '14px 16px',
+            margin: '24px 20px 0',
+            padding: '14px 16px',
             background: 'rgba(124,92,255,0.04)',
             borderRadius: 14,
             border: '1px solid rgba(124,92,255,0.08)',

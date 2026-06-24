@@ -78,6 +78,8 @@ const TrustPassport = React.lazy(() => import('./components/TrustPassport').then
 // Phase 23A: WOW Caregiver Onboarding
 const CaregiverOnboarding = React.lazy(() => import('./components/CaregiverOnboarding').then(m => ({ default: m.CaregiverOnboarding })))
 const VerificationCenter = React.lazy(() => import('./components/VerificationTab').then(m => ({ default: m.VerificationTab })))
+// Phase 24A: Kai Guided Assistant Panel
+const KaiPanel = React.lazy(() => import('./components/KaiPanel').then(m => ({ default: m.KaiPanel })))
 
 const VALID_TABS: TabType[] = ['home', 'schedule', 'requests', 'earnings', 'profile', 'marketing']
 const LAST_TAB_KEY = 'cgp_last_tab'
@@ -366,6 +368,10 @@ const App: React.FC<{}> = () => {
   const [showVerifCenter, setShowVerifCenter] = useState(false)
   const handleOpenVerifCenter = () => setShowVerifCenter(true)
   const handleCloseVerifCenter = () => setShowVerifCenter(false)
+  // Phase 24A: Kai guided assistant panel
+  const [showKaiPanel, setShowKaiPanel] = useState(false)
+  const handleOpenKai = () => setShowKaiPanel(true)
+  const handleCloseKai = () => setShowKaiPanel(false)
 
   const handleNavigateToSection = (section: 'overview' | 'verification' | 'certifications' | 'documents' | 'badges' | 'settings' | 'profile' | 'trust' | 'clients' | 'trust-passport', scrollTo: string) => {
     if (section === 'trust-passport') { setShowTrustPassport(true); return }
@@ -1218,6 +1224,7 @@ const App: React.FC<{}> = () => {
         activeTab={activeTab}
         onTabChange={navigateToTab}
         requestCount={pendingRequestCount}
+        onKaiPress={handleOpenKai}
       />
 
       {/* ── Phase 26B: Caregiver Subscription Return Banner ───────────────── */}
@@ -1282,6 +1289,24 @@ const App: React.FC<{}> = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Phase 24A: Kai Guided Assistant Panel ──────────────────────── */}
+      {showKaiPanel && (
+        <React.Suspense fallback={null}>
+          <KaiPanel
+            profile={profile}
+            documents={documents}
+            onClose={handleCloseKai}
+            onNavigateToProfile={() => { handleCloseKai(); navigateToTab('profile') }}
+            onNavigateToTrust={() => { handleCloseKai(); setShowTrustPassport(true) }}
+            onNavigateToEarnings={() => { handleCloseKai(); navigateToTab('earnings') }}
+            onNavigateToWork={() => { handleCloseKai(); navigateToTab('schedule') }}
+            onNavigateToSchedule={() => { handleCloseKai(); navigateToTab('schedule') }}
+            onNavigateToHome={() => { handleCloseKai(); navigateToTab('home') }}
+            onNavigateToSection={(section, scrollTo) => { handleCloseKai(); handleNavigateToSection(section as any, scrollTo) }}
+          />
+        </React.Suspense>
       )}
 
       {/* ── Phase 5: Trust Passport full-screen overlay ────────────────── */}

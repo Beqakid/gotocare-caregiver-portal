@@ -2,8 +2,8 @@
 // Phase 24C: Kai Guided Assistant Panel — Context Engine + Next Best Action + Guided Walkthroughs
 import React, { useState, useEffect, useMemo } from 'react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
-import { buildCaregiverContext, getCaregiverNextBestAction, getContextBasedQuickActions } from '../utils/kaiContext'
-import type { CaregiverKaiContext, KaiQuickAction } from '../utils/kaiContext'
+import { buildCaregiverContext, getCaregiverNextBestAction, getContextBasedQuickActions, getCaregiverNBACandidates, SAFE_FALLBACK_NBA } from '../utils/kaiContext'
+import type { CaregiverKaiContext, KaiQuickAction, KaiNBACandidate } from '../utils/kaiContext'
 import { walkthroughs, walkthroughMap, getWalkthrough } from '../utils/kaiWalkthroughs'
 import type { KaiWalkthrough, KaiWalkthroughStep } from '../utils/kaiWalkthroughs'
 import { PhoneVerificationPanel } from './PhoneVerificationPanel'
@@ -393,37 +393,57 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     [context]
   )
 
-  // Get NBA from context
-  const nextAction = useMemo(
-    () => getCaregiverNextBestAction(context, navHandlers),
-    [context]
-  )
-
-  // Phase 24D: Override verify-phone NBA to open PhoneVerificationPanel
-  // Phase 25C: Foundation policy evaluation on NBA
+  // Phase 25D: Generate NBA candidates and evaluate through Foundation policy
+  // Instead of choosing one NBA then guarding it, we prepare all candidates,
+  // filter through Foundation, and select the best allowed/confirmable one.
   const adjustedNextAction = useMemo(() => {
-    let action = nextAction
-    if (nextAction.id === 'verify-phone') {
-      action = {
-        ...nextAction,
+    const candidates = getCaregiverNBACandidates(context, navHandlers)
+    console.debug('[Kai Foundation 25D] NBA candidates generated:', candidates.length, candidates.map(c => c.id))
+
+    // Evaluate each candidate through Foundation policy
+    let selectedCandidate: KaiNBACandidate | null = null
+    for (const candidate of candidates) {
+      const decision = evaluatePanelAction(candidate.id, adapterContext)
+
+      // Skip blocked, unsupported, high-risk candidates
+      if (!decision.allowed) {
+        console.debug('[Kai Foundation 25D] NBA candidate removed:', candidate.id, '→', decision.reason)
+        continue
+      }
+      if (decision.riskLevel === 'high') {
+        console.debug('[Kai Foundation 25D] NBA candidate removed (high-risk):', candidate.id)
+        continue
+      }
+
+      // Medium-risk: allow but mark requiresConfirmation
+      if (decision.requiresConfirmation) {
+        console.debug('[Kai Foundation 25D] NBA candidate marked requiresConfirmation:', candidate.id, decision.riskLevel)
+      }
+
+      // First allowed candidate wins (candidates are already in priority order)
+      selectedCandidate = candidate
+      console.debug('[Kai Foundation 25D] NBA selected:', candidate.id, '→', decision.riskLevel, decision.allowed ? 'ALLOWED' : 'BLOCKED')
+      break
+    }
+
+    // Fallback if no allowed candidate
+    if (!selectedCandidate) {
+      console.debug('[Kai Foundation 25D] All NBA candidates blocked — using safe fallback')
+      selectedCandidate = { ...SAFE_FALLBACK_NBA }
+    }
+
+    // Phase 24D: Override verify-phone to open PhoneVerificationPanel
+    if (selectedCandidate.id === 'verify-phone') {
+      selectedCandidate = {
+        ...selectedCandidate,
         ctaLabel: 'Verify Now',
         fallbackMessage: undefined,
         action: () => setShowPhoneVerification(true),
       }
     }
-    // Phase 25C: Evaluate NBA through Foundation policy
-    const decision = evaluatePanelAction(action.id, adapterContext)
-    console.debug('[Kai Foundation] NBA evaluated:', action.id, '→', decision.riskLevel, decision.allowed ? 'ALLOWED' : 'BLOCKED')
-    if (!decision.allowed) {
-      return {
-        ...action,
-        action: () => {
-          console.warn('[Kai Foundation] NBA action blocked by policy:', action.id, decision.reason)
-        },
-      }
-    }
-    return action
-  }, [nextAction, adapterContext])
+
+    return selectedCandidate
+  }, [context, adapterContext])
 
   // Build quick actions and reorder based on context
   const quickActions = useMemo(() => {

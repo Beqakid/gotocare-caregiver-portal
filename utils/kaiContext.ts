@@ -431,6 +431,294 @@ export function getCaregiverNextBestAction(
   }
 }
 
+// ── Phase 25D: NBA Candidate Model ────────────────────────────────────────
+// Generates ALL applicable NBAs as a priority-ranked candidate list
+// so Foundation policy can evaluate each before one is displayed.
+
+export type KaiNBACandidate = {
+  id: string
+  title: string
+  description: string
+  reason: string
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  priorityRank: number // 0=critical, 1=high, 2=medium, 3=low — for sorting
+  ctaLabel: string
+  icon: string
+  targetScreen: string
+  fallbackMessage?: string
+  foundationActionId: string // Maps to kaiActionRegistry ID
+  action: () => void
+}
+
+/** Priority string → numeric rank for sorting (lower = higher priority) */
+const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
+
+/**
+ * Phase 25D: Generate all applicable NBA candidates in priority order.
+ * Unlike getCaregiverNextBestAction (which returns the first match),
+ * this returns ALL candidates whose conditions are met, so Foundation
+ * can evaluate and filter before display.
+ */
+export function getCaregiverNBACandidates(
+  context: CaregiverKaiContext,
+  handlers: {
+    onNavigateToProfile: () => void
+    onNavigateToTrust: () => void
+    onNavigateToEarnings: () => void
+    onNavigateToWork: () => void
+    onNavigateToSchedule: () => void
+    onNavigateToHome: () => void
+    onNavigateToSection: (section: string, scrollTo: string) => void
+    onClose: () => void
+  }
+): KaiNBACandidate[] {
+  const candidates: KaiNBACandidate[] = []
+  const status = (context.accountStatus || 'active').toLowerCase()
+
+  // 1. Account/safety restriction (critical)
+  if (['suspended', 'blocked', 'deactivated'].includes(status)) {
+    candidates.push({
+      id: 'account-attention',
+      title: 'Account needs attention',
+      description: 'Your account is currently restricted. Please contact our support team so we can help resolve this quickly.',
+      reason: 'Your account status needs to be resolved before you can access all features.',
+      priority: 'critical',
+      priorityRank: 0,
+      ctaLabel: 'Contact Support',
+      icon: '⚠️',
+      targetScreen: 'support',
+      foundationActionId: 'contact_support',
+      action: () => { window.location.href = 'mailto:support@carehia.com' },
+    })
+  }
+
+  // 2. Onboarding incomplete (high)
+  if (!context.onboardingComplete) {
+    candidates.push({
+      id: 'finish-onboarding',
+      title: 'Finish setting up your Carehia office',
+      description: 'Complete your initial setup so you can start building your caregiver profile and finding work.',
+      reason: 'Setting up your office is the first step to getting discovered by families who need care.',
+      priority: 'high',
+      priorityRank: 1,
+      ctaLabel: 'Continue Onboarding',
+      icon: '🚀',
+      targetScreen: 'home',
+      foundationActionId: 'open_today',
+      action: handlers.onNavigateToHome,
+    })
+  }
+
+  // 3. Phone not verified (high)
+  if (!context.phoneVerified) {
+    candidates.push({
+      id: 'verify-phone',
+      title: 'Verify your phone',
+      description: 'Phone verification helps protect your account and lets families know your contact information is real.',
+      reason: 'Verified contact information helps families and Carehia trust that your account is secure.',
+      priority: 'high',
+      priorityRank: 1,
+      ctaLabel: 'Learn More',
+      icon: '📱',
+      targetScreen: 'phone-verification',
+      fallbackMessage: 'Phone verification is coming soon. We\'ll let you know when it\'s ready.',
+      foundationActionId: 'verify_phone',
+      action: handlers.onClose,
+    })
+  }
+
+  // 4. Email not verified (high)
+  if (!context.emailVerified) {
+    candidates.push({
+      id: 'verify-email',
+      title: 'Verify your email',
+      description: 'Confirm your email address so Carehia and families can reach you reliably.',
+      reason: 'A verified email builds confidence that your account is authentic and reachable.',
+      priority: 'high',
+      priorityRank: 1,
+      ctaLabel: 'Verify Email',
+      icon: '📧',
+      targetScreen: 'profile',
+      foundationActionId: 'open_profile',
+      action: handlers.onNavigateToProfile,
+    })
+  }
+
+  // 5. Profile incomplete < 70% (high)
+  if ((context.profileCompletePercent ?? 0) < 70) {
+    const pct = context.profileCompletePercent ?? 0
+    candidates.push({
+      id: 'complete-profile',
+      title: 'Complete your profile',
+      description: `Your profile is ${pct}% complete. A more complete profile helps families feel confident when reviewing you.`,
+      reason: 'A stronger profile helps clients feel more confident reviewing you.',
+      priority: 'high',
+      priorityRank: 1,
+      ctaLabel: 'Open Profile',
+      icon: '📝',
+      targetScreen: 'profile',
+      foundationActionId: 'open_profile',
+      action: handlers.onNavigateToProfile,
+    })
+  }
+
+  // 6. Trust Passport < 50% (medium)
+  if ((context.trustPassportPercent ?? 0) < 50) {
+    const pct = context.trustPassportPercent ?? 0
+    candidates.push({
+      id: 'start-trust-passport',
+      title: 'Start your Trust Passport',
+      description: `Your Trust Passport is ${pct}% complete. Building trust signals helps families make better decisions about their care.`,
+      reason: 'Trust signals help families make better decisions.',
+      priority: 'medium',
+      priorityRank: 2,
+      ctaLabel: 'Open Trust Passport',
+      icon: '🛡️',
+      targetScreen: 'trust',
+      foundationActionId: 'open_trust_passport',
+      action: handlers.onNavigateToTrust,
+    })
+  }
+
+  // 7. Service area missing (medium)
+  if (!context.serviceAreaSet) {
+    candidates.push({
+      id: 'set-service-area',
+      title: 'Set your service area',
+      description: 'Your service area helps Carehia show you local opportunities without revealing your exact address.',
+      reason: 'Families search for caregivers nearby. Setting your area helps you appear in local results.',
+      priority: 'medium',
+      priorityRank: 2,
+      ctaLabel: 'Set Service Area',
+      icon: '📍',
+      targetScreen: 'profile',
+      foundationActionId: 'set_service_area',
+      action: () => handlers.onNavigateToSection('overview', 'section-service-area'),
+    })
+  }
+
+  // 8. Availability missing (medium)
+  if (!context.availabilitySet) {
+    candidates.push({
+      id: 'set-availability',
+      title: 'Set your availability',
+      description: 'Let Carehia know when you\'re available so we can match you with the right opportunities.',
+      reason: 'Availability helps families and Carehia understand when you are ready for work.',
+      priority: 'medium',
+      priorityRank: 2,
+      ctaLabel: 'Set Availability',
+      icon: '📅',
+      targetScreen: 'schedule',
+      foundationActionId: 'set_availability',
+      action: handlers.onNavigateToSchedule,
+    })
+  }
+
+  // 9. Active timer (medium)
+  if (context.activeTimer) {
+    const clientNote = context.activeTimerClientName ? ` for ${context.activeTimerClientName}` : ''
+    candidates.push({
+      id: 'active-timer',
+      title: 'You have a shift in progress',
+      description: `You're currently tracking time${clientNote}. Open the time tracker to view or manage your active shift.`,
+      reason: 'Keeping track of your active shift ensures accurate hours and invoicing.',
+      priority: 'medium',
+      priorityRank: 2,
+      ctaLabel: 'Open Time Tracker',
+      icon: '⏱️',
+      targetScreen: 'work',
+      foundationActionId: 'open_time_tracker',
+      action: handlers.onNavigateToWork,
+    })
+  }
+
+  // 10. Invoice-ready hours (medium)
+  if ((context.uninvoicedHours ?? 0) > 0) {
+    const hrs = Math.round((context.uninvoicedHours ?? 0) * 10) / 10
+    const amt = context.readyToInvoiceAmount ?? 0
+    const amtStr = amt > 0 ? ` (~$${amt.toFixed(2)})` : ''
+    candidates.push({
+      id: 'create-invoice',
+      title: 'Create an invoice from your tracked work',
+      description: `You have ${hrs} hour${hrs !== 1 ? 's' : ''} of tracked time${amtStr} ready to be invoiced.`,
+      reason: 'Turning tracked hours into invoices helps you get paid faster and keeps your records organized.',
+      priority: 'medium',
+      priorityRank: 2,
+      ctaLabel: 'Open Money',
+      icon: '💰',
+      targetScreen: 'earnings',
+      foundationActionId: 'create_invoice_draft',
+      action: handlers.onNavigateToEarnings,
+    })
+  }
+
+  // 11. No clients (low)
+  if (context.clientCount === 0) {
+    candidates.push({
+      id: 'add-first-client',
+      title: 'Add your first client',
+      description: 'Add a private client to start tracking hours, creating invoices, and managing your care work.',
+      reason: 'Having clients in Carehia makes it easier to track, invoice, and manage your care work in one place.',
+      priority: 'low',
+      priorityRank: 3,
+      ctaLabel: 'Add Client',
+      icon: '👤',
+      targetScreen: 'work',
+      foundationActionId: 'open_work',
+      action: handlers.onNavigateToWork,
+    })
+  }
+
+  // 12. Public profile not ready (low)
+  if (!context.publicProfileReady) {
+    candidates.push({
+      id: 'public-profile',
+      title: 'Prepare your public caregiver profile',
+      description: 'Add a photo, bio, skills, rate, and service area so families can find and contact you.',
+      reason: 'A complete public profile makes you discoverable to families looking for care.',
+      priority: 'low',
+      priorityRank: 3,
+      ctaLabel: 'Open Profile',
+      icon: '🌐',
+      targetScreen: 'profile',
+      foundationActionId: 'open_profile',
+      action: handlers.onNavigateToProfile,
+    })
+  }
+
+  // 13. Default fallback (always included as lowest priority)
+  candidates.push({
+    id: 'review-today',
+    title: 'Review your Carehia office',
+    description: 'You\'re in great shape! Check your Today screen for any new opportunities, scheduled visits, or updates.',
+    reason: 'Staying on top of your Carehia office helps you catch new opportunities early.',
+    priority: 'low',
+    priorityRank: 3,
+    ctaLabel: 'Open Today',
+    icon: '✨',
+    targetScreen: 'home',
+    foundationActionId: 'open_today',
+    action: handlers.onNavigateToHome,
+  })
+
+  return candidates
+}
+
+/** Phase 25D: Safe fallback NBA when all candidates are blocked */
+export const SAFE_FALLBACK_NBA: KaiNBACandidate = {
+  id: 'contact-support-fallback',
+  title: 'We\'re here to help',
+  description: 'It looks like we need to figure out your next step together. Reach out to our team and we\'ll get you sorted.',
+  reason: 'Our support team can help you with whatever you need.',
+  priority: 'low',
+  priorityRank: 3,
+  ctaLabel: 'Contact Support',
+  icon: '💬',
+  targetScreen: 'support',
+  foundationActionId: 'contact_support',
+  action: () => { window.location.href = 'mailto:support@carehia.com' },
+}
+
 // ── Context-Based Quick Actions Reordering ───────────────────────────────
 export function getContextBasedQuickActions(
   context: CaregiverKaiContext,

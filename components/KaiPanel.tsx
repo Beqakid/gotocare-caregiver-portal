@@ -7,6 +7,61 @@ import type { CaregiverKaiContext, KaiQuickAction } from '../utils/kaiContext'
 import { walkthroughs, walkthroughMap, getWalkthrough } from '../utils/kaiWalkthroughs'
 import type { KaiWalkthrough, KaiWalkthroughStep } from '../utils/kaiWalkthroughs'
 import { PhoneVerificationPanel } from './PhoneVerificationPanel'
+import { carehiaKaiAdapter } from '../utils/kaiFoundationAdapter'
+import type { KaiPolicyDecision, CarehiaKaiAdapterContext } from '../utils/kaiFoundationTypes'
+
+// ── Phase 25C: Foundation Core Wiring ────────────────────────────────────
+// Maps KaiPanel action IDs (quick actions, NBA, walkthroughs) to Foundation registry IDs.
+// This lets KaiPanel consult the Foundation policy evaluator before acting.
+const PANEL_TO_FOUNDATION: Record<string, string> = {
+  // Quick action IDs
+  'profile': 'open_profile',
+  'trust': 'open_trust_passport',
+  'phone': 'verify_phone',
+  'availability': 'set_availability',
+  'service-area': 'set_service_area',
+  'timer': 'open_time_tracker',
+  'invoice': 'create_invoice_draft',
+  'share': 'share_profile_link',
+  'support': 'contact_support',
+  // NBA IDs
+  'account-attention': 'contact_support',
+  'finish-onboarding': 'open_today',
+  'verify-phone': 'verify_phone',
+  'verify-email': 'open_profile',
+  'complete-profile': 'open_profile',
+  'start-trust-passport': 'open_trust_passport',
+  'set-service-area': 'set_service_area',
+  'set-availability': 'set_availability',
+  'active-timer': 'open_time_tracker',
+  'create-invoice': 'create_invoice_draft',
+  'add-first-client': 'open_work',
+  'public-profile': 'open_profile',
+  'review-today': 'open_today',
+  // Walkthrough IDs (unique ones)
+  'trust-passport': 'open_trust_passport',
+  'phone-verification': 'verify_phone',
+  'time-tracking': 'open_time_tracker',
+  'invoice-money': 'create_invoice_draft',
+}
+
+/** Build a Foundation adapter context from the existing Carehia Kai context */
+function buildFoundationContext(context: CaregiverKaiContext): CarehiaKaiAdapterContext {
+  return {
+    accountStatus: context.accountStatus,
+    phoneVerified: context.phoneVerified,
+    emailVerified: context.emailVerified,
+    onboardingComplete: context.onboardingComplete,
+    setupComplete: context.setupComplete,
+    trustPassportPercent: context.trustPassportPercent,
+  }
+}
+
+/** Evaluate a KaiPanel action through the Foundation policy evaluator */
+function evaluatePanelAction(panelId: string, adapterCtx: CarehiaKaiAdapterContext): KaiPolicyDecision {
+  const foundationId = PANEL_TO_FOUNDATION[panelId] || panelId
+  return carehiaKaiAdapter.evaluateAction(foundationId, adapterCtx)
+}
 
 interface KaiPanelProps {
   profile: CaregiverProfile | null
@@ -332,6 +387,12 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     [profile, documents]
   )
 
+  // Phase 25C: Foundation adapter context for policy evaluation
+  const adapterContext = useMemo(
+    () => buildFoundationContext(context),
+    [context]
+  )
+
   // Get NBA from context
   const nextAction = useMemo(
     () => getCaregiverNextBestAction(context, navHandlers),
@@ -339,17 +400,30 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   )
 
   // Phase 24D: Override verify-phone NBA to open PhoneVerificationPanel
+  // Phase 25C: Foundation policy evaluation on NBA
   const adjustedNextAction = useMemo(() => {
+    let action = nextAction
     if (nextAction.id === 'verify-phone') {
-      return {
+      action = {
         ...nextAction,
         ctaLabel: 'Verify Now',
         fallbackMessage: undefined,
         action: () => setShowPhoneVerification(true),
       }
     }
-    return nextAction
-  }, [nextAction])
+    // Phase 25C: Evaluate NBA through Foundation policy
+    const decision = evaluatePanelAction(action.id, adapterContext)
+    console.debug('[Kai Foundation] NBA evaluated:', action.id, '→', decision.riskLevel, decision.allowed ? 'ALLOWED' : 'BLOCKED')
+    if (!decision.allowed) {
+      return {
+        ...action,
+        action: () => {
+          console.warn('[Kai Foundation] NBA action blocked by policy:', action.id, decision.reason)
+        },
+      }
+    }
+    return action
+  }, [nextAction, adapterContext])
 
   // Build quick actions and reorder based on context
   const quickActions = useMemo(() => {
@@ -358,14 +432,27 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   }, [profile, context])
 
   // Phase 24D: Override phone quick action to open PhoneVerificationPanel
+  // Phase 25C: Foundation policy filter on quick actions
   const adjustedQuickActions = useMemo(() => {
-    return quickActions.map(qa => {
+    return quickActions.filter(qa => {
+      const decision = evaluatePanelAction(qa.id, adapterContext)
+      if (!decision.allowed) {
+        console.debug('[Kai Foundation] Quick action blocked:', qa.id, decision.reason)
+        return false
+      }
+      return true
+    }).map(qa => {
       if (qa.id === 'phone') {
         return { ...qa, action: () => setShowPhoneVerification(true) }
       }
+      // Phase 25C: Log actions requiring confirmation for future 25D/25E workflow
+      const decision = evaluatePanelAction(qa.id, adapterContext)
+      if (decision.requiresConfirmation) {
+        console.debug('[Kai Foundation] Action requires confirmation:', qa.id, decision.riskLevel)
+      }
       return qa
     })
-  }, [quickActions])
+  }, [quickActions, adapterContext])
 
   // Safety: check if account is restricted
   const isRestricted = ['suspended', 'blocked', 'deactivated'].includes(
@@ -379,6 +466,12 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     if (!wt) return
     // Safety: don't allow restricted accounts to start work/money walkthroughs
     if (isRestricted && wt.restrictedAccountBlock) return
+    // Phase 25C: Foundation policy check on walkthrough target action
+    const decision = evaluatePanelAction(walkthroughId, adapterContext)
+    if (!decision.allowed) {
+      console.debug('[Kai Foundation] Walkthrough blocked by policy:', walkthroughId, decision.reason)
+      return
+    }
     setActiveWalkthrough(wt)
     setWalkthroughStep(0)
     setWalkthroughCompleted(false)
@@ -424,6 +517,15 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   // Execute a step's CTA action (navigate)
   const executeStepAction = (step: KaiWalkthroughStep) => {
     if (!step.ctaAction) return
+    // Phase 25C: Foundation policy check on step CTA
+    const stepActionId = PANEL_TO_FOUNDATION[step.ctaAction] || step.ctaAction
+    if (stepActionId !== step.ctaAction) {
+      const decision = carehiaKaiAdapter.evaluateAction(stepActionId, adapterContext)
+      if (!decision.allowed) {
+        console.debug('[Kai Foundation] Step CTA blocked:', step.ctaAction, decision.reason)
+        return
+      }
+    }
     if (step.ctaAction === 'profile') navHandlers.onNavigateToProfile()
     else if (step.ctaAction === 'trust') navHandlers.onNavigateToTrust()
     else if (step.ctaAction === 'earnings') navHandlers.onNavigateToEarnings()
@@ -662,7 +764,7 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                 <p style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
                   Recommended next step
                 </p>
-                <div className="kai-next-action-card">
+                <div className="kai-next-action-card" data-kai-risk={evaluatePanelAction(adjustedNextAction.id, adapterContext).riskLevel}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{adjustedNextAction.icon}</div>
                     <div style={{ flex: 1 }}>
@@ -723,7 +825,7 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                   {adjustedQuickActions.map((qa) => {
                     const isExpanded = expandedAction === qa.id
                     return (
-                      <div key={qa.id} className="kai-quick-action">
+                      <div key={qa.id} className="kai-quick-action" data-kai-risk={evaluatePanelAction(qa.id, adapterContext).riskLevel}>
                         <button
                           onClick={() => setExpandedAction(isExpanded ? null : qa.id)}
                           style={{

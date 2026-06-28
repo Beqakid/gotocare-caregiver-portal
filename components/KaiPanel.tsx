@@ -155,6 +155,10 @@ const PANEL_TO_FOUNDATION: Record<string, string> = {
   'add-first-client': 'open_work',
   'public-profile': 'open_profile',
   'review-today': 'open_today',
+  // Step CTA navigation IDs
+  'earnings': 'open_money',
+  'work': 'open_work',
+  'home': 'open_today',
   // Walkthrough IDs (unique ones)
   'trust-passport': 'open_trust_passport',
   'phone-verification': 'verify_phone',

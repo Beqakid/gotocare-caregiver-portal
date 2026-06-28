@@ -10,6 +10,123 @@ import { PhoneVerificationPanel } from './PhoneVerificationPanel'
 import { carehiaKaiAdapter } from '../utils/kaiFoundationAdapter'
 import type { KaiPolicyDecision, CarehiaKaiAdapterContext } from '../utils/kaiFoundationTypes'
 
+// ── Phase 25E: Confirmation Types ────────────────────────────────────────
+type KaiConfirmationSource = 'nba' | 'quick_action' | 'walkthrough' | 'step_cta'
+
+interface KaiPendingConfirmation {
+  actionId: string
+  foundationActionId: string
+  label: string
+  description?: string
+  riskLevel: string
+  policyDecision: KaiPolicyDecision
+  source: KaiConfirmationSource
+  originalHandler: () => void
+  createdAt: number
+}
+
+interface KaiConfirmationReceipt {
+  actionId: string
+  label: string
+  riskLevel: string
+  source: KaiConfirmationSource
+  confirmed: boolean
+  timestamp: number
+  policyReason?: string
+  userId?: string
+}
+
+// In-memory confirmation receipt log (Phase 25E stub — not persisted)
+const confirmationReceipts: KaiConfirmationReceipt[] = []
+
+function logConfirmationReceipt(receipt: KaiConfirmationReceipt): void {
+  confirmationReceipts.push(receipt)
+  console.debug('[Kai Foundation 25E] Confirmation receipt:', receipt.confirmed ? 'CONFIRMED' : 'CANCELLED', receipt)
+}
+
+// Export for testing only
+export function _getConfirmationReceipts(): KaiConfirmationReceipt[] {
+  return confirmationReceipts
+}
+
+export function _clearConfirmationReceipts(): void {
+  confirmationReceipts.length = 0
+}
+
+// ── Phase 25E: Confirmation Dialog ───────────────────────────────────────
+function KaiConfirmationDialog({ pending, onContinue, onCancel }: {
+  pending: KaiPendingConfirmation
+  onContinue: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.35)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 100, padding: 20,
+    }} onClick={(e) => { e.stopPropagation(); onCancel() }}>
+      <div
+        data-testid="kai-confirmation-dialog"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#FFFFFF', borderRadius: 18, padding: '24px 20px 20px',
+          maxWidth: 340, width: '100%',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
+          <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
+            Confirm this action
+          </h3>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#334155' }}>
+            {pending.label}
+          </p>
+        </div>
+        <p style={{
+          margin: '0 0 12px', fontSize: 13, color: '#475569',
+          lineHeight: '1.55', textAlign: 'center',
+        }}>
+          Kai can help you continue, but this action may affect your profile, work visibility, invoice, or account information. Please confirm before continuing.
+        </p>
+        {pending.policyDecision.reason && (
+          <p style={{
+            margin: '0 0 16px', fontSize: 12, color: '#64748b',
+            fontStyle: 'italic', textAlign: 'center', lineHeight: '1.45',
+          }}>
+            {pending.policyDecision.reason}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            data-testid="kai-confirm-cancel"
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: '12px 0', border: '1px solid #e2e8f0',
+              borderRadius: 12, background: '#f8fafc', color: '#475569',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            data-testid="kai-confirm-continue"
+            onClick={onContinue}
+            style={{
+              flex: 1, padding: '12px 0', border: 'none',
+              borderRadius: 12, background: '#7C5CFF', color: '#FFFFFF',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Phase 25C: Foundation Core Wiring ────────────────────────────────────
 // Maps KaiPanel action IDs (quick actions, NBA, walkthroughs) to Foundation registry IDs.
 // This lets KaiPanel consult the Foundation policy evaluator before acting.
@@ -343,6 +460,9 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
   // Phase 24D: Phone Verification panel state
   const [showPhoneVerification, setShowPhoneVerification] = useState(false)
 
+  // Phase 25E: Pending confirmation state
+  const [pendingConfirmation, setPendingConfirmation] = useState<KaiPendingConfirmation | null>(null)
+
   useEffect(() => {
     requestAnimationFrame(() => setAnimateIn(true))
 
@@ -392,6 +512,73 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
     () => buildFoundationContext(context),
     [context]
   )
+
+  // Phase 25E: Confirmation gate — intercepts action if medium-risk + requiresConfirmation
+  const gateAction = (
+    panelId: string,
+    label: string,
+    handler: () => void,
+    source: KaiConfirmationSource,
+    description?: string,
+  ): (() => void) => {
+    const foundationId = PANEL_TO_FOUNDATION[panelId] || panelId
+    const decision = evaluatePanelAction(panelId, adapterContext)
+
+    // Only gate medium-risk actions that require confirmation AND are allowed
+    if (decision.allowed && decision.requiresConfirmation && decision.riskLevel === 'medium') {
+      return () => {
+        console.debug('[Kai Foundation 25E] Confirmation required:', panelId, source)
+        setPendingConfirmation({
+          actionId: panelId,
+          foundationActionId: foundationId,
+          label,
+          description,
+          riskLevel: decision.riskLevel,
+          policyDecision: decision,
+          source,
+          originalHandler: handler,
+          createdAt: Date.now(),
+        })
+      }
+    }
+
+    // All other allowed actions pass through directly
+    return handler
+  }
+
+  const handleConfirmContinue = () => {
+    if (!pendingConfirmation) return
+    const receipt: KaiConfirmationReceipt = {
+      actionId: pendingConfirmation.actionId,
+      label: pendingConfirmation.label,
+      riskLevel: pendingConfirmation.riskLevel,
+      source: pendingConfirmation.source,
+      confirmed: true,
+      timestamp: Date.now(),
+      policyReason: pendingConfirmation.policyDecision.reason,
+      userId: profile?.id || profile?.email || undefined,
+    }
+    logConfirmationReceipt(receipt)
+    const handler = pendingConfirmation.originalHandler
+    setPendingConfirmation(null)
+    handler()
+  }
+
+  const handleConfirmCancel = () => {
+    if (!pendingConfirmation) return
+    const receipt: KaiConfirmationReceipt = {
+      actionId: pendingConfirmation.actionId,
+      label: pendingConfirmation.label,
+      riskLevel: pendingConfirmation.riskLevel,
+      source: pendingConfirmation.source,
+      confirmed: false,
+      timestamp: Date.now(),
+      policyReason: pendingConfirmation.policyDecision.reason,
+      userId: profile?.id || profile?.email || undefined,
+    }
+    logConfirmationReceipt(receipt)
+    setPendingConfirmation(null)
+  }
 
   // Phase 25D: Generate NBA candidates and evaluate through Foundation policy
   // Instead of choosing one NBA then guarding it, we prepare all candidates,
@@ -492,6 +679,33 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
       console.debug('[Kai Foundation] Walkthrough blocked by policy:', walkthroughId, decision.reason)
       return
     }
+    // Phase 25E: Gate walkthrough start if medium-risk + requiresConfirmation
+    if (decision.requiresConfirmation && decision.riskLevel === 'medium') {
+      const foundationId = PANEL_TO_FOUNDATION[walkthroughId] || walkthroughId
+      console.debug('[Kai Foundation 25E] Walkthrough confirmation required:', walkthroughId)
+      setPendingConfirmation({
+        actionId: walkthroughId,
+        foundationActionId: foundationId,
+        label: wt.title,
+        description: wt.intro,
+        riskLevel: decision.riskLevel,
+        policyDecision: decision,
+        source: 'walkthrough',
+        originalHandler: () => {
+          setActiveWalkthrough(wt)
+          setWalkthroughStep(0)
+          setWalkthroughCompleted(false)
+          setExpandedAction(null)
+          setSavedWalkthroughId(null)
+          try {
+            sessionStorage.setItem('carehia_kai_active_walkthrough', walkthroughId)
+            sessionStorage.setItem('carehia_kai_walkthrough_step', '0')
+          } catch {}
+        },
+        createdAt: Date.now(),
+      })
+      return
+    }
     setActiveWalkthrough(wt)
     setWalkthroughStep(0)
     setWalkthroughCompleted(false)
@@ -543,6 +757,35 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
       const decision = carehiaKaiAdapter.evaluateAction(stepActionId, adapterContext)
       if (!decision.allowed) {
         console.debug('[Kai Foundation] Step CTA blocked:', step.ctaAction, decision.reason)
+        return
+      }
+      // Phase 25E: Gate step CTA if medium-risk + requiresConfirmation
+      if (decision.requiresConfirmation && decision.riskLevel === 'medium') {
+        console.debug('[Kai Foundation 25E] Step CTA confirmation required:', step.ctaAction)
+        const executeStep = () => {
+          if (step.ctaAction === 'profile') navHandlers.onNavigateToProfile()
+          else if (step.ctaAction === 'trust') navHandlers.onNavigateToTrust()
+          else if (step.ctaAction === 'earnings') navHandlers.onNavigateToEarnings()
+          else if (step.ctaAction === 'work') navHandlers.onNavigateToWork()
+          else if (step.ctaAction === 'schedule') navHandlers.onNavigateToSchedule()
+          else if (step.ctaAction === 'home') navHandlers.onNavigateToHome()
+          else if (step.ctaAction === 'close') handleClose()
+          else if (step.ctaAction.startsWith('section:')) {
+            const parts = step.ctaAction.split(':')
+            navHandlers.onNavigateToSection(parts[1], parts[2])
+          }
+        }
+        setPendingConfirmation({
+          actionId: step.ctaAction,
+          foundationActionId: stepActionId,
+          label: step.ctaLabel || step.title,
+          description: step.description,
+          riskLevel: decision.riskLevel,
+          policyDecision: decision,
+          source: 'step_cta',
+          originalHandler: executeStep,
+          createdAt: Date.now(),
+        })
         return
       }
     }
@@ -820,7 +1063,13 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                       )}
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0 }}>
                         <button
-                          onClick={adjustedNextAction.action}
+                          onClick={gateAction(
+                            adjustedNextAction.id,
+                            adjustedNextAction.title,
+                            adjustedNextAction.action,
+                            'nba',
+                            adjustedNextAction.description,
+                          )}
                           className="kai-action-btn"
                         >
                           {adjustedNextAction.ctaLabel}
@@ -867,7 +1116,13 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                               {qa.description}
                             </p>
                             <button
-                              onClick={qa.action}
+                              onClick={gateAction(
+                                qa.id,
+                                qa.label,
+                                qa.action,
+                                'quick_action',
+                                qa.description,
+                              )}
                               className="kai-action-btn"
                             >
                               {qa.buttonLabel}
@@ -901,6 +1156,15 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
             </>
           )}
         </div>
+
+        {/* Phase 25E: Confirmation Dialog */}
+        {pendingConfirmation && (
+          <KaiConfirmationDialog
+            pending={pendingConfirmation}
+            onContinue={handleConfirmContinue}
+            onCancel={handleConfirmCancel}
+          />
+        )}
       </div>
     </div>
   )

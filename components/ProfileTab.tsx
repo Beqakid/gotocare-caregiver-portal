@@ -4,6 +4,7 @@ import { CAREGIVER_FREE_LAUNCH_ACCESS } from '../config/launchConfig'
 import { Camera, MapPin, DollarSign, Star, Shield, Globe, Award, Clock, ChevronRight, LogOut, Settings, Edit3, Phone, Mail, FolderOpen, Plus, Trash2, AlertTriangle, CheckCircle2, X, Link2, Copy, Check, Zap, Heart, ThumbsUp, Upload, Share2, Bell, User, Users, FileCheck2, BadgeCheck, Lock } from 'lucide-react'
 import { CaregiverProfile, CaregiverDocument } from '../types'
 import { addDocument, deleteDocument, refreshDocumentStatuses, calculateCompleteness } from '../utils/storage'
+import { cloudDeleteAccount } from '../utils/cloud-api'
 
 const API_BASE = 'https://gotocare-original.jjioji.workers.dev'
 const PROFILE_SECTION_KEY = 'cgp_profile_section'
@@ -229,6 +230,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
   const [langInput, setLangInput] = useState('')
   const [showLangInput, setShowLangInput] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2 | 3>(0)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteUnderstood, setDeleteUnderstood] = useState(false)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<ProfileSection>(() => getSavedProfileSection(initialSection))
   const [myClients, setMyClients] = useState<any[]>([])
@@ -1600,6 +1607,22 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
               </div>
             )
           })}
+          {/* ── DANGER ZONE ── */}
+          <div style={{ marginTop: 16 }}>
+            <p className="text-xs font-bold uppercase tracking-wide text-base-content/45" style={{ marginBottom: 8 }}>Danger Zone</p>
+            <div className="bg-base-200 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
+              <div style={{ padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, color: 'var(--fallback-bc,oklch(var(--bc)/0.65))', marginBottom: 8 }}>These actions affect your Carehia account access.</p>
+                <button
+                  onClick={() => { setDeleteStep(1); setDeleteConfirmText(''); setDeleteUnderstood(false); setDeleteError(''); setDeleteReason('') }}
+                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, color: '#EF4444', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  <AlertTriangle size={16} /> Delete account
+                </button>
+              </div>
+            </div>
+          </div>
+
           <button onClick={onLogout} className="btn btn-ghost w-full text-error gap-2 mt-2">
             <LogOut size={18} /> Sign Out
           </button>
@@ -1813,7 +1836,136 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ profile, documents, onLo
       )}
 
       {/* ─── SETTINGS PANEL ─── */}
-      {showSettings && (
+      {/* ── DELETE ACCOUNT MODAL — Step 1: Type DELETE ── */}
+      {deleteStep === 1 && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) setDeleteStep(0) }}
+        >
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 400, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={20} color="#EF4444" />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Delete your Carehia account?</h3>
+            </div>
+            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.5, marginBottom: 16 }}>
+              This will remove your access to the caregiver portal and hide your public caregiver profile.
+              Some records may be kept where required for invoices, safety, fraud prevention, legal, or operational reasons.
+            </p>
+            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Signed in as</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 16 }}>{profile?.email}</p>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Type <span style={{ fontFamily: 'monospace', background: '#FEE2E2', padding: '2px 6px', borderRadius: 4, color: '#DC2626' }}>DELETE</span> to continue</label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE here"
+              autoComplete="off"
+              style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E2E8F0', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ fontSize: 13, color: '#64748B', marginTop: 12, marginBottom: 4 }}>Reason (optional)</div>
+            <input
+              type="text"
+              value={deleteReason}
+              onChange={e => setDeleteReason(e.target.value)}
+              placeholder="Why are you leaving?"
+              style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E2E8F0', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+            />
+            {deleteError && <p style={{ fontSize: 13, color: '#EF4444', marginTop: 8 }}>{deleteError}</p>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setDeleteStep(0)}
+                style={{ flex: 1, padding: '12px 16px', background: '#F1F5F9', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#475569' }}
+              >Cancel</button>
+              <button
+                onClick={() => { if (deleteConfirmText !== 'DELETE') { setDeleteError('Please type DELETE exactly'); return } setDeleteError(''); setDeleteStep(2) }}
+                disabled={deleteConfirmText !== 'DELETE'}
+                style={{ flex: 1, padding: '12px 16px', background: deleteConfirmText === 'DELETE' ? '#EF4444' : '#FDA4AF', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', opacity: deleteConfirmText === 'DELETE' ? 1 : 0.6 }}
+              >Continue</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE ACCOUNT MODAL — Step 2: Final Confirmation ── */}
+      {deleteStep === 2 && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) setDeleteStep(0) }}
+        >
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 400, padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <AlertTriangle size={28} color="#EF4444" />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>Are you sure?</h3>
+            </div>
+            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.5, marginBottom: 20, textAlign: 'center' }}>
+              This action will sign you out and you will no longer be able to access this caregiver account.
+            </p>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#FEF2F2', borderRadius: 12, cursor: 'pointer', marginBottom: 16 }}>
+              <input
+                type="checkbox"
+                checked={deleteUnderstood}
+                onChange={e => setDeleteUnderstood(e.target.checked)}
+                style={{ marginTop: 2, accentColor: '#EF4444', width: 18, height: 18, flexShrink: 0 }}
+              />
+              <span style={{ fontSize: 14, color: '#7F1D1D', lineHeight: 1.4 }}>I understand that I will lose access to this account.</span>
+            </label>
+            {deleteError && <p style={{ fontSize: 13, color: '#EF4444', marginBottom: 8 }}>{deleteError}</p>}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setDeleteStep(1)}
+                style={{ flex: 1, padding: '12px 16px', background: '#F1F5F9', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#475569' }}
+              >Back</button>
+              <button
+                onClick={async () => {
+                  if (!deleteUnderstood) { setDeleteError('Please confirm you understand'); return }
+                  setDeleteLoading(true); setDeleteError('')
+                  try {
+                    const result = await cloudDeleteAccount('DELETE', deleteReason || undefined)
+                    if (result.success) {
+                      setDeleteStep(3)
+                      localStorage.removeItem('cgp_token')
+                      localStorage.removeItem('cgp_account')
+                      localStorage.removeItem('cgp_auth_type')
+                      localStorage.removeItem('cgp_onboarding_complete')
+                    } else {
+                      setDeleteError(result.error || 'We could not delete this account right now. Please try again or contact support.')
+                    }
+                  } catch {
+                    setDeleteError('We could not delete this account right now. Please try again or contact support.')
+                  } finally { setDeleteLoading(false) }
+                }}
+                disabled={!deleteUnderstood || deleteLoading}
+                style={{ flex: 1, padding: '12px 16px', background: deleteUnderstood && !deleteLoading ? '#DC2626' : '#FDA4AF', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', opacity: deleteUnderstood && !deleteLoading ? 1 : 0.6 }}
+              >{deleteLoading ? 'Deleting…' : 'Delete my account'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE ACCOUNT MODAL — Step 3: Goodbye ── */}
+      {deleteStep === 3 && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 400, padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>👋</div>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 8px' }}>Your Carehia account has been deleted.</h3>
+            <p style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5 }}>
+              Thank you for being part of Carehia. We wish you well.
+            </p>
+            <button
+              onClick={() => { setDeleteStep(0); onLogout() }}
+              style={{ width: '100%', padding: '14px 16px', background: 'linear-gradient(135deg, #7C5CFF, #4A90E2)', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', color: '#fff' }}
+            >Done</button>
+          </div>
+        </div>
+      )}
+
+            {showSettings && (
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 200,

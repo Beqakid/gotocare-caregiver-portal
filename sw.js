@@ -1,6 +1,6 @@
 // Carehia Caregiver Portal — Service Worker
 // Handles: PWA caching, push notifications, notification clicks
-const CACHE_NAME = 'carehia-cgp-v17';
+const CACHE_NAME = 'carehia-cgp-v18';
 const STATIC_ASSETS = ['/styles.css'];
 
 // ── Install ──────────────────────────────────────────────────────────────

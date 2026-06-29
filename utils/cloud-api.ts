@@ -218,3 +218,19 @@ export async function cloudDeleteMileage(cloudId: string): Promise<void> {
     await fetch(`${BASE}/caregiver-mileage?token=${token}&cloudId=${cloudId}`, { method: 'DELETE' })
   } catch {}
 }
+
+// ---- ACCOUNT DELETION ----
+export async function cloudDeleteAccount(confirmation: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  const token = getToken()
+  if (!token) return { success: false, error: 'Not signed in' }
+  try {
+    const res = await fetch(`${BASE}/caregiver-account/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ confirmation, reason })
+    })
+    const data = await res.json()
+    if (!res.ok || !data.success) return { success: false, error: data.error || 'Deletion failed' }
+    return { success: true }
+  } catch { return { success: false, error: 'Network error. Please try again.' } }
+}

@@ -1,13 +1,15 @@
 // @ts-nocheck
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 
-// ── Storage keys ──────────────────────────────────────────────────────────────
+// ── Storage keys (UNCHANGED from Phase 23A) ──────────────────────────────────
 const DATA_KEY     = 'cgp_onboarding_data'
 const STEP_KEY     = 'cgp_onboarding_step'
 const COMPLETE_KEY = 'cgp_onboarding_complete'
 const COMPLETE_AT  = 'cgp_onboarding_complete_at'
+const VERSION_KEY  = 'cgp_onboarding_version'
+const ONBOARDING_VERSION = '26b'
 
-// ── Type ──────────────────────────────────────────────────────────────────────
+// ── Type (UNCHANGED) ─────────────────────────────────────────────────────────
 export interface OnboardingData {
   firstName: string
   caregiverTypes: string[]
@@ -42,11 +44,21 @@ function blankData(profile: any): OnboardingData {
 }
 
 function readStep(): number {
-  try { const s = parseInt(localStorage.getItem(STEP_KEY) || '0', 10); return isNaN(s) ? 0 : Math.min(s, 4) } catch { return 0 }
+  try {
+    // Reset step if onboarding version changed (prevents old step mapping to wrong screen)
+    const ver = localStorage.getItem(VERSION_KEY)
+    if (ver !== ONBOARDING_VERSION) return 0
+    const s = parseInt(localStorage.getItem(STEP_KEY) || '0', 10)
+    return isNaN(s) ? 0 : Math.min(s, 7)
+  } catch { return 0 }
 }
 
 function save(data: OnboardingData, step: number) {
-  try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); localStorage.setItem(STEP_KEY, String(step)) } catch {}
+  try {
+    localStorage.setItem(DATA_KEY, JSON.stringify(data))
+    localStorage.setItem(STEP_KEY, String(step))
+    localStorage.setItem(VERSION_KEY, ONBOARDING_VERSION)
+  } catch {}
 }
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -56,7 +68,7 @@ const PK = '#C084FC'
 const BG = '#F0F4FF'
 const WH = '#FFFFFF'
 
-// ── Shared sub-components ──────────────────────────────────────────────────────
+// ── Shared sub-components ─────────────────────────────────────────────────────
 const Dot = ({ active }: { active: boolean }) => (
   <div style={{
     width: active ? 20 : 8, height: 8,
@@ -84,6 +96,20 @@ const KaiHint = ({ text }: { text: string }) => (
     </p>
   </div>
 )
+
+function KeyPoint({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%',
+        background: 'rgba(124,92,255,0.1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 15, flexShrink: 0,
+      }}>{icon}</div>
+      <span style={{ fontSize: 14, color: '#374151', lineHeight: '1.4' }}>{text}</span>
+    </div>
+  )
+}
 
 function MultiChip({
   options, selected, onToggle, maxSelect,
@@ -153,102 +179,218 @@ const IlluWelcome = () => (
   </svg>
 )
 
-const IlluTypes = () => (
-  <svg viewBox="0 0 340 210" style={{ width: '100%', height: '100%' }} aria-label="Different types of caregivers shown as warm profile cards">
-    {/* cards */}
-    {[
-      { x: 28, label: 'CNA', icon: '🏥', grad: ['#7C5CFF','#9B72FF'] },
-      { x: 108, label: 'Companion', icon: '🤝', grad: ['#4A90E2','#60AAFF'] },
-      { x: 188, label: 'Live-In', icon: '🏠', grad: ['#C084FC','#D8A4FF'] },
-      { x: 268, label: 'Private', icon: '⭐', grad: ['#F472B6','#FB8AC1'] },
-    ].map(({ x, label, icon, grad }) => (
-      <g key={x}>
-        <rect x={x} y="55" width="72" height="105" rx="14"
-          fill={`url(#g${x})`} stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"
-          filter="url(#card-shadow)"/>
-        <defs>
-          <linearGradient id={`g${x}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={grad[0]}/>
-            <stop offset="100%" stopColor={grad[1]}/>
-          </linearGradient>
-        </defs>
-        {/* avatar circle */}
-        <circle cx={x+36} cy="88" r="22" fill="rgba(255,255,255,0.25)"/>
-        <text x={x+36} y="96" fontSize="20" textAnchor="middle">{icon}</text>
-        {/* label */}
-        <rect x={x+8} y="120" width="56" height="18" rx="9" fill="rgba(255,255,255,0.25)"/>
-        <text x={x+36} y="132" fontSize="10" textAnchor="middle" fill="#fff" fontWeight="700">{label}</text>
-        {/* dots */}
-        <circle cx={x+24} cy="148" r="3" fill="rgba(255,255,255,0.5)"/>
-        <circle cx={x+36} cy="148" r="3" fill="rgba(255,255,255,0.7)"/>
-        <circle cx={x+48} cy="148" r="3" fill="rgba(255,255,255,0.5)"/>
-      </g>
-    ))}
+const IlluOrganized = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Organized caregiver tools: clock, calendar, invoice, and checklist">
+    <circle cx="170" cy="110" r="100" fill="rgba(255,255,255,0.08)"/>
+    {/* Clock card */}
+    <g transform="translate(35,30)">
+      <rect width="120" height="80" rx="16" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+      <circle cx="60" cy="36" r="22" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/>
+      <line x1="60" y1="36" x2="60" y2="22" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="60" y1="36" x2="72" y2="36" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+      <text x="60" y="72" fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">Track Hours</text>
+    </g>
+    {/* Invoice card */}
+    <g transform="translate(185,30)">
+      <rect width="120" height="80" rx="16" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+      <rect x="35" y="14" width="50" height="40" rx="6" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+      <line x1="42" y1="25" x2="78" y2="25" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
+      <line x1="42" y1="33" x2="70" y2="33" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/>
+      <line x1="42" y1="41" x2="65" y2="41" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+      <text x="60" y="72" fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">Invoices</text>
+    </g>
+    {/* Clients card */}
+    <g transform="translate(35,125)">
+      <rect width="120" height="80" rx="16" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+      <circle cx="48" cy="36" r="12" fill="rgba(255,255,255,0.2)"/>
+      <circle cx="60" cy="36" r="12" fill="rgba(255,255,255,0.25)"/>
+      <circle cx="72" cy="36" r="12" fill="rgba(255,255,255,0.3)"/>
+      <text x="60" y="72" fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">Manage Clients</text>
+    </g>
+    {/* Checklist card */}
+    <g transform="translate(185,125)">
+      <rect width="120" height="80" rx="16" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+      <rect x="30" y="16" width="14" height="14" rx="4" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+      <text x="37" y="27" fontSize="10" textAnchor="middle" fill="#fff">✓</text>
+      <line x1="52" y1="23" x2="85" y2="23" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/>
+      <rect x="30" y="36" width="14" height="14" rx="4" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+      <text x="37" y="47" fontSize="10" textAnchor="middle" fill="#fff">✓</text>
+      <line x1="52" y1="43" x2="80" y2="43" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/>
+      <text x="60" y="72" fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">Stay Organized</text>
+    </g>
+  </svg>
+)
+
+const IlluProfile = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="A caregiver profile card with experience, services, and reviews">
+    <circle cx="170" cy="110" r="95" fill="rgba(255,255,255,0.06)"/>
+    {/* Profile card */}
+    <rect x="70" y="22" width="200" height="180" rx="20" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+    {/* Avatar */}
+    <circle cx="170" cy="62" r="28" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+    <text x="170" y="70" fontSize="22" textAnchor="middle">👤</text>
+    {/* Name line */}
+    <rect x="125" y="98" width="90" height="10" rx="5" fill="rgba(255,255,255,0.4)"/>
+    {/* Badge */}
+    <rect x="135" y="114" width="70" height="18" rx="9" fill="rgba(34,197,94,0.3)" stroke="rgba(34,197,94,0.5)" strokeWidth="1"/>
+    <text x="170" y="126" fontSize="8" textAnchor="middle" fill="#fff" fontWeight="600">✓ Verified</text>
+    {/* Service tags */}
+    <rect x="88" y="142" width="60" height="16" rx="8" fill="rgba(255,255,255,0.2)"/>
+    <text x="118" y="153" fontSize="7" textAnchor="middle" fill="rgba(255,255,255,0.8)">Personal Care</text>
+    <rect x="155" y="142" width="55" height="16" rx="8" fill="rgba(255,255,255,0.2)"/>
+    <text x="183" y="153" fontSize="7" textAnchor="middle" fill="rgba(255,255,255,0.8)">Companion</text>
+    <rect x="216" y="142" width="40" height="16" rx="8" fill="rgba(255,255,255,0.2)"/>
+    <text x="236" y="153" fontSize="7" textAnchor="middle" fill="rgba(255,255,255,0.8)">+3</text>
+    {/* Stars */}
+    <text x="170" y="178" fontSize="14" textAnchor="middle" fill="rgba(252,211,77,0.9)">★★★★★</text>
+    {/* Share link hint */}
+    <rect x="115" y="185" width="110" height="14" rx="7" fill="rgba(255,255,255,0.12)"/>
+    <text x="170" y="195" fontSize="7" textAnchor="middle" fill="rgba(255,255,255,0.7)">🔗 Share your profile link</text>
+  </svg>
+)
+
+const IlluTrust = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Trust Passport shield with verification steps">
+    <circle cx="170" cy="110" r="95" fill="rgba(255,255,255,0.06)"/>
+    {/* Shield shape */}
+    <path d="M170 28 L240 58 L240 130 Q240 180 170 200 Q100 180 100 130 L100 58 Z"
+      fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" strokeWidth="2"/>
+    {/* Inner glow */}
+    <path d="M170 48 L225 70 L225 128 Q225 165 170 182 Q115 165 115 128 L115 70 Z"
+      fill="rgba(255,255,255,0.08)"/>
+    {/* Check steps */}
+    <g transform="translate(135,72)">
+      <circle r="10" cx="10" cy="10" fill="rgba(34,197,94,0.4)"/>
+      <text x="10" y="14" fontSize="10" textAnchor="middle" fill="#fff">✓</text>
+      <text x="30" y="14" fontSize="9" fill="rgba(255,255,255,0.9)" fontWeight="500">Phone verified</text>
+    </g>
+    <g transform="translate(135,100)">
+      <circle r="10" cx="10" cy="10" fill="rgba(34,197,94,0.4)"/>
+      <text x="10" y="14" fontSize="10" textAnchor="middle" fill="#fff">✓</text>
+      <text x="30" y="14" fontSize="9" fill="rgba(255,255,255,0.9)" fontWeight="500">ID uploaded</text>
+    </g>
+    <g transform="translate(135,128)">
+      <circle r="10" cx="10" cy="10" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/>
+      <text x="30" y="14" fontSize="9" fill="rgba(255,255,255,0.7)" fontWeight="500">References</text>
+    </g>
+    <g transform="translate(135,156)">
+      <circle r="10" cx="10" cy="10" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/>
+      <text x="30" y="14" fontSize="9" fill="rgba(255,255,255,0.7)" fontWeight="500">More steps</text>
+    </g>
+    {/* Trust Passport label */}
+    <rect x="120" y="184" width="100" height="20" rx="10" fill="rgba(255,255,255,0.15)"/>
+    <text x="170" y="198" fontSize="9" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="700">🛡️ Trust Passport</text>
+  </svg>
+)
+
+const IlluKai = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Kai, your Carehia guide — a friendly AI assistant orb">
+    {/* Outer glow rings */}
+    <circle cx="170" cy="100" r="90" fill="rgba(255,255,255,0.04)"/>
+    <circle cx="170" cy="100" r="70" fill="rgba(255,255,255,0.06)"/>
+    <circle cx="170" cy="100" r="50" fill="rgba(255,255,255,0.08)"/>
+    {/* Kai orb */}
     <defs>
-      <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
-        <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="rgba(124,92,255,0.2)"/>
+      <linearGradient id="kaig" x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor="#fff" stopOpacity="0.3"/>
+        <stop offset="1" stopColor="#fff" stopOpacity="0.1"/>
+      </linearGradient>
+      <filter id="kglow">
+        <feDropShadow dx="0" dy="0" stdDeviation="12" floodColor="rgba(255,255,255,0.4)"/>
       </filter>
     </defs>
-    {/* headline bg */}
-    <text x="170" y="32" fontSize="13" textAnchor="middle" fill={P} fontWeight="700">
-      Every caregiver has a home here
-    </text>
-    <line x1="90" y1="38" x2="250" y2="38" stroke="rgba(124,92,255,0.25)" strokeWidth="1"/>
-  </svg>
-)
-
-const IlluServices = () => (
-  <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Illustrations of different caregiving services such as meals, companionship, and mobility support">
+    <circle cx="170" cy="100" r="36" fill="url(#kaig)" stroke="rgba(255,255,255,0.5)" strokeWidth="2" filter="url(#kglow)"/>
+    <text x="170" y="95" fontSize="24" textAnchor="middle">✨</text>
+    <text x="170" y="115" fontSize="12" textAnchor="middle" fill="#fff" fontWeight="800">Kai</text>
+    {/* Floating action hints */}
     {[
-      { x: 24,  y: 35,  icon: '🍽️', label: 'Meals',       col: ['rgba(245,158,11,0.15)','rgba(245,158,11,0.35)'] },
-      { x: 108, y: 35,  icon: '🤝', label: 'Companionship',col: ['rgba(124,92,255,0.12)','rgba(124,92,255,0.35)'] },
-      { x: 192, y: 35,  icon: '💊', label: 'Medication',   col: ['rgba(239,68,68,0.10)','rgba(239,68,68,0.3)'] },
-      { x: 276, y: 35,  icon: '🚗', label: 'Transport',    col: ['rgba(74,144,226,0.12)','rgba(74,144,226,0.32)'] },
-      { x: 24,  y: 130, icon: '🧠', label: 'Dementia',     col: ['rgba(192,132,252,0.12)','rgba(192,132,252,0.35)'] },
-      { x: 108, y: 130, icon: '🚶', label: 'Mobility',     col: ['rgba(34,197,94,0.10)','rgba(34,197,94,0.3)'] },
-      { x: 192, y: 130, icon: '🌙', label: 'Overnight',    col: ['rgba(30,27,75,0.12)','rgba(124,92,255,0.3)'] },
-      { x: 276, y: 130, icon: '🏠', label: 'Household',    col: ['rgba(245,158,11,0.10)','rgba(245,158,11,0.3)'] },
-    ].map(({ x, y, icon, label, col }) => (
-      <g key={`${x}-${y}`}>
-        <rect x={x} y={y} width="72" height="78" rx="14"
-          fill={col[0]} stroke={col[1]} strokeWidth="1.5"/>
-        <text x={x+36} y={y+40} fontSize="22" textAnchor="middle">{icon}</text>
-        <text x={x+36} y={y+62} fontSize="9" textAnchor="middle" fill="#374151" fontWeight="600">{label}</text>
+      { x: 60, y: 50, text: '📋 Complete profile', w: 95 },
+      { x: 235, y: 45, text: '🛡️ Trust Passport', w: 90 },
+      { x: 45, y: 150, text: '⏰ Track hours', w: 80 },
+      { x: 230, y: 155, text: '💰 Create invoice', w: 90 },
+      { x: 130, y: 185, text: '📞 Verify phone', w: 82 },
+    ].map(({ x, y, text, w }) => (
+      <g key={text}>
+        <rect x={x - w/2} y={y - 10} width={w} height="20" rx="10"
+          fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+        <text x={x} y={y + 4} fontSize="8" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="500">{text}</text>
       </g>
+    ))}
+    {/* Connection lines from orb to hints */}
+    {[
+      { x1: 145, y1: 78, x2: 90, y2: 55 },
+      { x1: 195, y1: 78, x2: 255, y2: 50 },
+      { x1: 145, y1: 122, x2: 75, y2: 148 },
+      { x1: 195, y1: 122, x2: 250, y2: 152 },
+      { x1: 170, y1: 132, x2: 170, y2: 175 },
+    ].map(({ x1, y1, x2, y2 }, i) => (
+      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+        stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3,3"/>
     ))}
   </svg>
 )
 
-const IlluMap = () => (
-  <svg viewBox="0 0 340 215" style={{ width: '100%', height: '100%' }} aria-label="Map showing a caregiver service area and travel radius">
-    {/* map background */}
-    <rect x="20" y="15" width="300" height="190" rx="16" fill="#e0f2fe" stroke="rgba(74,144,226,0.25)" strokeWidth="1.5" filter="url(#ms)"/>
-    {/* roads */}
-    <line x1="20" y1="115" x2="320" y2="115" stroke="rgba(255,255,255,0.9)" strokeWidth="6"/>
-    <line x1="170" y1="15" x2="170" y2="205" stroke="rgba(255,255,255,0.9)" strokeWidth="6"/>
-    <line x1="20" y1="65" x2="120" y2="115" stroke="rgba(255,255,255,0.7)" strokeWidth="3"/>
-    <line x1="220" y1="115" x2="320" y2="80" stroke="rgba(255,255,255,0.7)" strokeWidth="3"/>
-    {/* radius rings */}
-    <circle cx="170" cy="115" r="85" fill="rgba(124,92,255,0.06)" stroke="rgba(124,92,255,0.18)" strokeWidth="1.5" strokeDasharray="5,4"/>
-    <circle cx="170" cy="115" r="55" fill="rgba(74,144,226,0.07)" stroke="rgba(74,144,226,0.25)" strokeWidth="1.5" strokeDasharray="4,4"/>
-    <circle cx="170" cy="115" r="25" fill="rgba(192,132,252,0.15)" stroke="rgba(192,132,252,0.4)" strokeWidth="1.5"/>
-    {/* home pin */}
-    <circle cx="170" cy="115" r="14" fill="url(#pgrad)" filter="url(#ps2)"/>
-    <text x="170" y="121" fontSize="12" textAnchor="middle">🏠</text>
-    {/* opportunity dots */}
-    <circle cx="120" cy="80"  r="7" fill="rgba(34,197,94,0.8)"/><text x="120" y="84" fontSize="7" textAnchor="middle" fill="#fff">★</text>
-    <circle cx="225" cy="90"  r="7" fill="rgba(34,197,94,0.8)"/><text x="225" y="94" fontSize="7" textAnchor="middle" fill="#fff">★</text>
-    <circle cx="140" cy="150" r="7" fill="rgba(34,197,94,0.6)"/><text x="140" y="154" fontSize="7" textAnchor="middle" fill="#fff">★</text>
-    <circle cx="215" cy="148" r="5" fill="rgba(74,144,226,0.7)"/>
-    <circle cx="105" cy="135" r="5" fill="rgba(74,144,226,0.5)"/>
-    {/* label */}
-    <rect x="80" y="186" width="180" height="20" rx="6" fill="rgba(255,255,255,0.85)"/>
-    <text x="170" y="199" fontSize="9" textAnchor="middle" fill="#475569" fontWeight="600">Your area — exact address never shared</text>
-    <defs>
-      <filter id="ms"><feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="rgba(74,144,226,0.15)"/></filter>
-      <filter id="ps2"><feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="rgba(124,92,255,0.4)"/></filter>
-      <linearGradient id="pgrad" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#7C5CFF"/><stop offset="1" stopColor="#4A90E2"/></linearGradient>
-    </defs>
+const IlluFree = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Free launch year access celebration with gift and confetti">
+    <circle cx="170" cy="110" r="90" fill="rgba(255,255,255,0.06)"/>
+    {/* Gift box */}
+    <rect x="130" y="90" width="80" height="65" rx="8" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" strokeWidth="2"/>
+    {/* Ribbon vertical */}
+    <rect x="165" y="90" width="10" height="65" fill="rgba(255,255,255,0.15)"/>
+    {/* Lid */}
+    <rect x="122" y="78" width="96" height="18" rx="6" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.4)" strokeWidth="2"/>
+    {/* Bow */}
+    <ellipse cx="160" cy="78" rx="14" ry="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+    <ellipse cx="180" cy="78" rx="14" ry="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+    <circle cx="170" cy="78" r="5" fill="rgba(255,255,255,0.3)"/>
+    {/* FREE badge */}
+    <rect x="140" y="110" width="60" height="24" rx="12" fill="rgba(34,197,94,0.35)" stroke="rgba(34,197,94,0.6)" strokeWidth="1.5"/>
+    <text x="170" y="126" fontSize="11" textAnchor="middle" fill="#fff" fontWeight="800">FREE</text>
+    {/* Confetti / sparkles */}
+    {['🎉','✨','🌟','💜','⭐','🎊','💫','✨'].map((e, i) => (
+      <text key={i} x={30 + i * 40} y={25 + (i % 3) * 18} fontSize={10 + (i % 3) * 4}
+        textAnchor="middle" opacity={0.5 + (i % 3) * 0.15}>{e}</text>
+    ))}
+    {/* Year banner */}
+    <rect x="105" y="170" width="130" height="22" rx="11" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+    <text x="170" y="185" fontSize="9" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">🚀 Launch year — all features included</text>
+  </svg>
+)
+
+const IlluSetup = () => (
+  <svg viewBox="0 0 340 220" style={{ width: '100%', height: '100%' }} aria-label="Quick setup: choose your caregiver type and services">
+    <circle cx="170" cy="110" r="95" fill="rgba(255,255,255,0.05)"/>
+    {/* Cards grid */}
+    {[
+      { x: 28, label: 'CNA', icon: '🏥', op: 0.25 },
+      { x: 108, label: 'Companion', icon: '🤝', op: 0.20 },
+      { x: 188, label: 'Live-In', icon: '🏠', op: 0.25 },
+      { x: 268, label: 'Private', icon: '⭐', op: 0.20 },
+    ].map(({ x, label, icon, op }) => (
+      <g key={x}>
+        <rect x={x} y="35" width="62" height="72" rx="14"
+          fill={`rgba(255,255,255,${op})`} stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"/>
+        <text x={x + 31} y="72" fontSize="18" textAnchor="middle">{icon}</text>
+        <text x={x + 31} y="95" fontSize="8" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontWeight="600">{label}</text>
+      </g>
+    ))}
+    {/* Services row */}
+    {[
+      { x: 48, label: 'Meals', icon: '🍽️' },
+      { x: 128, label: 'Transport', icon: '🚗' },
+      { x: 208, label: 'Mobility', icon: '🚶' },
+      { x: 288, label: 'Overnight', icon: '🌙' },
+    ].map(({ x, label, icon }) => (
+      <g key={x}>
+        <rect x={x - 30} y="125" width="60" height="55" rx="12"
+          fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+        <text x={x} y="155" fontSize="16" textAnchor="middle">{icon}</text>
+        <text x={x} y="172" fontSize="7" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontWeight="500">{label}</text>
+      </g>
+    ))}
+    <text x="170" y="210" fontSize="9" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontWeight="600">
+      Tell us a little about your care work
+    </text>
   </svg>
 )
 
@@ -265,7 +407,7 @@ const IlluOfficeReady = ({ name }: { name: string }) => (
     <circle cx="170" cy="118" r="38" fill="url(#readyg)" filter="url(#ors)"/>
     <text x="170" y="108" fontSize="20" textAnchor="middle">✨</text>
     <text x="170" y="130" fontSize="10" textAnchor="middle" fill="#fff" fontWeight="700">Kai</text>
-    <text x="170" y="143" fontSize="8" textAnchor="middle" fill="rgba(255,255,255,0.8)">AI Copilot</text>
+    <text x="170" y="143" fontSize="8" textAnchor="middle" fill="rgba(255,255,255,0.8)">Your Guide</text>
     {/* surrounding cards */}
     <rect x="20"  y="55"  width="80" height="56" rx="12" fill="#fff" stroke="rgba(124,92,255,0.2)" strokeWidth="1.2" filter="url(#ors)"/>
     <text x="60"  y="83"  fontSize="18" textAnchor="middle">⏰</text>
@@ -289,51 +431,29 @@ const IlluOfficeReady = ({ name }: { name: string }) => (
   </svg>
 )
 
-// ── Screen definitions (merged 9 → 5) ────────────────────────────────────────
-const SCREENS = [
-  {
-    id: 'welcome',
-    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 60%,#4A90E2 100%)',
-    Illustration: IlluWelcome,
-    kaiHint: 'Hi, I\'m Kai. I\'ll help set up your caregiver office step by step.',
-  },
-  {
-    id: 'type-goals',
-    gradient: 'linear-gradient(145deg,#4A90E2 0%,#7C5CFF 100%)',
-    Illustration: IlluTypes,
-    kaiHint: 'Your answers help me guide you to the right setup. Pick what matters most!',
-  },
-  {
-    id: 'services-prefs',
-    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#4A90E2 100%)',
-    Illustration: IlluServices,
-    kaiHint: 'These services help families understand how you can support them.',
-  },
-  {
-    id: 'location',
-    gradient: 'linear-gradient(145deg,#22C55E 0%,#4A90E2 100%)',
-    Illustration: IlluMap,
-    kaiHint: 'You control your service area. We will not show your exact address.',
-  },
-  {
-    id: 'ready',
-    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 50%,#4A90E2 100%)',
-    Illustration: IlluOfficeReady,
-    kaiHint: null,
-  },
+// ── Screen configuration ──────────────────────────────────────────────────────
+const SCREEN_META = [
+  { id: 'welcome',    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 60%,#4A90E2 100%)' },
+  { id: 'organized',  gradient: 'linear-gradient(145deg,#4A90E2 0%,#7C5CFF 100%)' },
+  { id: 'profile',    gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 100%)' },
+  { id: 'trust',      gradient: 'linear-gradient(145deg,#22C55E 0%,#4A90E2 70%,#7C5CFF 100%)' },
+  { id: 'kai',        gradient: 'linear-gradient(145deg,#7C5CFF 0%,#8B5CF6 50%,#4A90E2 100%)' },
+  { id: 'free',       gradient: 'linear-gradient(145deg,#16a34a 0%,#22C55E 50%,#4A90E2 100%)' },
+  { id: 'setup',      gradient: 'linear-gradient(145deg,#7C5CFF 0%,#4A90E2 100%)' },
+  { id: 'ready',      gradient: 'linear-gradient(145deg,#7C5CFF 0%,#C084FC 50%,#4A90E2 100%)' },
 ]
 
+const ILLUSTRATIONS = [
+  IlluWelcome, IlluOrganized, IlluProfile, IlluTrust, IlluKai, IlluFree, IlluSetup, null /* ready uses special render */,
+]
+
+const TOTAL_SCREENS = 8
+
+// ── Data options (unchanged) ──────────────────────────────────────────────────
 const CAREGIVER_TYPES = [
   'Private caregiver','Independent caregiver','CNA','HHA',
   'Companion caregiver','Agency caregiver','Facility caregiver',
   'Live-in caregiver','I\'m exploring caregiving',
-]
-
-const CAREGIVER_GOALS = [
-  'Find more clients','Track my hours','Clock in and out',
-  'Send timesheets','Send invoices','Build trust with families',
-  'Build my resume while I work','Share my caregiver profile',
-  'Keep my work organized','Manage my schedule',
 ]
 
 const CARE_SERVICES = [
@@ -347,7 +467,7 @@ const WORK_PREFS = [
   'Weekends','Flexible','Live-in','Part-time','Full-time',
 ]
 
-// ── Fix 6: Smart defaults map ─────────────────────────────────────────────────
+// ── Smart defaults map ────────────────────────────────────────────────────────
 const TYPE_SERVICE_DEFAULTS: Record<string, string[]> = {
   'CNA': ['Personal care', 'Medication reminders', 'Mobility support'],
   'HHA': ['Personal care', 'Medication reminders', 'Mobility support'],
@@ -370,33 +490,20 @@ function getSmartDefaults(caregiverTypes: string[]): string[] {
   return Array.from(defaults)
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) => {
-  // Fix 2: Determine if we should skip the name step
-  const skipNameStep = !!profile?.firstName && profile.firstName !== (profile?.email || '').split('@')[0]
+  // Determine if name input is needed on welcome screen
+  const hasName = !!profile?.firstName && profile.firstName !== (profile?.email || '').split('@')[0]
 
-  const [step, setStep]   = useState<number>(() => {
-    const saved = readStep()
-    // If skipping name step and saved step is 0, start from 1
-    if (skipNameStep && saved === 0) return 1
-    return saved
-  })
+  const [step, setStep]   = useState<number>(readStep)
   const [data, setData]   = useState<OnboardingData>(() => {
     const d = blankData(profile)
-    // Fix 2: If skipping name step, ensure firstName is set from profile
-    if (skipNameStep && !d.firstName) {
-      d.firstName = profile.firstName
-    }
+    if (hasName && !d.firstName) d.firstName = profile.firstName
     return d
   })
   const [err, setErr]     = useState('')
   const [busy, setBusy]   = useState(false)
   const scrollRef         = useRef<HTMLDivElement>(null)
-
-  // Fix 2: Calculate total screens and display step
-  const totalScreens = skipNameStep ? 4 : 5
-  const displayStep = skipNameStep ? step : step + 1
-  const minStep = skipNameStep ? 1 : 0
 
   // Persist on every change
   useEffect(() => { save(data, step) }, [data, step])
@@ -422,68 +529,68 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
   }, [])
 
   const validate = (): boolean => {
-    if (step === 0 && !data.firstName.trim()) { setErr('Please enter your first name'); return false }
-    if (step === 1) {
-      if (data.caregiverTypes.length === 0) { setErr('Please select at least one type'); return false }
-      if (data.caregiverGoals.length === 0) { setErr('Please choose at least one goal'); return false }
+    // Screen 0: Welcome — require name if not from profile
+    if (step === 0 && !hasName && !data.firstName.trim()) {
+      setErr('Please enter your first name'); return false
     }
-    if (step === 2) {
-      if (data.careServices.length === 0) { setErr('Please select at least one service'); return false }
-      if (data.workPreferences.length === 0) { setErr('Please choose at least one preference'); return false }
-    }
-    if (step === 3) {
+    // Screens 1-5: Informational — no validation
+    // Screen 6: Quick Setup — require at least one type and one service
+    if (step === 6) {
+      if (data.caregiverTypes.length === 0) { setErr('Please select at least one caregiver type'); return false }
+      if (data.careServices.length === 0) { setErr('Please select at least one service you provide'); return false }
       if (!data.serviceArea.trim()) { setErr('Please enter your ZIP code or city'); return false }
     }
     return true
   }
 
-  const next = async () => {
-    setErr('')
-    if (!validate()) return
-    // Fix 6: Apply smart defaults when moving from Type+Goals (step 1) to Services+Prefs (step 2)
-    if (step === 1 && data.careServices.length === 0) {
-      const defaults = getSmartDefaults(data.caregiverTypes)
-      if (defaults.length > 0) {
-        setData(prev => ({ ...prev, careServices: defaults }))
-      }
-    }
-    if (step < 4) { setStep(s => s + 1); return }
-    // Step 4 = final — complete
+  const finishOnboarding = useCallback((openKai?: boolean) => {
     setBusy(true)
     const final = { ...data, officeTools: [], firstTrustStep: '' }
     try {
       localStorage.setItem(COMPLETE_KEY, 'true')
       localStorage.setItem(COMPLETE_AT, new Date().toISOString())
+      if (openKai) {
+        try { localStorage.setItem('cgp_open_kai_after_onboarding', 'true') } catch {}
+      }
       onComplete(final)
     } finally {
       setBusy(false)
     }
+  }, [data, onComplete])
+
+  const next = async () => {
+    setErr('')
+    if (!validate()) return
+    // Apply smart service defaults when moving past setup if services are empty
+    if (step === 6 && data.careServices.length === 0) {
+      const defaults = getSmartDefaults(data.caregiverTypes)
+      if (defaults.length > 0) {
+        setData(prev => ({ ...prev, careServices: defaults }))
+      }
+    }
+    if (step < 7) { setStep(s => s + 1); return }
+    // Step 7 = final — enter office
+    finishOnboarding(false)
   }
 
-  const back = () => { if (step > minStep) setStep(s => s - 1) }
+  const back = () => { if (step > 0) setStep(s => s - 1) }
 
-  // Fix 5: Skip for now — complete with current data + defaults
-  const skipForNow = () => {
-    const final = {
-      ...data,
-      officeTools: [],
-      firstTrustStep: '',
-    }
-    setBusy(true)
-    try {
-      localStorage.setItem(COMPLETE_KEY, 'true')
-      localStorage.setItem(COMPLETE_AT, new Date().toISOString())
-      onComplete(final)
-    } finally {
-      setBusy(false)
-    }
-  }
+  // Skip setup — complete with current data + defaults
+  const skipForNow = () => finishOnboarding(false)
 
-  const scr = SCREENS[step]
   const name = data.firstName.trim() || profile?.firstName || 'there'
-  const progress = ((displayStep) / totalScreens) * 100
+  const progress = ((step + 1) / TOTAL_SCREENS) * 100
 
-  // ── Shared layout ─────────────────────────────────────────────────────────────
+  const ctaText = (): string => {
+    if (busy) return ''
+    if (step === 0) return 'Start setup →'
+    if (step === 7) return '✨ Enter my office'
+    return 'Continue →'
+  }
+
+  const meta = SCREEN_META[step]
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
@@ -505,10 +612,10 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
 
         {/* ── Hero illustration ── */}
         <div style={{
-          minHeight: '38vh', maxHeight: 280,
-          background: scr.gradient,
+          minHeight: '34vh', maxHeight: 260,
+          background: meta.gradient,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px 24px 28px',
+          padding: '18px 24px 24px',
           position: 'relative', overflow: 'hidden',
         }}>
           {/* decorative blobs */}
@@ -521,9 +628,9 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
             background: 'rgba(255,255,255,0.05)', bottom: -40, left: -30,
           }}/>
           <div style={{ width: '100%', maxWidth: 340, height: '100%', maxHeight: 220, position: 'relative', zIndex: 1 }}>
-            {step === 4
+            {step === 7
               ? <IlluOfficeReady name={name} />
-              : React.createElement(scr.Illustration)
+              : ILLUSTRATIONS[step] ? React.createElement(ILLUSTRATIONS[step]!) : null
             }
           </div>
         </div>
@@ -536,17 +643,20 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
             fontSize: 12, fontWeight: 600, color: P,
             boxShadow: '0 2px 8px rgba(124,92,255,0.12)',
           }}>
-            Step {displayStep} of {totalScreens}
+            Step {step + 1} of {TOTAL_SCREENS}
           </div>
         </div>
 
         {/* ── Content ── */}
         <div style={{ padding: '20px 24px 24px' }}>
-          {step === 0 && <Screen1 name={name} data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 1 && <ScreenTypeGoals data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 2 && <ScreenServicesPrefs data={data} toggleArr={toggleArr} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 3 && <ScreenLocation data={data} patch={patch} err={err} kaiHint={scr.kaiHint!} />}
-          {step === 4 && <ScreenReady data={data} name={name} />}
+          {step === 0 && <ScreenWelcome hasName={hasName} name={name} data={data} patch={patch} err={err} />}
+          {step === 1 && <ScreenOrganized />}
+          {step === 2 && <ScreenProfile />}
+          {step === 3 && <ScreenTrustPassport />}
+          {step === 4 && <ScreenKai />}
+          {step === 5 && <ScreenFree />}
+          {step === 6 && <ScreenSetup data={data} patch={patch} toggleArr={toggleArr} err={err} />}
+          {step === 7 && <ScreenReady data={data} name={name} onOpenKai={() => finishOnboarding(true)} />}
         </div>
 
         {/* bottom spacer so content clears the fixed CTA */}
@@ -563,8 +673,8 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
         zIndex: 100,
       }}>
         {/* Progress dots */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
-          {SCREENS.slice(skipNameStep ? 1 : 0).map((_, i) => <Dot key={i} active={i === (step - minStep)} />)}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginBottom: 12 }}>
+          {SCREEN_META.map((_, i) => <Dot key={i} active={i === step} />)}
         </div>
 
         {/* Error */}
@@ -590,12 +700,12 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
         >
           {busy
             ? <><span style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'ob-spin 0.7s linear infinite' }}/> Setting up your office...</>
-            : step === 4 ? '✨ Enter my office' : 'Continue →'
+            : ctaText()
           }
         </button>
 
-        {/* Back link */}
-        {step > minStep && (
+        {/* Back link — show on screens 1+ */}
+        {step > 0 && (
           <button
             onClick={back}
             style={{
@@ -608,8 +718,8 @@ export const CaregiverOnboarding: React.FC<Props> = ({ profile, onComplete }) =>
           </button>
         )}
 
-        {/* Fix 5: Skip for now escape hatch — show on screens 1-3 (Type+Goals, Services+Prefs, Location) */}
-        {step >= 1 && step <= 3 && (
+        {/* Skip setup for now — only on Quick Setup screen */}
+        {step === 6 && (
           <button
             onClick={skipForNow}
             style={{
@@ -650,123 +760,235 @@ function SectionLabel({ text }: { text: string }) {
   )
 }
 
-// Screen 0: Welcome + Name (skipped if name already known)
-function Screen1({ name, data, patch, err, kaiHint }: any) {
+// ── Screen 0: Welcome to Carehia ──────────────────────────────────────────────
+function ScreenWelcome({ hasName, name, data, patch, err }: any) {
   return (
-    <>
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
       <Headline
-        title="Care for others. Carehia cares for you."
-        copy="Your caregiving office, work tools, trust profile, and daily support — all in one place."
+        title="Welcome to Carehia"
+        copy="Your caregiver office in your pocket."
       />
-      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-        What should we call you?
-      </label>
-      <input
-        type="text"
-        autoFocus
-        autoComplete="given-name"
-        placeholder="Your first name"
-        value={data.firstName}
-        onChange={e => patch({ firstName: e.target.value })}
-        style={{
-          width: '100%', padding: '13px 16px', borderRadius: 14,
-          border: `1.5px solid ${err ? '#EF4444' : 'rgba(124,92,255,0.3)'}`,
-          fontSize: 16, fontWeight: 600, color: '#0f172a',
-          background: '#fff', outline: 'none', boxSizing: 'border-box',
-          boxShadow: '0 2px 8px rgba(124,92,255,0.08)',
-        }}
-      />
-      <KaiHint text={kaiHint} />
-    </>
+      <p style={{ margin: '0 0 18px', fontSize: 14, color: '#64748b', lineHeight: '1.6' }}>
+        Carehia helps caregivers manage work, build trust, track hours, create invoices, and share a professional caregiver profile.
+      </p>
+      {!hasName && (
+        <>
+          <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+            What should we call you?
+          </label>
+          <input
+            type="text"
+            autoFocus
+            autoComplete="given-name"
+            placeholder="Your first name"
+            value={data.firstName}
+            onChange={(e: any) => patch({ firstName: e.target.value })}
+            style={{
+              width: '100%', padding: '13px 16px', borderRadius: 14,
+              border: `1.5px solid ${err ? '#EF4444' : 'rgba(124,92,255,0.3)'}`,
+              fontSize: 16, fontWeight: 600, color: '#0f172a',
+              background: '#fff', outline: 'none', boxSizing: 'border-box',
+              boxShadow: '0 2px 8px rgba(124,92,255,0.08)',
+            }}
+          />
+        </>
+      )}
+      {hasName && (
+        <div style={{
+          background: 'rgba(124,92,255,0.06)', border: '1.5px solid rgba(124,92,255,0.15)',
+          borderRadius: 14, padding: '14px 16px', textAlign: 'center',
+        }}>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+            Welcome, {name}! 👋
+          </p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+            Let's set up your caregiver office.
+          </p>
+        </div>
+      )}
+      <KaiHint text="Hi, I'm Kai. I'll help set up your caregiver office step by step." />
+    </div>
   )
 }
 
-// Screen 1: Caregiver Type + Goals (merged)
-function ScreenTypeGoals({ data, toggleArr, err, kaiHint }: any) {
+// ── Screen 1: Carehia Helps You Stay Organized ───────────────────────────────
+function ScreenOrganized() {
   return (
-    <>
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
       <Headline
-        title="What kind of caregiver are you?"
-        copy="We'll tailor your Carehia office to fit how you work."
+        title="Manage your care work in one place"
+        copy="Track your hours, manage clients, organize your profile, and prepare invoices without juggling paper notes or scattered apps."
+      />
+      <div style={{ marginTop: 4 }}>
+        <KeyPoint icon="⏰" text="Track hours and clock in/out for each shift" />
+        <KeyPoint icon="👥" text="Manage your clients in one place" />
+        <KeyPoint icon="💰" text="Create and send professional invoices" />
+        <KeyPoint icon="📋" text="Keep all your work organized" />
+      </div>
+      <KaiHint text="You do not have to finish everything today. I'll guide you step by step." />
+    </div>
+  )
+}
+
+// ── Screen 2: Build Your Caregiver Profile ───────────────────────────────────
+function ScreenProfile() {
+  return (
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
+      <Headline
+        title="Build your caregiver resume as you work"
+        copy="Your Carehia profile helps show your care experience, services, work preferences, Trust Passport progress, and reviews over time."
+      />
+      <div style={{ marginTop: 4 }}>
+        <KeyPoint icon="📄" text="Showcase your care experience and skills" />
+        <KeyPoint icon="⭐" text="Collect reviews and build your reputation" />
+        <KeyPoint icon="🔗" text="Share your profile link with interested families" />
+      </div>
+      <div style={{
+        background: 'rgba(124,92,255,0.06)', borderRadius: 12,
+        border: '1px solid rgba(124,92,255,0.12)', padding: '10px 14px', marginTop: 16,
+      }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: '1.5' }}>
+          💡 You can share your profile link with interested families or clients when you are ready.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Screen 3: Trust Passport ─────────────────────────────────────────────────
+function ScreenTrustPassport() {
+  return (
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
+      <Headline
+        title="Build trust step by step"
+        copy="Trust Passport helps you strengthen your profile with verified contact details, proof steps, and trust signals."
+      />
+      <div style={{ marginTop: 4 }}>
+        <KeyPoint icon="📞" text="Verify your phone number" />
+        <KeyPoint icon="🪪" text="Upload proof of identity" />
+        <KeyPoint icon="📝" text="Add references and certifications" />
+        <KeyPoint icon="🛡️" text="Build trust with families over time" />
+      </div>
+      <div style={{
+        background: 'rgba(34,197,94,0.06)', borderRadius: 12,
+        border: '1px solid rgba(34,197,94,0.15)', padding: '10px 14px', marginTop: 16,
+      }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#16a34a', lineHeight: '1.5' }}>
+          🛡️ Trust Passport helps families better understand your profile and verification progress.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Screen 4: Meet Kai ───────────────────────────────────────────────────────
+function ScreenKai() {
+  return (
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
+      <Headline
+        title="Meet Kai, your Carehia guide"
+        copy="Kai helps you know what to do next, complete your setup, build trust, track work, and manage your caregiver office."
+      />
+      <div style={{ marginTop: 4 }}>
+        <KeyPoint icon="🧭" text="What should I do next?" />
+        <KeyPoint icon="📋" text="Complete my profile" />
+        <KeyPoint icon="🛡️" text="Start Trust Passport" />
+        <KeyPoint icon="📞" text="Verify my phone" />
+        <KeyPoint icon="⏰" text="Track hours" />
+        <KeyPoint icon="💰" text="Create invoices" />
+      </div>
+      <KaiHint text="I'll be here whenever you need help. Just tap the Kai button!" />
+    </div>
+  )
+}
+
+// ── Screen 5: Free During Launch Year ────────────────────────────────────────
+function ScreenFree() {
+  return (
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
+      <Headline
+        title="Free for caregivers during launch"
+        copy="Caregiver access is free during Carehia's first launch year while we grow the platform and support early caregivers."
+      />
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        background: 'rgba(34,197,94,0.08)', border: '1.5px solid rgba(34,197,94,0.25)',
+        borderRadius: 14, padding: '14px 16px', marginTop: 8,
+      }}>
+        <span style={{ fontSize: 28 }}>🎁</span>
+        <div>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#16a34a' }}>All features included</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#22c55e' }}>
+            Time tracking, invoices, profile, Trust Passport, Kai — all free during launch.
+          </p>
+        </div>
+      </div>
+      <div style={{
+        background: 'rgba(124,92,255,0.04)', borderRadius: 12,
+        border: '1px solid rgba(124,92,255,0.1)', padding: '10px 14px', marginTop: 16,
+      }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: '1.5' }}>
+          Client subscriptions and future premium tools may be separate. Caregiver access stays free during launch year.
+        </p>
+      </div>
+      <KaiHint text="You're joining early. That's a big deal. Let's make the most of it!" />
+    </div>
+  )
+}
+
+// ── Screen 6: Quick Setup ────────────────────────────────────────────────────
+function ScreenSetup({ data, patch, toggleArr, err }: any) {
+  return (
+    <div style={{ animation: 'ob-fadein 0.35s ease' }}>
+      <Headline
+        title="Quick setup"
+        copy="Tell us a little about your care work so Carehia can prepare your office."
       />
       {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
+
+      {/* Caregiver Type */}
+      <SectionLabel text="What kind of caregiver are you?" />
       <MultiChip
         options={CAREGIVER_TYPES}
         selected={data.caregiverTypes}
-        onToggle={v => toggleArr('caregiverTypes', v)}
+        onToggle={(v: string) => toggleArr('caregiverTypes', v)}
       />
 
-      <SectionLabel text="What would you like Carehia to help with?" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 13, color: '#64748b' }}>Select up to 3</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: P }}>{data.caregiverGoals.length}/3</span>
-      </div>
-      <MultiChip
-        options={CAREGIVER_GOALS}
-        selected={data.caregiverGoals}
-        onToggle={v => toggleArr('caregiverGoals', v, 3)}
-        maxSelect={3}
-      />
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
-
-// Screen 2: Care Services + Work Preferences (merged)
-function ScreenServicesPrefs({ data, toggleArr, err, kaiHint }: any) {
-  return (
-    <>
-      <Headline
-        title="What care do you provide?"
-        copy="This helps Carehia prepare your work profile and future matches."
-      />
-      {err && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 8 }}>{err}</p>}
+      {/* Care Services */}
+      <SectionLabel text="What care do you provide?" />
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: '#64748b' }}>
+        These help families understand how you can support them.
+      </p>
       <MultiChip
         options={CARE_SERVICES}
         selected={data.careServices}
-        onToggle={v => toggleArr('careServices', v)}
+        onToggle={(v: string) => toggleArr('careServices', v)}
       />
 
-      <SectionLabel text="Tell us how you like to work" />
-      <p style={{ margin: '0 0 12px', fontSize: 14, color: '#64748b' }}>
-        Carehia works better when it understands your real schedule.
-      </p>
+      {/* Work Preferences */}
+      <SectionLabel text="How do you like to work?" />
       <MultiChip
         options={WORK_PREFS}
         selected={data.workPreferences}
-        onToggle={v => toggleArr('workPreferences', v)}
+        onToggle={(v: string) => toggleArr('workPreferences', v)}
       />
-      <KaiHint text={kaiHint} />
-    </>
-  )
-}
 
-// Screen 3: Location
-function ScreenLocation({ data, patch, err, kaiHint }: any) {
-  return (
-    <>
-      <Headline
-        title="Where do you want to work?"
-        copy="Set your local area so Carehia can prepare your office and future opportunities."
-      />
-      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-        ZIP code or city
-      </label>
+      {/* Service Area */}
+      <SectionLabel text="Where do you want to work?" />
       <input
         type="text"
         placeholder="e.g. 95814 or Sacramento, CA"
         value={data.serviceArea}
-        onChange={e => patch({ serviceArea: e.target.value })}
+        onChange={(e: any) => patch({ serviceArea: e.target.value })}
         style={{
           width: '100%', padding: '13px 16px', borderRadius: 14,
-          border: `1.5px solid ${err ? '#EF4444' : 'rgba(124,92,255,0.3)'}`,
+          border: '1.5px solid rgba(124,92,255,0.3)',
           fontSize: 15, color: '#0f172a',
           background: '#fff', outline: 'none', boxSizing: 'border-box',
           boxShadow: '0 2px 8px rgba(124,92,255,0.08)',
         }}
       />
-
-      <div style={{ marginTop: 20 }}>
+      <div style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Travel radius</label>
           <span style={{
@@ -778,7 +1000,7 @@ function ScreenLocation({ data, patch, err, kaiHint }: any) {
         <input
           type="range" min={5} max={50} step={5}
           value={data.travelRadiusMiles}
-          onChange={e => patch({ travelRadiusMiles: Number(e.target.value) })}
+          onChange={(e: any) => patch({ travelRadiusMiles: Number(e.target.value) })}
           style={{ width: '100%', accentColor: P }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -787,31 +1009,21 @@ function ScreenLocation({ data, patch, err, kaiHint }: any) {
         </div>
       </div>
 
-      <KaiHint text={kaiHint} />
-    </>
+      <KaiHint text="Your answers help me guide you to the right setup. Pick what matters most!" />
+    </div>
   )
 }
 
-// Screen 4: Ready!
-function ScreenReady({ data, name }: { data: OnboardingData; name: string }) {
-  const goals = data.caregiverGoals
-  const goalMap: Record<string, { icon: string; next: string }> = {
-    'Find more clients':         { icon: '🔍', next: 'Complete your public caregiver profile' },
-    'Track my hours':            { icon: '⏱️', next: 'Set up your first clock-in' },
-    'Clock in and out':          { icon: '⏰', next: 'Start your first clock-in' },
-    'Send timesheets':           { icon: '📋', next: 'Create your first timesheet' },
-    'Send invoices':             { icon: '💰', next: 'Create your first invoice' },
-    'Build trust with families': { icon: '🛡️', next: 'Start your Trust Passport' },
-    'Build my resume while I work': { icon: '📄', next: 'Add your work experience' },
-    'Share my caregiver profile':{ icon: '🔗', next: 'Build your public profile link' },
-    'Keep my work organized':    { icon: '📌', next: 'Explore your caregiver office' },
-    'Manage my schedule':        { icon: '📅', next: 'Set your availability in Work' },
-  }
-  const nextSteps = [
-    { icon: '📸', text: 'Add your profile photo' },
-    ...(goals.slice(0,2).map(g => ({ icon: goalMap[g]?.icon || '✅', text: goalMap[g]?.next || g }))),
-    { icon: '🟢', text: 'Go online for work requests' },
-  ].slice(0, 4)
+// ── Screen 7: Your Carehia Office Is Ready ───────────────────────────────────
+function ScreenReady({ data, name, onOpenKai }: { data: OnboardingData; name: string; onOpenKai: () => void }) {
+  const checklist = [
+    { icon: '👤', text: 'Profile started', done: true },
+    { icon: '✨', text: 'Kai ready', done: true },
+    { icon: '🛡️', text: 'Trust Passport available', done: true },
+    { icon: '📞', text: 'Phone verification available', done: true },
+    { icon: '⏰', text: 'Time tracking ready', done: true },
+    { icon: '💰', text: 'Invoices ready', done: true },
+  ]
 
   const summaryItems = [
     { label: 'Name', value: name },
@@ -819,33 +1031,39 @@ function ScreenReady({ data, name }: { data: OnboardingData; name: string }) {
     data.careServices.length > 0 && { label: 'Services', value: `${data.careServices.length} selected` },
     data.workPreferences.length > 0 && { label: 'Availability', value: data.workPreferences.slice(0,3).join(', ') },
     data.serviceArea && { label: 'Area', value: data.serviceArea + (data.travelRadiusMiles ? `, ${data.travelRadiusMiles} mi radius` : '') },
-    data.caregiverGoals.length > 0 && { label: 'Goals', value: data.caregiverGoals.slice(0,2).join(', ') + (data.caregiverGoals.length > 2 ? ` +${data.caregiverGoals.length-2}` : '') },
   ].filter(Boolean) as { label: string; value: string }[]
 
   return (
     <div style={{ animation: 'ob-fadein 0.4s ease' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: '#0f172a', lineHeight: '1.2' }}>
-        {name}, your office is ready ✨
+        Your Carehia office is ready ✨
       </h1>
-      <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b' }}>
-        We have prepared your starter office based on what you shared.
+      <p style={{ margin: '0 0 18px', fontSize: 14, color: '#64748b', lineHeight: '1.5' }}>
+        Kai will help you finish your profile, start your Trust Passport, verify your phone, and prepare your work tools.
       </p>
 
-      {/* Readiness progress */}
+      {/* Starter checklist */}
       <div style={{
         background: '#fff', borderRadius: 16,
         border: '1.5px solid rgba(124,92,255,0.15)',
         padding: '14px 16px', marginBottom: 16,
         boxShadow: '0 2px 10px rgba(124,92,255,0.08)',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Office Readiness</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: P }}>35%</span>
+        <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: P }}>Your office includes</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {checklist.map((item, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: 'rgba(34,197,94,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, flexShrink: 0,
+              }}>{item.icon}</div>
+              <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>{item.text}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 13, color: '#22c55e' }}>✓</span>
+            </div>
+          ))}
         </div>
-        <div style={{ height: 8, borderRadius: 8, background: 'rgba(124,92,255,0.12)' }}>
-          <div style={{ height: '100%', width: '35%', borderRadius: 8, background: 'linear-gradient(90deg,#7C5CFF,#4A90E2)' }}/>
-        </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#94a3b8' }}>Complete your profile to reach 100%</p>
       </div>
 
       {/* Free launch access badge */}
@@ -861,47 +1079,43 @@ function ScreenReady({ data, name }: { data: OnboardingData; name: string }) {
         </div>
       </div>
 
-      {/* Summary card */}
-      <div style={{
-        background: '#fff', borderRadius: 16,
-        border: '1.5px solid rgba(124,92,255,0.12)',
-        padding: '14px 16px', marginBottom: 16,
-        boxShadow: '0 2px 10px rgba(124,92,255,0.06)',
-      }}>
-        <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: P }}>Your setup summary</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {summaryItems.map(({ label, value }) => (
-            <div key={label} style={{ display: 'flex', gap: 8 }}>
-              <span style={{ fontSize: 12, color: '#94a3b8', width: 80, flexShrink: 0, paddingTop: 1 }}>{label}</span>
-              <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500, lineHeight: '1.4' }}>{value}</span>
-            </div>
-          ))}
+      {/* Summary card — show only if user completed setup */}
+      {summaryItems.length > 1 && (
+        <div style={{
+          background: '#fff', borderRadius: 16,
+          border: '1.5px solid rgba(124,92,255,0.12)',
+          padding: '14px 16px', marginBottom: 16,
+          boxShadow: '0 2px 10px rgba(124,92,255,0.06)',
+        }}>
+          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: P }}>Your setup summary</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {summaryItems.map(({ label, value }) => (
+              <div key={label} style={{ display: 'flex', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#94a3b8', width: 80, flexShrink: 0, paddingTop: 1 }}>{label}</span>
+                <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500, lineHeight: '1.4' }}>{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Next steps */}
-      <div style={{
-        background: 'linear-gradient(135deg,rgba(124,92,255,0.06),rgba(74,144,226,0.04))',
-        borderRadius: 16, border: '1.5px solid rgba(124,92,255,0.12)',
-        padding: '14px 16px', marginBottom: 16,
-      }}>
-        <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#374151' }}>Your next best steps</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {nextSteps.map((ns, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: `rgba(124,92,255,${0.15-(i*0.02)})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, flexShrink: 0,
-              }}>{i+1}</div>
-              <span style={{ fontSize: 13, color: '#374151' }}>{ns.icon} {ns.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Open Kai secondary CTA */}
+      <button
+        onClick={onOpenKai}
+        style={{
+          width: '100%', padding: '12px', borderRadius: 50,
+          background: 'rgba(124,92,255,0.08)',
+          border: '1.5px solid rgba(124,92,255,0.25)',
+          cursor: 'pointer',
+          fontSize: 14, fontWeight: 600, color: P,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          marginBottom: 8,
+          transition: 'all 0.2s',
+        }}
+      >
+        ✨ Open Kai — my guide
+      </button>
 
-      {/* Kai greeting */}
       <KaiHint text={`Hi ${name}, I'm Kai. I can help you finish setup, get trusted, track work, and get paid. Let's go!`} />
     </div>
   )

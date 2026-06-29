@@ -632,11 +632,16 @@ const App: React.FC<{}> = () => {
   // Refresh document statuses on mount
   useEffect(() => { refreshDocs() }, [])
   // Phase 23G: auto-open Verification Center if flagged after onboarding
+  // Phase 26B: auto-open Kai if flagged after onboarding
   useEffect(() => {
     try {
       if (localStorage.getItem('cgp_open_verif_after_onboarding') === 'true') {
         localStorage.removeItem('cgp_open_verif_after_onboarding')
         setTimeout(() => setShowVerifCenter(true), 800)
+      }
+      if (localStorage.getItem('cgp_open_kai_after_onboarding') === 'true') {
+        localStorage.removeItem('cgp_open_kai_after_onboarding')
+        setTimeout(() => setShowKaiPanel(true), 600)
       }
     } catch {}
   }, [onboardingComplete])

@@ -982,10 +982,10 @@ const App: React.FC<{}> = () => {
     }
   }
 
-  const handleMarketplaceAuth = async (token: string, account: any) => {
+  const handleMarketplaceAuth = async (token: string, account: any, authType?: string) => {
     try {
       localStorage.setItem('cgp_token', token)
-      localStorage.setItem('cgp_auth_type', 'marketplace')
+      localStorage.setItem('cgp_auth_type', authType || 'marketplace')
     } catch {}
     let fullAccount = account
     try {

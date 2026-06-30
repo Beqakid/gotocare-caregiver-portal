@@ -8,18 +8,18 @@ const GOOGLE_CLIENT_ID = typeof document !== 'undefined'
   : ''
 const GOOGLE_ENABLED = !!GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'CONFIGURE_ME'
 const LOGIN_SCREEN_KEY = 'cgp_login_screen'
-type LoginScreenMode = 'choose' | 'register' | 'signin' | 'agency' | 'verify-pending' | 'forgot' | 'reset-sent' | 'reset'
+type LoginScreenMode = 'choose' | 'register' | 'signin' | 'agency' | 'verify-pending' | 'forgot' | 'reset-sent' | 'reset' | 'phone-enter' | 'phone-verify'
 
 function getSavedLoginScreen(): LoginScreenMode {
   try {
     const saved = localStorage.getItem(LOGIN_SCREEN_KEY) as LoginScreenMode | null
-    if (saved && ['choose', 'register', 'signin', 'agency', 'forgot', 'reset-sent', 'reset'].includes(saved)) return saved
+    if (saved && ['choose', 'register', 'signin', 'agency', 'forgot', 'reset-sent', 'reset', 'phone-enter', 'phone-verify'].includes(saved)) return saved
   } catch {}
   return 'choose'
 }
 
 interface LoginScreenProps {
-  onMarketplaceAuth: (token: string, account: any) => void
+  onMarketplaceAuth: (token: string, account: any, authType?: string) => void
   onAgencyLogin: (email: string, password: string) => Promise<void>
   agencyError: string
   agencyLoading: boolean
@@ -44,6 +44,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [reviewCards, setReviewCards] = useState<any[]>([])
+  // Phase 26D: Phone auth state
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneCode, setPhoneCode] = useState('')
+  const [phoneMasked, setPhoneMasked] = useState('')
+  const [phoneLoading, setPhoneLoading] = useState(false)
+  const [phoneError, setPhoneError] = useState('')
+  const [phoneResendTimer, setPhoneResendTimer] = useState(0)
+  const phoneTimerRef = useRef<any>(null)
   const googleBtnRef = useRef<HTMLDivElement>(null)
 
   const navigateToScreen = (nextScreen: LoginScreenMode) => {
@@ -121,6 +129,85 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     } catch { setError('Connection error. Please try again.') }
     finally { setLoading(false) }
   }
+
+  // Phase 26D: Phone auth handlers
+  const startPhoneResendTimer = () => {
+    setPhoneResendTimer(30)
+    if (phoneTimerRef.current) clearInterval(phoneTimerRef.current)
+    phoneTimerRef.current = setInterval(() => {
+      setPhoneResendTimer(prev => {
+        if (prev <= 1) { clearInterval(phoneTimerRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const handlePhoneSendCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!phoneNumber.trim()) { setPhoneError('Please enter your phone number.'); return }
+    setPhoneLoading(true); setPhoneError('')
+    try {
+      const res = await fetch(`${API_BASE}/api/caregiver-auth/phone/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPhoneMasked(data.maskedPhone || phoneNumber.trim())
+        navigateToScreen('phone-verify')
+        startPhoneResendTimer()
+      } else {
+        setPhoneError(data.error || 'Unable to send code. Please try again.')
+      }
+    } catch { setPhoneError('Connection error. Please try again.') }
+    finally { setPhoneLoading(false) }
+  }
+
+  const handlePhoneVerifyCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!phoneCode.trim() || phoneCode.trim().length < 4) {
+      setPhoneError('Please enter the code we sent you.'); return
+    }
+    setPhoneLoading(true); setPhoneError('')
+    try {
+      const res = await fetch(`${API_BASE}/api/caregiver-auth/phone/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code: phoneCode.trim() }),
+      })
+      const data = await res.json()
+      if (data.success && data.token) {
+        if (phoneTimerRef.current) clearInterval(phoneTimerRef.current)
+        onMarketplaceAuth(data.token, data.account, 'phone')
+      } else {
+        setPhoneError(data.error || 'Verification failed. Please try again.')
+      }
+    } catch { setPhoneError('Connection error. Please try again.') }
+    finally { setPhoneLoading(false) }
+  }
+
+  const handlePhoneResend = async () => {
+    if (phoneResendTimer > 0) return
+    setPhoneError('')
+    setPhoneLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/caregiver-auth/phone/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        startPhoneResendTimer()
+        setPhoneCode('')
+      } else {
+        setPhoneError(data.error || 'Unable to resend code.')
+      }
+    } catch { setPhoneError('Connection error.') }
+    finally { setPhoneLoading(false) }
+  }
+
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -342,6 +429,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <GoogleSVG /> Continue with Google
           </button>
         )}
+
+        {/* Phone login */}
+        <button onClick={() => { setPhoneError(''); setPhoneCode(''); navigateToScreen('phone-enter') }} style={{ width: '100%', padding: '13px', borderRadius: '50px', background: '#ffffff', border: '1px solid #CBD5E1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: '#0F172A', marginBottom: '12px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Continue with phone
+        </button>
 
         {/* Apple (disabled) */}
         <button disabled style={{ width: '100%', padding: '13px', borderRadius: '50px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '15px', fontWeight: 600, color: '#CBD5E1', marginBottom: '20px' }}>
@@ -614,6 +707,86 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       </div>
     )
   }
+
+  // ── PHONE ENTER SCREEN ──────────────────────────────────────
+  if (screen === 'phone-enter') return (
+    <div style={bgStyle}>
+      <div style={orb('-80px', '-80px')} />
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <button onClick={() => { setPhoneError(''); navigateToScreen('choose') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          ← Back
+        </button>
+        <div style={glassCard}>
+          <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(124,92,255,0.15), rgba(74,144,226,0.15))', border: '2px solid rgba(124,92,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '26px' }}>📱</div>
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px', textAlign: 'center' }}>Continue with phone</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px', textAlign: 'center' }}>Enter your phone number and we'll send you a secure code.</p>
+
+          <form onSubmit={handlePhoneSendCode}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ ...inputStyle, width: '72px', flex: 'none', textAlign: 'center', marginBottom: 0, color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+1</div>
+              <input
+                style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={phoneNumber}
+                onChange={e => setPhoneNumber(e.target.value)}
+                autoFocus
+                maxLength={15}
+              />
+            </div>
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '16px', textAlign: 'center' }}>Your phone number stays private. We'll never share it.</p>
+            {phoneError && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{phoneError}</div>}
+            <button type="submit" disabled={phoneLoading} style={{ ...btnPrimary, opacity: phoneLoading ? 0.7 : 1 }}>{phoneLoading ? 'Sending code…' : 'Send code'}</button>
+          </form>
+          <button onClick={() => { setPhoneError(''); navigateToScreen('signin') }} style={{ ...btnOutline, marginBottom: 0, fontSize: '13px', color: '#64748B' }}>Use email instead</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ── PHONE VERIFY SCREEN ────────────────────────────────────
+  if (screen === 'phone-verify') return (
+    <div style={bgStyle}>
+      <div style={orb('-80px', '-80px')} />
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <button onClick={() => { setPhoneError(''); setPhoneCode(''); navigateToScreen('phone-enter') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          ← Change phone number
+        </button>
+        <div style={glassCard}>
+          <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(124,92,255,0.15), rgba(74,144,226,0.15))', border: '2px solid rgba(124,92,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '26px' }}>🔐</div>
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', marginBottom: '5px', textAlign: 'center' }}>Enter your code</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '22px', textAlign: 'center' }}>We sent a 6-digit code to <span style={{ color: '#7C5CFF', fontWeight: 600 }}>{phoneMasked}</span></p>
+
+          <form onSubmit={handlePhoneVerifyCode}>
+            <input
+              style={{ ...inputStyle, textAlign: 'center', fontSize: '22px', fontWeight: 700, letterSpacing: '6px' }}
+              type="tel"
+              placeholder="000000"
+              value={phoneCode}
+              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setPhoneCode(v) }}
+              autoFocus
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+            />
+            {phoneError && <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '10px 14px', color: '#EF4444', fontSize: '13px', marginBottom: '12px' }}>{phoneError}</div>}
+            <button type="submit" disabled={phoneLoading || phoneCode.length < 4} style={{ ...btnPrimary, opacity: (phoneLoading || phoneCode.length < 4) ? 0.6 : 1 }}>{phoneLoading ? 'Verifying…' : 'Continue'}</button>
+          </form>
+          <div style={{ textAlign: 'center', marginTop: '4px' }}>
+            {phoneResendTimer > 0 ? (
+              <span style={{ fontSize: '13px', color: '#94A3B8' }}>Resend code in {phoneResendTimer}s</span>
+            ) : (
+              <button onClick={handlePhoneResend} disabled={phoneLoading} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7C5CFF', fontSize: '13px', fontWeight: 600, padding: 0 }}>Resend code</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   // ── AGENCY SCREEN ──────────────────────────────────────────
   return (

@@ -1,8 +1,10 @@
 // @ts-nocheck
-// Phase 24D: Phone Verification Service
-// Provider-ready interface with dev-mode OTP simulation.
-// Security: hashed OTP storage, expiration, resend delay, attempt limits, generic errors.
+// Phase 24D → 26C: Phone Verification Service
+// DEV mode: client-side OTP simulation (localhost only)
+// PRODUCTION: calls backend Twilio Verify endpoints
 // ─────────────────────────────────────────────────────────────────────────────
+
+const API_BASE = 'https://gotocare-original.jjioji.workers.dev/api'
 
 // ── Configuration ────────────────────────────────────────────────────────────
 const OTP_LENGTH = 6
@@ -17,6 +19,7 @@ export type PhoneVerifSendResult = {
   success: boolean
   error?: string
   retryAfterMs?: number
+  provider?: string
 }
 
 export type PhoneVerifVerifyResult = {
@@ -31,15 +34,15 @@ export type PhoneVerifStatus = {
   verifiedAt?: string
 }
 
-// ── Internal state (in-memory, never persisted as plain text) ────────────────
+// ── Internal state (dev mode only — in-memory, never persisted as plain text)
 let _otpHash: string | null = null
 let _otpPhone: string | null = null
 let _otpCreatedAt: number = 0
 let _otpAttempts: number = 0
 let _lastSendAt: number = 0
-let _devOtpForTesting: string | null = null  // Only used in dev mode for console hint
+let _devOtpForTesting: string | null = null
 
-// ── Simple hash (not crypto-grade, but never stores plain OTP) ───────────────
+// ── Simple hash (dev mode only) ─────────────────────────────────────────────
 function simpleHash(input: string): string {
   let hash = 0
   for (let i = 0; i < input.length; i++) {
@@ -50,13 +53,18 @@ function simpleHash(input: string): string {
   return 'h_' + Math.abs(hash).toString(36) + '_' + input.length
 }
 
-// ── Generate OTP ─────────────────────────────────────────────────────────────
+// ── Generate OTP (dev mode only) ────────────────────────────────────────────
 function generateOTP(): string {
   const digits: string[] = []
   for (let i = 0; i < OTP_LENGTH; i++) {
     digits.push(String(Math.floor(Math.random() * 10)))
   }
   return digits.join('')
+}
+
+// ── Auth token helper ───────────────────────────────────────────────────────
+function getToken(): string | null {
+  try { return localStorage.getItem('cgp_token') } catch { return null }
 }
 
 // ── Normalize phone ──────────────────────────────────────────────────────────
@@ -82,7 +90,7 @@ export async function sendOTP(rawPhone: string): Promise<PhoneVerifSendResult> {
     return { success: false, error: 'Please enter a valid phone number.' }
   }
 
-  // Resend delay
+  // Resend delay (client-side enforcement for UX)
   const now = Date.now()
   const timeSinceLast = now - _lastSendAt
   if (_lastSendAt > 0 && timeSinceLast < RESEND_DELAY_MS) {
@@ -94,93 +102,118 @@ export async function sendOTP(rawPhone: string): Promise<PhoneVerifSendResult> {
     }
   }
 
-  // Generate and store OTP
-  const otp = generateOTP()
-  _otpHash = simpleHash(phone + ':' + otp)
-  _otpPhone = phone
-  _otpCreatedAt = now
-  _otpAttempts = 0
-  _lastSendAt = now
-
   if (DEV_MODE) {
-    // In dev mode, log OTP to console for testing. Never expose in UI.
+    // Dev mode: client-side OTP simulation
+    const otp = generateOTP()
+    _otpHash = simpleHash(phone + ':' + otp)
+    _otpPhone = phone
+    _otpCreatedAt = now
+    _otpAttempts = 0
+    _lastSendAt = now
     _devOtpForTesting = otp
     console.info('[PhoneVerification DEV] OTP for', phone, '→', otp)
-
-    // Simulate network delay
     await new Promise(r => setTimeout(r, 800))
-    return { success: true }
+    return { success: true, provider: 'dev_mode' }
   }
 
-  // ── PRODUCTION: Send via SMS provider ──────────────────────────────────
-  // Replace this block with your SMS provider (Twilio, MessageBird, etc.)
-  // Example:
-  // const res = await fetch('/api/phone-verify/send', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ phone, otp }),
-  // })
-  // const data = await res.json()
-  // if (!data.success) return { success: false, error: 'Unable to send code. Please try again.' }
+  // ── PRODUCTION: Call backend Twilio Verify ──────────────────────────────
+  const token = getToken()
+  if (!token) {
+    return { success: false, error: 'Please sign in to verify your phone.' }
+  }
 
-  return { success: true }
+  try {
+    const res = await fetch(`${API_BASE}/caregiver-phone-verify/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ phoneNumber: phone }),
+    })
+    const data = await res.json()
+    _lastSendAt = Date.now()
+    _otpPhone = phone
+
+    if (data.success) {
+      return { success: true, provider: data.provider || 'twilio_verify' }
+    }
+
+    if (data.provider === 'unconfigured') {
+      return { success: false, error: 'Phone verification is being set up. Please try again later.' }
+    }
+
+    return { success: false, error: data.error || 'Unable to send code. Please try again.' }
+  } catch {
+    return { success: false, error: 'Something went wrong. Please try again.' }
+  }
 }
 
 // ── Verify OTP ───────────────────────────────────────────────────────────────
 export async function verifyOTP(rawPhone: string, code: string): Promise<PhoneVerifVerifyResult> {
   const phone = normalizePhone(rawPhone)
 
-  // Check if there's an active OTP session
-  if (!_otpHash || !_otpPhone) {
-    return { success: false, error: 'Please request a new verification code.' }
-  }
-
-  // Check phone matches
-  if (_otpPhone !== phone) {
-    return { success: false, error: 'Please request a new verification code.' }
-  }
-
-  // Check expiry
-  if (Date.now() - _otpCreatedAt > OTP_EXPIRY_MS) {
-    _otpHash = null
-    _otpPhone = null
-    return { success: false, error: 'Code expired. Please request a new one.' }
-  }
-
-  // Check attempts
-  _otpAttempts++
-  if (_otpAttempts > MAX_ATTEMPTS) {
-    _otpHash = null
-    _otpPhone = null
-    return { success: false, error: 'Too many attempts. Please request a new code.' }
-  }
-
-  // Verify hash
-  const candidateHash = simpleHash(phone + ':' + code.trim())
-
   if (DEV_MODE) {
+    // Dev mode: client-side verification
+    if (!_otpHash || !_otpPhone) {
+      return { success: false, error: 'Please request a new verification code.' }
+    }
+    if (_otpPhone !== phone) {
+      return { success: false, error: 'Please request a new verification code.' }
+    }
+    if (Date.now() - _otpCreatedAt > OTP_EXPIRY_MS) {
+      _otpHash = null; _otpPhone = null
+      return { success: false, error: 'Code expired. Please request a new one.' }
+    }
+    _otpAttempts++
+    if (_otpAttempts > MAX_ATTEMPTS) {
+      _otpHash = null; _otpPhone = null
+      return { success: false, error: 'Too many attempts. Please request a new code.' }
+    }
+    const candidateHash = simpleHash(phone + ':' + code.trim())
     await new Promise(r => setTimeout(r, 600))
+    if (candidateHash === _otpHash) {
+      _otpHash = null; _otpPhone = null; _devOtpForTesting = null
+      savePhoneVerified(phone)
+      return { success: true }
+    }
+    const remaining = MAX_ATTEMPTS - _otpAttempts
+    return {
+      success: false,
+      error: remaining > 0 ? 'Incorrect code. Please try again.' : 'Too many attempts. Please request a new code.',
+      attemptsRemaining: Math.max(0, remaining),
+    }
   }
 
-  if (candidateHash === _otpHash) {
-    // Success — clear OTP state
-    _otpHash = null
-    _otpPhone = null
-    _devOtpForTesting = null
-
-    // Persist verified status
-    savePhoneVerified(phone)
-
-    return { success: true }
+  // ── PRODUCTION: Call backend Twilio Verify check ────────────────────────
+  const token = getToken()
+  if (!token) {
+    return { success: false, error: 'Please sign in to verify your phone.' }
   }
 
-  const remaining = MAX_ATTEMPTS - _otpAttempts
-  return {
-    success: false,
-    error: remaining > 0
-      ? 'Incorrect code. Please try again.'
-      : 'Too many attempts. Please request a new code.',
-    attemptsRemaining: Math.max(0, remaining),
+  try {
+    const res = await fetch(`${API_BASE}/caregiver-phone-verify/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ phoneNumber: phone, code: code.trim() }),
+    })
+    const data = await res.json()
+
+    if (data.success && data.phoneVerified) {
+      // Persist locally for instant UI update
+      savePhoneVerified(phone, data.phoneVerifiedAt)
+      return { success: true }
+    }
+
+    return {
+      success: false,
+      error: data.error || 'We could not verify that code. Please try again.',
+    }
+  } catch {
+    return { success: false, error: 'Something went wrong. Please try again.' }
   }
 }
 
@@ -197,16 +230,12 @@ export function getResendCountdownMs(): number {
 }
 
 // ── Persistence: phone verified status ───────────────────────────────────────
-function savePhoneVerified(phone: string): void {
+function savePhoneVerified(phone: string, verifiedAt?: string): void {
   try {
     const masked = phone.slice(0, -4).replace(/\d/g, '•') + phone.slice(-4)
-    const status: PhoneVerifStatus = {
-      phone: masked,
-      verified: true,
-      verifiedAt: new Date().toISOString(),
-    }
+    const ts = verifiedAt || new Date().toISOString()
     localStorage.setItem('cgp_phone_verified', 'true')
-    localStorage.setItem('cgp_phone_verified_at', status.verifiedAt)
+    localStorage.setItem('cgp_phone_verified_at', ts)
     localStorage.setItem('cgp_phone_masked', masked)
 
     // Also update cgp_account if present
@@ -214,7 +243,7 @@ function savePhoneVerified(phone: string): void {
       const acct = JSON.parse(localStorage.getItem('cgp_account') || 'null')
       if (acct) {
         acct.phoneVerified = true
-        acct.phoneVerifiedAt = status.verifiedAt
+        acct.phoneVerifiedAt = ts
         localStorage.setItem('cgp_account', JSON.stringify(acct))
       }
     } catch {}

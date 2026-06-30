@@ -147,6 +147,84 @@ function hoursFromEntry(entry: TimeEntry) {
   return entry.duration ? entry.duration / 60 : 0
 }
 
+// ── Phase 26E: Match Insights Types & Helpers ───────────────────────────
+type CaregiverMatchInsight = {
+  id: string;
+  caregiverId: string;
+  requestType: string;
+  matchScore: number;
+  createdAt: string;
+  strongMatches: string[];
+  improvementTips: string[];
+  privateClientDetailsIncluded: false;
+  seen?: boolean;
+};
+
+function getMatchInsights(): CaregiverMatchInsight[] {
+  try {
+    const raw = localStorage.getItem('carehia_match_insights');
+    if (!raw) return [];
+    const insights: CaregiverMatchInsight[] = JSON.parse(raw);
+    return insights.filter(i => i.matchScore >= 70 && !i.seen);
+  } catch { return []; }
+}
+
+function markInsightSeen(id: string): void {
+  try {
+    const raw = localStorage.getItem('carehia_match_insights');
+    if (!raw) return;
+    const insights: CaregiverMatchInsight[] = JSON.parse(raw);
+    const updated = insights.map(i => i.id === id ? { ...i, seen: true } : i);
+    localStorage.setItem('carehia_match_insights', JSON.stringify(updated));
+  } catch {}
+}
+
+// ── Phase 26E: Match Insight Card Component ──────────────────────────────
+function MatchInsightCard({ insight, onDismiss }: { insight: CaregiverMatchInsight; onDismiss: (id: string) => void }) {
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #F5F3FF, #EEF4FF)',
+      border: '1px solid #DDD6FE',
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 14,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>🎯</span>
+          <span style={{ fontSize: 13, fontWeight: 900, color: '#5B2FD6' }}>Match Insight</span>
+        </div>
+        <button onClick={() => onDismiss(insight.id)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 14, cursor: 'pointer', padding: '2px 6px' }}>✕</button>
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', lineHeight: 1.45, marginBottom: 8 }}>
+        A care request in your area matched your profile at <span style={{ color: '#5B2FD6', fontWeight: 950 }}>{insight.matchScore}%</span>
+      </div>
+      <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, marginBottom: 6 }}>
+        {insight.requestType && `Request type: ${insight.requestType}`}
+      </div>
+      {insight.strongMatches.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 850, color: '#087A3D', marginBottom: 4 }}>Your strengths for this match:</div>
+          {insight.strongMatches.map((m, i) => (
+            <div key={i} style={{ fontSize: 12, color: '#334155', lineHeight: 1.5, paddingLeft: 10 }}>✓ {m}</div>
+          ))}
+        </div>
+      )}
+      {insight.improvementTips.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 850, color: '#B45309', marginBottom: 4 }}>To strengthen future matches:</div>
+          {insight.improvementTips.map((t, i) => (
+            <div key={i} style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5, paddingLeft: 10 }}>→ {t}</div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 8, lineHeight: 1.4 }}>
+        Insights are private to you. Keep your profile updated to improve future matches.
+      </div>
+    </div>
+  );
+}
+
 const ProgressRing = ({ score, size = 52 }: { score: number; size?: number }) => {
   const r = (size - 8) / 2
   const c = 2 * Math.PI * r
@@ -222,6 +300,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   const [quickRate, setQuickRate] = useState(String(profile?.hourlyRate || 25))
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(() => getTimeEntries())
   const [isOnline, setIsOnline] = useState(() => localStorage.getItem('cgp_online_status') !== 'offline')
+  // Phase 26E: Match insights state
+  const [matchInsights, setMatchInsights] = useState<CaregiverMatchInsight[]>(() => getMatchInsights())
+  function dismissInsight(id: string) {
+    markInsightSeen(id);
+    setMatchInsights(prev => prev.filter(i => i.id !== id));
+  }
   // Phase 23E: personalized goals banner from onboarding
   const [obBannerDismissed, setObBannerDismissed] = useState(() => {
     try { return localStorage.getItem('cgp_onboarding_banner_dismissed') === 'true' } catch { return false }
@@ -766,6 +850,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </div>
         )
       })()}
+
+      {/* ── Phase 26E: Match Insight Cards ── */}
+      {matchInsights.length > 0 && matchInsights.map(insight => (
+        <MatchInsightCard key={insight.id} insight={insight} onDismiss={dismissInsight} />
+      ))}
 
       {/* ── 2. Online toggle ── */}
       <button

@@ -439,6 +439,95 @@ function buildQuickActions(
   return actions
 }
 
+// ── Phase 26E: Match Readiness Card Component ───────────────────────────
+function MatchReadinessCard({ 
+  profile, 
+  onNavigate 
+}: { 
+  profile: CaregiverProfile | null;
+  onNavigate: (tab: string) => void;
+}) {
+  // Compute readiness factors from profile
+  const profileComplete = profile ? (typeof (profile as any).profilePercent === 'number' ? (profile as any).profilePercent : 60) : 0;
+  const hasServices = profile?.services && (Array.isArray(profile.services) ? profile.services.length > 0 : !!profile.services);
+  const servicesScore = hasServices ? 80 : 20;
+  const hasAvailability = !!(profile as any)?.availability;
+  const availabilityScore = hasAvailability ? 85 : 25;
+  const hasServiceArea = !!(profile as any)?.serviceArea || !!(profile as any)?.city;
+  const serviceAreaScore = hasServiceArea ? 80 : 30;
+  const trustScore = profile ? (typeof (profile as any).trustPassportPercent === 'number' ? (profile as any).trustPassportPercent : 40) : 0;
+
+  const factors = [
+    { label: 'Profile', score: profileComplete, tab: 'profile', tip: profileComplete < 70 ? 'Add a photo, bio, and experience details' : 'Looking good!' },
+    { label: 'Services', score: servicesScore, tab: 'profile', tip: servicesScore < 60 ? 'List the care services you offer' : 'Well defined' },
+    { label: 'Availability', score: availabilityScore, tab: 'profile', tip: availabilityScore < 60 ? 'Set your weekly availability' : 'Clearly set' },
+    { label: 'Service Area', score: serviceAreaScore, tab: 'profile', tip: serviceAreaScore < 60 ? 'Define your service area or city' : 'Defined' },
+    { label: 'Trust Passport', score: trustScore, tab: 'trust-passport', tip: trustScore < 60 ? 'Upload verifications to build trust' : 'Building trust' },
+  ];
+
+  const overallReadiness = Math.round(factors.reduce((sum, f) => sum + f.score, 0) / factors.length);
+  const strongest = factors.filter(f => f.score >= 70).sort((a, b) => b.score - a.score);
+  const weakest = factors.filter(f => f.score < 70).sort((a, b) => a.score - b.score);
+
+  return (
+    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 16, marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: '#0F172A' }}>Match Readiness</div>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>How prepared your profile is for care requests</div>
+        </div>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: overallReadiness >= 70 ? '#EAFBF2' : '#FFF7ED', color: overallReadiness >= 70 ? '#087A3D' : '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 950 }}>{overallReadiness}%</div>
+      </div>
+
+      {factors.map(f => {
+        const barColor = f.score >= 80 ? '#22C55E' : f.score >= 60 ? '#F59E0B' : '#CBD5E1';
+        return (
+          <div key={f.label} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#334155' }}>{f.label}</span>
+              <span style={{ fontSize: 11, color: '#64748B' }}>{f.score}%</span>
+            </div>
+            <div style={{ height: 5, borderRadius: 999, background: '#E2E8F0', overflow: 'hidden', marginBottom: 3 }}>
+              <div style={{ width: `${Math.min(f.score, 100)}%`, height: '100%', borderRadius: 999, background: barColor }} />
+            </div>
+            <div style={{ fontSize: 11, color: f.score < 60 ? '#B45309' : '#64748B', fontWeight: 700 }}>{f.tip}</div>
+          </div>
+        );
+      })}
+
+      {strongest.length > 0 && (
+        <div style={{ background: '#EAFBF2', borderRadius: 8, padding: 10, marginTop: 10, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: '#087A3D', marginBottom: 4 }}>Your strongest areas</div>
+          {strongest.slice(0, 2).map(s => (
+            <div key={s.label} style={{ fontSize: 12, color: '#334155' }}>✓ {s.label}: {s.tip}</div>
+          ))}
+        </div>
+      )}
+
+      {weakest.length > 0 && (
+        <div style={{ background: '#FFF7ED', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: '#B45309', marginBottom: 4 }}>Areas to improve</div>
+          {weakest.slice(0, 2).map(w => (
+            <div key={w.label} style={{ fontSize: 12, color: '#334155' }}>→ {w.tip}</div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        {weakest.slice(0, 3).map(w => (
+          <button key={w.label} onClick={() => onNavigate(w.tab)} style={{ padding: '8px 14px', background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 8, color: '#5B2FD6', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}>
+            Update {w.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 10, lineHeight: 1.4 }}>
+        Improving these areas helps you appear in more care requests. Results vary based on requests in your area.
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────
 export const KaiPanel: React.FC<KaiPanelProps> = ({
   profile,
@@ -466,6 +555,9 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
 
   // Phase 25E: Pending confirmation state
   const [pendingConfirmation, setPendingConfirmation] = useState<KaiPendingConfirmation | null>(null)
+
+  // Phase 26E: Match Readiness state
+  const [showMatchReadiness, setShowMatchReadiness] = useState(false)
 
   useEffect(() => {
     requestAnimationFrame(() => setAnimateIn(true))
@@ -1142,6 +1234,48 @@ export const KaiPanel: React.FC<KaiPanelProps> = ({
                     )
                   })}
                 </div>
+              </div>
+
+              {/* ── Phase 26E: Improve My Matches ───────────── */}
+              <div style={{ marginTop: 16, padding: '0 20px' }}>
+                <button
+                  onClick={() => setShowMatchReadiness(!showMatchReadiness)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: showMatchReadiness ? 'linear-gradient(135deg, #F5F3FF, #EEF4FF)' : '#FFFFFF',
+                    border: showMatchReadiness ? '1.5px solid #DDD6FE' : '1px solid #E2E8F0',
+                    borderRadius: 14,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>🎯</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#5B2FD6', flex: 1 }}>Improve My Matches</span>
+                  <span style={{
+                    fontSize: 12, color: '#94a3b8', transition: 'transform 0.2s',
+                    transform: showMatchReadiness ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }}>▼</span>
+                </button>
+                {showMatchReadiness && (
+                  <div style={{ marginTop: 12 }}>
+                    <MatchReadinessCard
+                      profile={profile}
+                      onNavigate={(tab: string) => {
+                        handleClose();
+                        setTimeout(() => {
+                          if (tab === 'profile') onNavigateToProfile();
+                          else if (tab === 'trust-passport') onNavigateToTrust();
+                          else if (tab === 'work') onNavigateToWork();
+                          else if (tab === 'money') onNavigateToEarnings();
+                        }, 300);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* ── Kai Tip ──────────────────────────────────── */}
